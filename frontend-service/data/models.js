@@ -20,10 +20,4 @@ export const models = [
 		model_img: "dashboard_assets/string.png",
 		model_endpoint: "https://example.com/api/v1/endpoint",
 	}),
-	createModel({
-		_id: 2,
-		model_name: "Image",
-		model_img: "dashboard_assets/image.png",
-		model_endpoint: "https://example.com/api/v1/endpoint",
-	}),
 ];

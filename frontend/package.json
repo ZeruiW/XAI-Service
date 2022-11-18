@@ -1,5 +1,5 @@
 {
-  "name": "frontend_service",
+  "name": "xai-service-frontend",
   "version": "0.1.0",
   "private": true,
   "scripts": {

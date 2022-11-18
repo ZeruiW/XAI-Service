@@ -53,10 +53,21 @@ export default function Index() {
 	const [svc, setSvc] = useState(2);
 	const [model, setModel] = useState(2);
 
+	const [images, setImages] = useState(null);
+	const [createObjectURLs, setCreateObjectURL] = useState(null);
+
+	const uploadToClient = (event) => {
+		if (event.target.files) {
+			const i = event.target.files[0];
+			setImages(i);
+			setCreateObjectURL(URL.createObjectURL(i));
+		}
+	};
+
 	return (
 		<DashboardLayout>
 			<Head>
-				<title>XAI Framework - SAC Research Group</title>
+				<title>XAI Evaluation Service - SAC Group</title>
 				<link rel="icon" href="sac-logo.png" type="image/x-icon"></link>
 			</Head>
 			<div className="flex flex-wrap sm:justify-start justify-center">
@@ -115,11 +126,6 @@ export default function Index() {
 									selectedModel={model}
 									model={models[1]}
 								></ModelCard>
-								<ModelCard
-									setModel={() => setModel(2)}
-									selectedModel={model}
-									model={models[2]}
-								></ModelCard>
 							</div>
 							<div className="overflow-y-auto rounded bg-gray-100 m-4">
 								<div className="bg-black text-white">
@@ -167,6 +173,9 @@ export default function Index() {
 									className="block w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 cursor-pointer focus:outline-none"
 									id="file_input"
 									type="file"
+									accept="image/jpg image/jpeg"
+									multiple
+									onChange={uploadToClient}
 								></input>
 								<label className="">Uploaded</label>
 								<img

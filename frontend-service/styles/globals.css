@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+th,
+td,
+tr {
+	padding: 8pt;
+	border: solid 1px #bbbbbb88;
+}
+
+th {
+	background: #ccc;
+}

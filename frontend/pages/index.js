@@ -64,6 +64,15 @@ export default function Index() {
 		}
 	};
 
+	const uploadToServer = async (e) => {
+		const body = new FormData();
+		body.append("file", image);
+		const res = await fetch(`${IMAGE_DB_API}`, {
+			method: "POST",
+			body,
+		});
+	};
+
 	return (
 		<DashboardLayout>
 			<Head>
@@ -71,7 +80,7 @@ export default function Index() {
 				<link rel="icon" href="sac-logo.png" type="image/x-icon"></link>
 			</Head>
 			<div className="flex flex-wrap sm:justify-start justify-center">
-				<Menu id="selector" className="w-48 inline-block relative" as="div">
+				<Menu id="selector" className="w-56 inline-block relative" as="div">
 					<div className="m-4 flex justify-center">
 						<Menu.Button className="w-full justify-center rounded-md items-center text-sm bg-neutral-200 py-2 font-medium dark:text-white hover:bg-green-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75">
 							<AiOutlineMenu
@@ -161,54 +170,65 @@ export default function Index() {
 							<h2 className="text-4xl">Text data - Coming soon.</h2>
 						</div>
 					) : svc == 2 ? (
-						<div className="flex flex-wrap justify-evenly w-full">
-							<form className="flex flex-wrap justify-start items-center flex-col space-y-4 m-2">
-								<label
-									className="w-full text-center mb-2 p-2 text-2xl font-medium text-blue-500 bg-slate-200 rounded-md"
-									htmlFor="file_input"
-								>
-									Input Data
-								</label>
-								<input
-									className="block w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 cursor-pointer focus:outline-none"
-									id="file_input"
-									type="file"
-									accept="image/jpg image/jpeg"
-									multiple
-									onChange={uploadToClient}
-								></input>
-								<label className="">Uploaded</label>
-								<img
-									className="w-[224px] h-[224px] rounded-md"
-									src="dashboard_assets/cat-dog-placeholder.jpeg"
-								></img>
-							</form>
-							<div className="flex flex-wrap justify-start items-center flex-col m-2">
-								<h3 className="w-full text-center mb-2 p-2 text-2xl font-medium text-blue-500 bg-slate-200 rounded-md">
-									Data Summary
-								</h3>
-								<table>
-									<thead>
-										<tr>
-											<th>#</th>
-											<th>File</th>
-											<th>ID</th>
-										</tr>
-									</thead>
-									<tbody>
-										<tr>
-											<td>1</td>
-											<td>cat-and-dog.png</td>
-											<td className="font-mono">13ae5fd9</td>
-										</tr>
-										<tr>
-											<td>2</td>
-											<td>a-building.png</td>
-											<td className="font-mono">13ae5fd9</td>
-										</tr>
-									</tbody>
-								</table>
+						<div className="flex flex-col justify-evenly w-full">
+							<div className="flex justify-center">
+								<form className="flex flex-wrap justify-start items-center flex-col space-y-4 m-2">
+									<label
+										className="w-full text-center mb-2 p-2 text-2xl font-medium text-blue-500 bg-slate-200 rounded-md"
+										htmlFor="file_input"
+									>
+										Input Data
+									</label>
+									<input
+										className="block w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 cursor-pointer focus:outline-none"
+										id="file_input"
+										type="file"
+										accept="image/jpg image/jpeg"
+										multiple
+										onChange={uploadToClient}
+									></input>
+									<label className="">Uploaded</label>
+									<img
+										className="w-[224px] h-[224px] rounded-md"
+										src={createObjectURLs}
+									></img>
+								</form>
+								<div className="flex flex-wrap justify-start items-center flex-col m-2">
+									<h3 className="w-full text-center mb-2 p-2 text-2xl font-medium text-blue-500 bg-slate-200 rounded-md">
+										Data Summary
+									</h3>
+									<table>
+										<thead>
+											<tr>
+												<th>#</th>
+												<th>File</th>
+												<th>ID</th>
+											</tr>
+										</thead>
+										<tbody>
+											<tr>
+												<td>1</td>
+												<td>cat-and-dog.png</td>
+												<td className="font-mono">13ae5fd9</td>
+											</tr>
+											<tr>
+												<td>2</td>
+												<td>{images?.name}</td>
+												<td className="font-mono">
+													{images?.lastModified}
+												</td>
+											</tr>
+											{/* {images?.map((img, idx) => {
+											<tr key={idx}>
+												<td>{idx}</td>
+												<td>{img[idx]}</td>
+											</tr>;
+										})} */}
+										</tbody>
+									</table>
+								</div>
 							</div>
+
 							<div className="flex flex-wrap justify-start items-center flex-col m-2">
 								<h3 className="w-full text-center mb-2 p-2 text-2xl font-medium text-blue-500 bg-slate-200 rounded-md">
 									Results

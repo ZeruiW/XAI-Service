@@ -11,34 +11,37 @@ import DashboardLayout from "../layouts/dashboard";
 export default function Index() {
 	const [images, setImages] = useState([]);
 
-	const handleImagesUpload = async (e) => {
-		if (e.target.files) {
-			const i = e.target.files;
-			setImages(i);
-		}
+	const handleSelectImage = async (e) => {
+		setImages([...images, e.target.files[0]]);
 	};
 
-	const uploadImages = async (e) => {
+	const uploadPhoto = async (e) => {
 		e.preventDefault();
-		let formData = new FormData();
+		console.log(images[0].name)
+    const file = images[0];
+    const filename = encodeURIComponent(file.name);
+    const res = await fetch(`/api/upload-images?file=${filename}`);
+    const { url, fields } = await res.json();
+    const formData = new FormData();
 
-		Object.keys(images).map((key, idx) => {
-			formData.append(idx, images[key].name);
-		});
+    Object.entries({ ...fields, file }).forEach(([key, value]) => {
+      formData.append(key, value);
+    });
 
-		fetch("/api/upload-images", {
-			method: "POST",
-			body: {
-				img: formData,
+		const upload = await fetch(url, {
+			headers: {
+				"Access-Control-Allow-Origin": "*"
 			},
-			// headers: {
-			// 	"Content-Type": "multipart/form-data",
-			// },
-		})
-			.then((res) => res.json())
-			.then((json) => console.log(json))
-			.catch((err) => console.log(err));
-	};
+      method: 'POST',
+      body: formData,
+    });
+
+    if (upload.ok) {
+      console.log('Uploaded successfully!');
+    } else {
+      console.error('Upload failed.');
+    }
+  };
 
 	const createTask = async (e) => {
 		e.preventDefault();
@@ -78,11 +81,10 @@ export default function Index() {
 							className="block w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 cursor-pointer focus:outline-none"
 							id="file_input"
 							type="file"
-							accept="image/jpg image/jpeg"
-							multiple
-							onChange={handleImagesUpload}
+							accept="image/jpg, image/jpeg"
+							onChange={handleSelectImage}
 						></input>
-						<button onClick={uploadImages}>Upload Images</button>
+						<button onClick={uploadPhoto}>Upload Images</button>
 						<button onClick={createTask}>Create Task</button>
 					</form>
 					<div className="flex flex-wrap justify-start items-center flex-col m-2">
@@ -98,10 +100,10 @@ export default function Index() {
 								</tr>
 							</thead>
 							<tbody>
-								{Object.keys(images).map((keyName, idx) => {
+								{/* {Object?.keys(images).map((keyName, idx) => {
 									console.log(images[keyName]);
 								})}
-								{Object.keys(images).map((keyName, idx) => (
+								{Object?.keys(images).map((keyName, idx) => (
 									<tr key={idx}>
 										<td>{idx + 1}</td>
 										<td className="w-64 truncate">{images[keyName].name}</td>
@@ -109,7 +111,7 @@ export default function Index() {
 											{images[keyName].lastModified}
 										</td>
 									</tr>
-								))}
+								))} */}
 							</tbody>
 						</table>
 					</div>

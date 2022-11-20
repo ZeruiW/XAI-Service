@@ -2,6 +2,7 @@
 
 // deps and funcs
 import { useState } from "react";
+// import multer from "multer";
 
 // components
 import Head from "next/head";
@@ -15,6 +16,47 @@ export default function Index() {
 			const i = e.target.files;
 			setImages(i);
 		}
+	};
+
+	const uploadImages = async (e) => {
+		e.preventDefault();
+		let formData = new FormData();
+
+		Object.keys(images).map((key, idx) => {
+			formData.append(idx, images[key].name);
+		});
+
+		fetch("/api/upload-images", {
+			method: "POST",
+			body: {
+				img: formData,
+			},
+			// headers: {
+			// 	"Content-Type": "multipart/form-data",
+			// },
+		})
+			.then((res) => res.json())
+			.then((json) => console.log(json))
+			.catch((err) => console.log(err));
+	};
+
+	const createTask = async (e) => {
+		e.preventDefault();
+
+		await fetch("/api/create-task", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({
+				taskId: 123,
+				taskName: "some_name",
+				sampleList: [],
+				stat: "raw",
+				modelObject: "some_model",
+				xaiObject: "some_xai",
+			}),
+		});
 	};
 
 	return (
@@ -40,6 +82,8 @@ export default function Index() {
 							multiple
 							onChange={handleImagesUpload}
 						></input>
+						<button onClick={uploadImages}>Upload Images</button>
+						<button onClick={createTask}>Create Task</button>
 					</form>
 					<div className="flex flex-wrap justify-start items-center flex-col m-2">
 						<h3 className="w-full text-center mb-2 p-2 text-2xl font-medium text-blue-500 bg-slate-200 rounded-md">

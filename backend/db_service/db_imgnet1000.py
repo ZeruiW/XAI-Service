@@ -11,8 +11,8 @@ import numpy as np
 bp = Blueprint('imgnet1000', __name__, url_prefix='/db/imgnet1000')
 
 cnx = mysql.connector.connect(
-    host="xaifwdb.c0gj2xdlz1ck.us-east-2.rds.amazonaws.com",
-    user="root",
+    host="database-1.c0gj2xdlz1ck.us-east-2.rds.amazonaws.com",
+    user="xai",
     password="xaidb.2022",
     database="xaifw"
 )

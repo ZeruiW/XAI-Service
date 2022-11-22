@@ -16,39 +16,55 @@ export default function Index() {
 	const [datasetName, setDatasetName] = useState("image_net_1000");
 	const [datasetGrpName, setDatasetGrpName] = useState("");
 	const [modelName, setModelName] = useState("resnet50");
-	const [modelSrvUrl, setModelSrvUrl] = useState("http://127.0.0.1:5002/resnet50");
-	const [dbSrvUrl, setDbSrvUrl] = useState("http://127.0.0.1:5000/db/imgnet1000");
+	const [modelSrvUrl, setModelSrvUrl] = useState("http://127.0.0.1:5001/resnet50");
+	const [dbSrvUrl, setDbSrvUrl] = useState("http://127.0.0.1:5002/db/imgnet1000");
 
 	const [taskName, setTaskName] = useState("");
 	const [evalTask, setEvalTask] = useState("");
 	const [stability, setStability] = useState("");
+	const [mapFile, setMapFile] = useState(null);
+	const [camExp, setCamExp] = useState(null)
 
 	const handleSelectImages = async (e) => {
 		setImages(e.target.files[0]);
 	};
 
+	const handleSelectMap = async (e) => {
+		setMapFile(e.target.files[0]);
+	}
+
 	const uploadPhoto = async (e) => {
 		e.preventDefault();
 
-		const file = images[0];
+		const file = images;
+		const map = mapFile;
 		const img_name_label = await fetch("img_name_label.csv");
 		const formData = new FormData();
 		const img_group = `t${imgGrp}`;
 
 		formData.append("imgs", file);
-		formData.append("img_name_label", img_name_label);
+		formData.append("img_label_map", map);
 		formData.append("img_group", img_group);
 
+		const myHeaders = new Headers()
+		myHeaders.append("Content-Type", "multipart/form-data")
+
+		const requestOptions = {
+			method: 'POST',
+			body: formData,
+			redirect: 'follow'
+		}
+
 		try {
-			const upload = await fetch("http://127.0.0.1:5000/db/imgnet1000/", {
-				method: "POST",
-				body: formData,
-			});
+			for (var pair of formData.entries()) {
+				console.log(pair[0] + ', ' + pair[1])
+			}
+			const upload = await fetch("http://127.0.0.1:5002/db/imgnet1000/",
+				requestOptions
+			);
 			if (upload.ok) {
 				setDatasetGrpName(imgGrp);
 				console.log("Uploaded successfully!");
-			} else {
-				console.error("Upload failed.");
 			}
 		} catch (err) {
 			console.log(err)
@@ -68,17 +84,17 @@ export default function Index() {
 		formData.append("db_service_url", dbSrvUrl)
 
 		try {
-			const execute = await fetch("http://127.0.0.1/xai/pt_cam", {
+			for (var pair of formData.entries()) {
+				console.log(pair[0] + ', ' + pair[1])
+			}
+			const execute = await fetch("http://127.0.0.1:5003/xai/pt_cam", {
 				method: "POST",
 				body: formData
 			})
 
 			if (execute.ok) {
 				console.log("Executed CAM successfully")
-				setTaskName(await fetch("http://127.0.0.1/xai/pt_cam/task?" + new URLSearchParams({
-					"task_name": imgGrp
-				})))
-				getCamExp();
+				fetch("http://127.0.0.1:5003/xai/pt_cam/task").then(res => res.json()).then(data => setTaskName(data.at(-1)["task_name"]))
 			} else {
 				console.log("Execute Failed")
 			}
@@ -91,15 +107,11 @@ export default function Index() {
 		e.preventDefault();
 
 		try {
-			const execute = await fetch("http://127.0.0.1/xai/pt_cam?" + new URLSearchParams({
-				"task_name": `${taskName}|${modelName}|${methodName}|${datasetName}|${imgGrp}`
-			}))
 
-			if (execute.ok) {
-				console.log("Get CAM Explanation Successfully.")
-			} else {
-				console.log("Get CAM failed.")
-			}
+			fetch("http://127.0.0.1:5003/xai/pt_cam?" + new URLSearchParams({
+				"task_name": `${taskName}`
+			})).then(res => setCamExp(res))
+
 		} catch (err) {
 			console.log(err)
 		}
@@ -110,15 +122,19 @@ export default function Index() {
 
 		const formData = new FormData();
 
-		formData.append("task_name", `${taskName}|${modelName}|${methodName}|${datasetName}|${imgGrp}`)
-		formData.append("xai_service_url", "http://127.0.0.1:5001/xai/pt_cam/")
-		formData.append("model_service_url", "http://127.0.0.1:5002/resnet/")
-		formData.append("db_service_url", "http://127.0.0.1:5000/db/imgnet1000")
+		formData.append("task_name", `${taskName}`)
+		formData.append("xai_service_url", "http://127.0.0.1:5003/xai/pt_cam/")
+		formData.append("model_service_url", "http://127.0.0.1:5001/resnet/")
+		formData.append("db_service_url", "http://127.0.0.1:5002/db/imgnet1000")
 
 		try {
-			const start = await fetch("http://127.0.0.1:5003/evaluation", {
+			const start = await fetch("http://127.0.0.1:5004/evaluation", {
 				method: "POST",
-				body: formData
+				body: formData,
+				mode: "cors",
+				headers: {
+					connection: "keep-alive"
+				}
 			})
 
 			if (start.ok) {
@@ -133,8 +149,8 @@ export default function Index() {
 	const getStability = async (e) => {
 		e.preventDefault();
 		try {
-			const execute = await fetch("http://127.0.0.1/evaluation/stability?" + new URLSearchParams({
-				"task_name": `${taskName}|${modelName}|${methodName}|${datasetName}|${imgGrp}`
+			const execute = await fetch("http://127.0.0.1:5004/evaluation/stability?" + new URLSearchParams({
+				"task_name": `${taskName}`
 			}))
 
 			if (execute.ok) {
@@ -162,18 +178,26 @@ export default function Index() {
 						>
 							Upload Data
 						</label>
+						<label>
+							Upload Image
+						</label>
 						<input
 							className="block w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 cursor-pointer focus:outline-none"
 							id="file_input"
 							type="file"
 							accept="image/jpg, image/jpeg"
-							multiple
+							// multiple
 							onChange={handleSelectImages}
 						></input>
-						<button onClick={uploadPhoto}>Upload Images</button>
-						<button onClick={executeCam}>Execute CAM</button>
-						<button onClick={getCamExp}>Get CAM Explanation</button>
-						<button onClick={getStability}>Get Stability</button>
+						<label>
+							Upload Mapping
+						</label>
+						<input className="block w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 cursor-pointer focus:outline-none" id="upload_mapping" type="file" onChange={handleSelectMap}></input>
+						<button className="border border-neutral-500 hover:border-transparent hover:bg-green-500 p-1 rounded-md" onClick={uploadPhoto}>Upload Images</button>
+						<button className="border border-neutral-500 hover:border-transparent hover:bg-green-500 p-1 rounded-md" onClick={executeCam}>Execute CAM</button>
+						<button className="border border-neutral-500 hover:border-transparent hover:bg-green-500 p-1 rounded-md" onClick={getCamExp}>Get CAM Explanation</button>
+						<button className="border border-neutral-500 hover:border-transparent hover:bg-green-500 p-1 rounded-md" onClick={startEval}>Start Evaluation</button>
+						<button className="border border-neutral-500 hover:border-transparent hover:bg-green-500 p-1 rounded-md" onClick={getStability}>Get Stability</button>
 					</form>
 					<div className="flex flex-wrap justify-start items-center flex-col m-2">
 						<h3 className="w-full text-center mb-2 p-2 text-2xl font-medium text-blue-500 bg-slate-200 rounded-md">
@@ -188,15 +212,16 @@ export default function Index() {
 								</tr>
 							</thead>
 							<tbody>
-								{Object?.keys(images).map((keyName, idx) => (
-									<tr key={idx}>
-										<td>{idx + 1}</td>
-										<td className="w-64 truncate">{images[keyName].name}</td>
-										<td className="font-mono w-64 truncate">
-											{images[keyName].lastModified}
-										</td>
-									</tr>
-								))}
+								{
+									Object?.keys(images).map((keyName, idx) => (
+										<tr key={idx}>
+											<td>{idx + 1}</td>
+											<td className="w-64 truncate">{images[keyName].name}</td>
+											<td className="font-mono w-64 truncate">
+												{images[keyName].lastModified}
+											</td>
+										</tr>
+									))}
 							</tbody>
 						</table>
 					</div>

@@ -2,64 +2,87 @@
 
 // deps and funcs
 import { useState } from "react";
-// import multer from "multer";
 
 // components
 import Head from "next/head";
 import DashboardLayout from "../layouts/dashboard";
 
 export default function Index() {
-	const [images, setImages] = useState([]);
+	const [images, setImages] = useState({});
+	const [imgGrp, setImgGrp] = useState(0);
+	const [labelMap, setLabelMap] = useState(null);
 
-	const handleSelectImage = async (e) => {
-		setImages([...images, e.target.files[0]]);
+	const handleSelectImages = async (e) => {
+		setImages(e.target.files[0]);
+		// Object.keys(e.target.files).map((key, idx) => {
+		// 	setImages([...images, e.target.files[key]]);
+		// });
 	};
 
 	const uploadPhoto = async (e) => {
 		e.preventDefault();
-		console.log(images[0].name)
-    const file = images[0];
-    const filename = encodeURIComponent(file.name);
-    const res = await fetch(`/api/upload-images?file=${filename}`);
-    const { url, fields } = await res.json();
-    const formData = new FormData();
 
-    Object.entries({ ...fields, file }).forEach(([key, value]) => {
-      formData.append(key, value);
-    });
+		console.log(await fetch("/img_name_label.csv"));
 
-		const upload = await fetch(url, {
+		// Object?.keys(images).map(async (key, idx) => {
+		// 	const file = images[key];
+		// 	const filename = encodeURIComponent(file.name);
+		// 	const res = await fetch(process.env.IMG_UPLOAD_DB);
+		// 	const { url, fields } = await res.json();
+
+		// 	const formData = new FormData();
+		// 	const img_label_map = await fetch("/img_name_label.csv");
+		// 	{
+		// 		console.log(img_label_map);
+		// 	}
+		// 	const img_group = `t${imgGrp}`;
+
+		// 	formData.append("imgs", {});
+
+		// 	Object?.entries({ ...fields, file }).forEach(([key, value]) => {
+		// 		formData.imgs.append(key, value);
+		// 	});
+
+		// 	formData.append("img_label_map", img_label_map);
+		// 	formData.append("img_group", img_group);
+
+		// 	const upload = await fetch(url, {
+		// 		headers: {
+		// 			"Content-Type": "multipart/formdata",
+		// 		},
+		// 		method: "POST",
+		// 		body: formData,
+		// 	});
+
+		// 	if (upload.ok) {
+		// 		window.alert("Upload success.");
+		// 	} else {
+		// 		console.error("Upload failed.");
+		// 	}
+		// });
+
+		const file = images[0];
+		const img_name_label = await fetch("img_name_label.csv");
+		const formData = new FormData();
+		const img_group = `t${imgGrp}`;
+
+		formData.append("imgs", file);
+		formData.append("img_name_label", img_name_label);
+		formData.append("img_group", img_group);
+
+		const upload = await fetch(process.env.IMG_UPLOAD_DB, {
 			headers: {
-				"Access-Control-Allow-Origin": "*"
+				"Access-Control-Allow-Origin": "*",
 			},
-      method: 'POST',
-      body: formData,
-    });
-
-    if (upload.ok) {
-      console.log('Uploaded successfully!');
-    } else {
-      console.error('Upload failed.');
-    }
-  };
-
-	const createTask = async (e) => {
-		e.preventDefault();
-
-		await fetch("/api/create-task", {
 			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-			},
-			body: JSON.stringify({
-				taskId: 123,
-				taskName: "some_name",
-				sampleList: [],
-				stat: "raw",
-				modelObject: "some_model",
-				xaiObject: "some_xai",
-			}),
+			body: formData,
 		});
+
+		if (upload.ok) {
+			console.log("Uploaded successfully!");
+		} else {
+			console.error("Upload failed.");
+		}
 	};
 
 	return (
@@ -82,10 +105,10 @@ export default function Index() {
 							id="file_input"
 							type="file"
 							accept="image/jpg, image/jpeg"
-							onChange={handleSelectImage}
+							multiple
+							onChange={handleSelectImages}
 						></input>
 						<button onClick={uploadPhoto}>Upload Images</button>
-						<button onClick={createTask}>Create Task</button>
 					</form>
 					<div className="flex flex-wrap justify-start items-center flex-col m-2">
 						<h3 className="w-full text-center mb-2 p-2 text-2xl font-medium text-blue-500 bg-slate-200 rounded-md">
@@ -100,9 +123,6 @@ export default function Index() {
 								</tr>
 							</thead>
 							<tbody>
-								{/* {Object?.keys(images).map((keyName, idx) => {
-									console.log(images[keyName]);
-								})}
 								{Object?.keys(images).map((keyName, idx) => (
 									<tr key={idx}>
 										<td>{idx + 1}</td>
@@ -111,7 +131,7 @@ export default function Index() {
 											{images[keyName].lastModified}
 										</td>
 									</tr>
-								))} */}
+								))}
 							</tbody>
 						</table>
 					</div>

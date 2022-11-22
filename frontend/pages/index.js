@@ -12,54 +12,23 @@ export default function Index() {
 	const [imgGrp, setImgGrp] = useState(0);
 	const [labelMap, setLabelMap] = useState(null);
 
+	const [methodName, setMethodName] = useState("grad-cam");
+	const [datasetName, setDatasetName] = useState("image_net_1000");
+	const [datasetGrpName, setDatasetGrpName] = useState("");
+	const [modelName, setModelName] = useState("resnet50");
+	const [modelSrvUrl, setModelSrvUrl] = useState("http://127.0.0.1:5002/resnet50");
+	const [dbSrvUrl, setDbSrvUrl] = useState("http://127.0.0.1:5000/db/imgnet1000");
+
+	const [taskName, setTaskName] = useState("");
+	const [evalTask, setEvalTask] = useState("");
+	const [stability, setStability] = useState("");
+
 	const handleSelectImages = async (e) => {
 		setImages(e.target.files[0]);
-		// Object.keys(e.target.files).map((key, idx) => {
-		// 	setImages([...images, e.target.files[key]]);
-		// });
 	};
 
 	const uploadPhoto = async (e) => {
 		e.preventDefault();
-
-		console.log(await fetch("/img_name_label.csv"));
-
-		// Object?.keys(images).map(async (key, idx) => {
-		// 	const file = images[key];
-		// 	const filename = encodeURIComponent(file.name);
-		// 	const res = await fetch(process.env.IMG_UPLOAD_DB);
-		// 	const { url, fields } = await res.json();
-
-		// 	const formData = new FormData();
-		// 	const img_label_map = await fetch("/img_name_label.csv");
-		// 	{
-		// 		console.log(img_label_map);
-		// 	}
-		// 	const img_group = `t${imgGrp}`;
-
-		// 	formData.append("imgs", {});
-
-		// 	Object?.entries({ ...fields, file }).forEach(([key, value]) => {
-		// 		formData.imgs.append(key, value);
-		// 	});
-
-		// 	formData.append("img_label_map", img_label_map);
-		// 	formData.append("img_group", img_group);
-
-		// 	const upload = await fetch(url, {
-		// 		headers: {
-		// 			"Content-Type": "multipart/formdata",
-		// 		},
-		// 		method: "POST",
-		// 		body: formData,
-		// 	});
-
-		// 	if (upload.ok) {
-		// 		window.alert("Upload success.");
-		// 	} else {
-		// 		console.error("Upload failed.");
-		// 	}
-		// });
 
 		const file = images[0];
 		const img_name_label = await fetch("img_name_label.csv");
@@ -70,20 +39,113 @@ export default function Index() {
 		formData.append("img_name_label", img_name_label);
 		formData.append("img_group", img_group);
 
-		const upload = await fetch(process.env.IMG_UPLOAD_DB, {
-			headers: {
-				"Access-Control-Allow-Origin": "*",
-			},
-			method: "POST",
-			body: formData,
-		});
-
-		if (upload.ok) {
-			console.log("Uploaded successfully!");
-		} else {
-			console.error("Upload failed.");
+		try {
+			const upload = await fetch("http://127.0.0.1:5000/db/imgnet1000/", {
+				method: "POST",
+				body: formData,
+			});
+			if (upload.ok) {
+				setDatasetGrpName(imgGrp);
+				console.log("Uploaded successfully!");
+			} else {
+				console.error("Upload failed.");
+			}
+		} catch (err) {
+			console.log(err)
 		}
 	};
+
+	const executeCam = async (e) => {
+		e.preventDefault();
+
+		const formData = new FormData();
+
+		formData.append("method_name", methodName)
+		formData.append("data_set_name", datasetName)
+		formData.append("data_set_group_name", datasetGrpName)
+		formData.append("model_name", modelName)
+		formData.append("model_service_url", modelSrvUrl)
+		formData.append("db_service_url", dbSrvUrl)
+
+		try {
+			const execute = await fetch("http://127.0.0.1/xai/pt_cam", {
+				method: "POST",
+				body: formData
+			})
+
+			if (execute.ok) {
+				console.log("Executed CAM successfully")
+				setTaskName(await fetch("http://127.0.0.1/xai/pt_cam/task?" + new URLSearchParams({
+					"task_name": imgGrp
+				})))
+				getCamExp();
+			} else {
+				console.log("Execute Failed")
+			}
+		} catch (err) {
+			console.log(err)
+		}
+	}
+
+	const getCamExp = async (e) => {
+		e.preventDefault();
+
+		try {
+			const execute = await fetch("http://127.0.0.1/xai/pt_cam?" + new URLSearchParams({
+				"task_name": `${taskName}|${modelName}|${methodName}|${datasetName}|${imgGrp}`
+			}))
+
+			if (execute.ok) {
+				console.log("Get CAM Explanation Successfully.")
+			} else {
+				console.log("Get CAM failed.")
+			}
+		} catch (err) {
+			console.log(err)
+		}
+	}
+
+	const startEval = async (e) => {
+		e.preventDefault();
+
+		const formData = new FormData();
+
+		formData.append("task_name", `${taskName}|${modelName}|${methodName}|${datasetName}|${imgGrp}`)
+		formData.append("xai_service_url", "http://127.0.0.1:5001/xai/pt_cam/")
+		formData.append("model_service_url", "http://127.0.0.1:5002/resnet/")
+		formData.append("db_service_url", "http://127.0.0.1:5000/db/imgnet1000")
+
+		try {
+			const start = await fetch("http://127.0.0.1:5003/evaluation", {
+				method: "POST",
+				body: formData
+			})
+
+			if (start.ok) {
+				console.log("Evaluation started successfully")
+				setEvalTask(await fetch("http://127.0.0.1:5003/evaluation/task"))
+			}
+		} catch (err) {
+			console.log(err)
+		}
+	}
+
+	const getStability = async (e) => {
+		e.preventDefault();
+		try {
+			const execute = await fetch("http://127.0.0.1/evaluation/stability?" + new URLSearchParams({
+				"task_name": `${taskName}|${modelName}|${methodName}|${datasetName}|${imgGrp}`
+			}))
+
+			if (execute.ok) {
+				console.log("Get stability successfully.")
+			} else {
+				console.log("Get stability failed.")
+			}
+		} catch (err) {
+			console.log(err)
+		}
+	}
 
 	return (
 		<DashboardLayout>
@@ -109,6 +171,9 @@ export default function Index() {
 							onChange={handleSelectImages}
 						></input>
 						<button onClick={uploadPhoto}>Upload Images</button>
+						<button onClick={executeCam}>Execute CAM</button>
+						<button onClick={getCamExp}>Get CAM Explanation</button>
+						<button onClick={getStability}>Get Stability</button>
 					</form>
 					<div className="flex flex-wrap justify-start items-center flex-col m-2">
 						<h3 className="w-full text-center mb-2 p-2 text-2xl font-medium text-blue-500 bg-slate-200 rounded-md">

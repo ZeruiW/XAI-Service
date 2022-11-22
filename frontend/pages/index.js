@@ -78,7 +78,7 @@ export default function Index() {
 
 		formData.append("method_name", methodName)
 		formData.append("data_set_name", datasetName)
-		formData.append("data_set_group_name", datasetGrpName)
+		formData.append("data_set_group_name", `t${datasetGrpName}`)
 		formData.append("model_name", modelName)
 		formData.append("model_service_url", modelSrvUrl)
 		formData.append("db_service_url", dbSrvUrl)
@@ -94,7 +94,8 @@ export default function Index() {
 
 			if (execute.ok) {
 				console.log("Executed CAM successfully")
-				fetch("http://127.0.0.1:5003/xai/pt_cam/task").then(res => res.json()).then(data => setTaskName(data.at(-1)["task_name"]))
+				// detach this one later to account for execution time
+				fetch("http://127.0.0.1:5003/xai/pt_cam/task").then(res => res.json()).then(data => setTaskName(data.at(-1)["task_name"])) 
 			} else {
 				console.log("Execute Failed")
 			}

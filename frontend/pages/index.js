@@ -2,6 +2,8 @@
 
 // deps and funcs
 import { useState } from "react";
+import { fromArrayBuffer } from "numpy-parser"
+import ndarray from "ndarray"
 
 // components
 import Head from "next/head";
@@ -11,6 +13,8 @@ export default function Index() {
 	const [images, setImages] = useState({});
 	const [imgGrp, setImgGrp] = useState(0);
 	const [labelMap, setLabelMap] = useState(null);
+
+	const [imagesList, setImagesList] = useState([])
 
 	const [methodName, setMethodName] = useState("grad-cam");
 	const [datasetName, setDatasetName] = useState("image_net_1000");
@@ -25,8 +29,15 @@ export default function Index() {
 	const [mapFile, setMapFile] = useState(null);
 	const [camExp, setCamExp] = useState(null)
 
+	const [heatmapUrl, setHeatmapUrl] = useState("")
+	const [imagesUrl, setImagesUrl] = useState("")
+
 	const handleSelectImages = async (e) => {
 		setImages(e.target.files[0]);
+		const imgList = await fetch("http://127.0.0.1:5002/db/imgnet1000?" + new URLSearchParams({
+			img_group: `t${imgGrp}`
+		}))
+		imgList.json().then(data => setImagesList(data))
 	};
 
 	const handleSelectMap = async (e) => {
@@ -63,7 +74,7 @@ export default function Index() {
 				requestOptions
 			);
 			if (upload.ok) {
-				setDatasetGrpName(imgGrp);
+				setDatasetGrpName(`t${imgGrp}`);
 				console.log("Uploaded successfully!");
 			}
 		} catch (err) {
@@ -78,7 +89,7 @@ export default function Index() {
 
 		formData.append("method_name", methodName)
 		formData.append("data_set_name", datasetName)
-		formData.append("data_set_group_name", `t${datasetGrpName}`)
+		formData.append("data_set_group_name", `t${imgGrp}`)
 		formData.append("model_name", modelName)
 		formData.append("model_service_url", modelSrvUrl)
 		formData.append("db_service_url", dbSrvUrl)
@@ -95,10 +106,22 @@ export default function Index() {
 			if (execute.ok) {
 				console.log("Executed CAM successfully")
 				// detach this one later to account for execution time
-				fetch("http://127.0.0.1:5003/xai/pt_cam/task").then(res => res.json()).then(data => setTaskName(data.at(-1)["task_name"])) 
+				fetch("http://127.0.0.1:5003/xai/pt_cam/task").then(res => res.json()).then(data => setTaskName(data.at(-1)["task_name"]))
 			} else {
 				console.log("Execute Failed")
 			}
+		} catch (err) {
+			console.log(err)
+		}
+	}
+
+	const updateTaskName = async (e) => {
+		e.preventDefault();
+
+		try {
+			const data = fetch("http://127.0.0.1:5003/xai/pt_cam/task").then(res => res.json()).then(data => console.log(data.at(-1)["task_name"]))
+
+			setTaskName(data);
 		} catch (err) {
 			console.log(err)
 		}
@@ -164,6 +187,22 @@ export default function Index() {
 		}
 	}
 
+	const getResults = async (e) => {
+		e.preventDefault();
+
+		try {
+			const imagesUrl = URL.createObjectURL(images)
+			const heatmapObject = await fetch("http://localhost:3001/xai/pt_cam?" + URLSearchParams({
+				task_name: `${taskName}`
+			}))
+			const heatmapUrl = URL.createObjectURL(heatmapObject)
+			setHeatmapUrl(heatmapObject)
+			setImagesUrl(imagesUrl)
+		} catch (e) {
+			console.log(e)
+		}
+	}
+
 	return (
 		<DashboardLayout>
 			<Head>
@@ -196,9 +235,11 @@ export default function Index() {
 						<input className="block w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 cursor-pointer focus:outline-none" id="upload_mapping" type="file" onChange={handleSelectMap}></input>
 						<button className="border border-neutral-500 hover:border-transparent hover:bg-green-500 p-1 rounded-md" onClick={uploadPhoto}>Upload Images</button>
 						<button className="border border-neutral-500 hover:border-transparent hover:bg-green-500 p-1 rounded-md" onClick={executeCam}>Execute CAM</button>
+						<button className="border border-neutral-500 hover:border-transparent hover:bg-green-500 p-1 rounded-md" onClick={updateTaskName}>Update Task Name</button>
 						<button className="border border-neutral-500 hover:border-transparent hover:bg-green-500 p-1 rounded-md" onClick={getCamExp}>Get CAM Explanation</button>
 						<button className="border border-neutral-500 hover:border-transparent hover:bg-green-500 p-1 rounded-md" onClick={startEval}>Start Evaluation</button>
 						<button className="border border-neutral-500 hover:border-transparent hover:bg-green-500 p-1 rounded-md" onClick={getStability}>Get Stability</button>
+						<button className="border border-neutral-500 hover:border-transparent hover:bg-green-500 p-1 rounded-md" onClick={getResults}>Get Results</button>
 					</form>
 					<div className="flex flex-wrap justify-start items-center flex-col m-2">
 						<h3 className="w-full text-center mb-2 p-2 text-2xl font-medium text-blue-500 bg-slate-200 rounded-md">
@@ -208,21 +249,18 @@ export default function Index() {
 							<thead>
 								<tr>
 									<th>#</th>
-									<th className="w-64">File</th>
-									<th className="w-64">ID</th>
+									<th className="w-32">File</th>
+									<th className="w-32">Task</th>
+									<th className="w-32">Map</th>
 								</tr>
 							</thead>
 							<tbody>
-								{
-									Object?.keys(images).map((keyName, idx) => (
-										<tr key={idx}>
-											<td>{idx + 1}</td>
-											<td className="w-64 truncate">{images[keyName].name}</td>
-											<td className="font-mono w-64 truncate">
-												{images[keyName].lastModified}
-											</td>
-										</tr>
-									))}
+								{imagesList.map((img, idx) => <tr key={idx}>
+									<td>{img[0]}</td>
+									<td>{img[1]}</td>
+									<td>{img[2]}</td>
+									<td>{img[3]}</td>
+								</tr>)}
 							</tbody>
 						</table>
 					</div>
@@ -233,19 +271,30 @@ export default function Index() {
 						Results
 					</h3>
 					<div className="flex justify-center items-center">
-						<div id="original" className="flex flex-col items-center justify-center">
+						<div id="original" className="h-72 w-72 items-center justify-center bg-red-200">
 							<img
 								className="h-72"
-								src="dashboard_assets/original_placeholder.png"
+								src={imagesUrl ? imagesUrl : null}
 							></img>
-							<h3>Original Placeholder</h3>
+							<h3>Original</h3>
 						</div>
-						<div id="heatmap" className="flex flex-col items-center justify-center">
+						<div id="heatmap" className="h-72 w-72 items-center justify-center bg-red-500">
 							<img
 								className="h-72"
-								src="dashboard_assets/result_placeholder.png"
+								src={heatmapUrl ? heatmapUrl : null}
 							></img>
-							<h3>Result Placeholder</h3>
+							<h3>Heatmap</h3>
+						</div>
+						<div id="superimposed" className="h-72 w-72 flex items-center justify-center relative">
+							<img
+								className="h-72 w-72 absolute bg-blue-200 -z-99"
+								src={imagesUrl ? imagesUrl : null}
+							></img>
+							<img
+								className="h-72 w-72 absolute bg-emerald-200 z-99 opacity-50"
+								src={heatmapUrl ? heatmapUrl : null}
+							></img>
+							<h3 className="absolute -bottom-7 left-0 z-100">Result</h3>
 						</div>
 					</div>
 				</div>

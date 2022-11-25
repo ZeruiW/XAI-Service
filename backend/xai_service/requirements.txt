@@ -3,3 +3,4 @@ mysql-connector-python
 Pillow
 numpy
 grad-cam
+matplotlib

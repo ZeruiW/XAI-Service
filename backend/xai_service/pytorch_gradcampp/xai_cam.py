@@ -36,7 +36,7 @@ create_and_add_process = tm.create_and_add_process
 terminate_process = tm.terminate_process
 thread_holder_str = tm.thread_holder_str
 
-bp = Blueprint('pt_cam', __name__, url_prefix='/xai/pt_cam')
+bp = Blueprint('pt_cam', __name__, url_prefix='/xai/gradcampp')
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 tmpdir = os.path.join(basedir, 'tmp')
@@ -107,7 +107,7 @@ def cam_task(form_data, task_name):
             for x in [rgb_img]
         ]))
 
-        cam = GradCAM(model=model,
+        cam = GradCAMPlusPlus(model=model,
                       target_layers=target_layers,
                       use_cuda=torch.cuda.is_available())
 

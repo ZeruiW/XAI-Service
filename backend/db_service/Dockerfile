@@ -9,7 +9,6 @@ COPY requirements.txt requirements.txt
 RUN apt-get update \
     && apt-get install -y ffmpeg libsm6 libxext6 \
     && python -m pip install --upgrade pip \
-    
     && pip install -r requirements.txt \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get -qq autoremove \

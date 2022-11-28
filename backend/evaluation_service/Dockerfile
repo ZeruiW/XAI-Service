@@ -6,7 +6,6 @@ COPY requirements.txt requirements.txt
 
 RUN apt-get update \
     && python -m pip install --upgrade pip \
-    
     && pip install -r requirements.txt \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get -qq autoremove \

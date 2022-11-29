@@ -5,4 +5,4 @@ numpy
 requests
 pandas
 grad-cam
-dotenv
+python-dotenv

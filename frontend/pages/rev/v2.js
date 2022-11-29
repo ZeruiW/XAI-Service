@@ -14,7 +14,7 @@ export default function V2() {
   const [imgGrp, setImgGrp] = useState(0);
   const [labelMap, setLabelMap] = useState(null);
   const [imagesList, setImagesList] = useState([]);
-  const [xaiMethodName, setXaiMethodName] = useState("grad-cam");
+  const [xaiMethodName, setXaiMethodName] = useState("pt_cam");
   const [datasetName, setDatasetName] = useState("image_net_1000");
   const [datasetGrpName, setDatasetGrpName] = useState("");
   const [modelName, setModelName] = useState("resnet50");
@@ -33,10 +33,10 @@ export default function V2() {
   // FUNCTIONS
   // Input handlers
   const handleSelectImages = async (e) => {
-    setImages(e.target.files[0]);
-    Object.keys(e.target.files).map((key, idx) => {
-      setImages([...images, e.target.files[key]]);
-    });
+    setImages(e.target.files);
+    // Object.keys(e.target.files).map((key, idx) => {
+    //   setImages([...images, URL.createObjectURL(e.target.files[key])]);
+    // });
 
   }
   const handleSelectMap = async (e) => {
@@ -62,7 +62,9 @@ export default function V2() {
     const formData = new FormData();
     const img_group = `t${imgGrp}`;
 
-    formData.append("imgs", file);
+    for (let i = 0; i < file.length; i++) {
+      formData.append("imgs", file[i])
+    }
     formData.append("img_label_map", map);
     formData.append("img_group", img_group);
 
@@ -109,7 +111,7 @@ export default function V2() {
       for (var pair of formData.entries()) {
         console.log(pair[0] + ', ' + pair[1])
       }
-      const execute = await fetch("http://127.0.0.1:5003/xai/", {
+      const execute = await fetch(`http://127.0.0.1:5003/xai/${xaiMethodName}`, {
         method: "POST",
         body: formData
       })
@@ -128,23 +130,22 @@ export default function V2() {
     handleCmdEmitter("Execute CAM")
   }
 
-  const updateTaskName = async (e) => {
-    e.preventDefault();
+  // const updateTaskName = async (e) => {
+  //   e.preventDefault();
 
-    try {
-      const data = fetch("http://127.0.0.1:5003/xai/pt_cam/task").then(res => res.json()).then(data => console.log(data.at(-1)["task_name"]))
-      setTaskName(data);
-    } catch (err) {
-      console.log(err)
-    }
+  //   try {
+  //     const data = fetch(`http://127.0.0.1:5003/xai/${xaiMethodName}/task`).then(res => res.json()).then(data => setTaskName(data.at(-1)["task_name"]))
+  //   } catch (err) {
+  //     console.log(err)
+  //   }
 
-    handleCmdEmitter("Update Task Name")
-  }
+  //   handleCmdEmitter("Update Task Name")
+  // }
 
   const getCamExp = async (e) => {
     e.preventDefault();
     try {
-      fetch("http://127.0.0.1:5003/xai/pt_cam?" + new URLSearchParams({
+      fetch(`http://127.0.0.1:5003/xai/${xaiMethodName}?` + new URLSearchParams({
         "task_name": `${taskName}`
       })).then(res => setCamExp(res))
 
@@ -161,7 +162,7 @@ export default function V2() {
     const formData = new FormData();
 
     formData.append("task_name", `${taskName}`)
-    formData.append("xai_service_url", "http://127.0.0.1:5003/xai/pt_cam/")
+    formData.append("xai_service_url", `http://127.0.0.1:5003/xai/${xaiMethodName}/`)
     formData.append("model_service_url", "http://127.0.0.1:5001/resnet/")
     formData.append("db_service_url", "http://127.0.0.1:5002/db/imgnet1000")
 
@@ -207,7 +208,7 @@ export default function V2() {
     e.preventDefault();
     try {
       const imagesUrl = URL.createObjectURL(images)
-      const heatmapObject = await fetch("http://localhost:3001/xai/pt_cam?" + URLSearchParams({
+      const heatmapObject = await fetch(`http://localhost:3001/xai/${xaiMethodName}?` + URLSearchParams({
         task_name: `${taskName}`
       }))
       const heatmapUrl = URL.createObjectURL(heatmapObject)
@@ -232,9 +233,9 @@ export default function V2() {
               Select XAI Method
             </h3>
             <ul>
-              <li onClick={() => handleChangeXaiMethod("grad-cam")} className={STYLE_XAIMETHOD_SELECTOR + (xaiMethodName === "grad-cam" ? " bg-blue-400 text-white" : "")}>Grad CAM</li>
-              <li onClick={() => handleChangeXaiMethod("grad-cam-pp")} className={STYLE_XAIMETHOD_SELECTOR + (xaiMethodName === "grad-cam-pp" ? " bg-blue-400 text-white" : "")}>Grad CAM++</li>
-              <li onClick={() => handleChangeXaiMethod("layer-cam")} className={STYLE_XAIMETHOD_SELECTOR + (xaiMethodName === "layer-cam" ? " bg-blue-400 text-white" : "")}>Layer CAM</li>
+              <li onClick={() => handleChangeXaiMethod("pt_cam")} className={STYLE_XAIMETHOD_SELECTOR + (xaiMethodName === "pt_cam" ? " bg-blue-400 text-white" : "")}>Grad CAM</li>
+              <li onClick={() => handleChangeXaiMethod("gradcampp")} className={STYLE_XAIMETHOD_SELECTOR + (xaiMethodName === "gradcampp" ? " bg-blue-400 text-white" : "")}>Grad CAM++</li>
+              <li onClick={() => handleChangeXaiMethod("layer-cam")} className={STYLE_XAIMETHOD_SELECTOR + (xaiMethodName === "layercam" ? " bg-blue-400 text-white" : "")}>Layer CAM</li>
             </ul>
 
             <span className="w-full text-center mb-2 p-2 text-2xl font-medium text-green-500 border border-neutral-500">
@@ -270,7 +271,7 @@ export default function V2() {
               Step-by-step Process
             </h3>
             <button className="border border-neutral-500 hover:border-transparent hover:bg-green-500 p-1 rounded-md" onClick={executeCam}>Execute CAM</button>
-            <button className="border border-neutral-500 hover:border-transparent hover:bg-green-500 p-1 rounded-md" onClick={updateTaskName}>Update Task Name</button>
+            {/* <button className="border border-neutral-500 hover:border-transparent hover:bg-green-500 p-1 rounded-md" onClick={updateTaskName}>Update Task Name</button> */}
             <button className="border border-neutral-500 hover:border-transparent hover:bg-green-500 p-1 rounded-md" onClick={getCamExp}>Get CAM Explanation</button>
             <button className="border border-neutral-500 hover:border-transparent hover:bg-green-500 p-1 rounded-md" onClick={startEval}>Start Evaluation</button>
             <button className="border border-neutral-500 hover:border-transparent hover:bg-green-500 p-1 rounded-md" onClick={getStability}>Get Stability</button>
@@ -311,7 +312,7 @@ export default function V2() {
                 </tr>
               </thead>
               <tbody>
-                {cmdHistory.map((cmd, idx) => <tr>
+                {cmdHistory.map((cmd, idx) => <tr key={idx}>
                   <td>{idx}</td>
                   <td>{cmd}</td>
                 </tr>)}

@@ -98,7 +98,7 @@ export default function Index() {
 			for (var pair of formData.entries()) {
 				console.log(pair[0] + ', ' + pair[1])
 			}
-			const execute = await fetch("http://127.0.0.1:5003/xai/pt_cam", {
+			const execute = await fetch("http://127.0.0.1:5003/xai/", {
 				method: "POST",
 				body: formData
 			})
@@ -120,7 +120,6 @@ export default function Index() {
 
 		try {
 			const data = fetch("http://127.0.0.1:5003/xai/pt_cam/task").then(res => res.json()).then(data => console.log(data.at(-1)["task_name"]))
-
 			setTaskName(data);
 		} catch (err) {
 			console.log(err)

@@ -360,7 +360,7 @@ export default function V2() {
 											</td>
 											<td className="relative w-32 h-32">
 												<img className="absolute top-0 left-0 m-2 w-32 h-32" src={"data:image/png;base64," + data[2]}></img>
-												<img className="absolute top-0 left-0 m-2 w-32 h-32 opacity-75" src={`../heatmaps/${taskName}/${data[1]}.png`}></img>
+												<img className="absolute top-0 left-0 m-2 w-32 h-32 opacity-60" src={`../heatmaps/${taskName}/${data[1]}.png`}></img>
 
 											</td>
 										</tr>

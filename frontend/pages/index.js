@@ -2,6 +2,8 @@
 
 // deps and functions
 import { useState } from "react"
+import path from 'path'
+import fs from 'fs'
 
 // components
 import Head from "next/head"
@@ -211,17 +213,6 @@ export default function V2() {
 				"with_img_data": 1
 			}))
 
-			const dirPath = path.join(__dirname, `../../public/heatmaps/${taskName}`)
-
-			fs.readdirSync(dirPath, (err, files) => {
-				if (err) {
-					return console.log(err)
-				}
-				files.forEach((file) => {
-					console.log(file)
-				})
-			})
-
 			setImgData(await img_data.json())
 		} catch (e) {
 			console.log(e)
@@ -280,7 +271,6 @@ export default function V2() {
 							Step-by-step Process
 						</h3>
 						<button className="border border-neutral-500 hover:border-transparent hover:bg-green-500 p-1 rounded-md" onClick={executeCam}>Execute CAM</button>
-						{/* <button className="border border-neutral-500 hover:border-transparent hover:bg-green-500 p-1 rounded-md" onClick={updateTaskName}>Update Task Name</button> */}
 						<button className="border border-neutral-500 hover:border-transparent hover:bg-green-500 p-1 rounded-md" onClick={getCamExp}>Get CAM Explanation</button>
 						<button className="border border-neutral-500 hover:border-transparent hover:bg-green-500 p-1 rounded-md" onClick={startEval}>Start Evaluation</button>
 						<button className="border border-neutral-500 hover:border-transparent hover:bg-green-500 p-1 rounded-md" onClick={getStability}>Get Stability</button>

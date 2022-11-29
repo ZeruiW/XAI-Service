@@ -2,6 +2,9 @@
 
 // deps and functions
 import { useState } from "react"
+import path from 'path'
+import fs from 'fs'
+
 
 // components
 import Head from "next/head"
@@ -210,17 +213,6 @@ export default function V2() {
         "img_group": `t${imgGrp}`,
         "with_img_data": 1
       }))
-
-      const dirPath = path.join(__dirname, `../../public/heatmaps/${taskName}`)
-
-      fs.readdirSync(dirPath, (err, files) => {
-        if (err) {
-          return console.log(err)
-        }
-        files.forEach((file) => {
-          console.log(file)
-        })
-      })
 
       setImgData(await img_data.json())
     } catch (e) {

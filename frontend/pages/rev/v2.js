@@ -7,6 +7,8 @@ import { useState } from "react"
 import Head from "next/head"
 import DashboardLayout from "../../layouts/dashboard"
 
+const root = process.cwd()
+
 export default function V2() {
   // VARIABLES AND PARAMS
   const [images, setImages] = useState({});
@@ -14,6 +16,7 @@ export default function V2() {
   const [imgGrp, setImgGrp] = useState(0);
   const [labelMap, setLabelMap] = useState(null);
   const [imagesList, setImagesList] = useState([]);
+  const [imgData, setImgData] = useState([]);
   const [xaiMethodName, setXaiMethodName] = useState("pt_cam");
   const [datasetName, setDatasetName] = useState("image_net_1000");
   const [datasetGrpName, setDatasetGrpName] = useState("");
@@ -27,16 +30,13 @@ export default function V2() {
   const [mapFile, setMapFile] = useState(null);
   const [camExp, setCamExp] = useState(null)
 
-  const [heatmapUrl, setHeatmapUrl] = useState("")
+  const [heatmaps, setHeatmaps] = useState([])
   const [imagesUrl, setImagesUrl] = useState("")
 
   // FUNCTIONS
   // Input handlers
   const handleSelectImages = async (e) => {
     setImages(e.target.files);
-    // Object.keys(e.target.files).map((key, idx) => {
-    //   setImages([...images, URL.createObjectURL(e.target.files[key])]);
-    // });
 
   }
   const handleSelectMap = async (e) => {
@@ -163,21 +163,18 @@ export default function V2() {
 
     formData.append("task_name", `${taskName}`)
     formData.append("xai_service_url", `http://127.0.0.1:5003/xai/${xaiMethodName}/`)
-    formData.append("model_service_url", "http://127.0.0.1:5001/resnet/")
+    formData.append("model_service_url", "http://127.0.0.1:5001/resnet50/")
     formData.append("db_service_url", "http://127.0.0.1:5002/db/imgnet1000")
 
     try {
       const start = await fetch("http://127.0.0.1:5004/evaluation", {
         method: "POST",
         body: formData,
-        mode: "cors",
-        headers: {
-          connection: "keep-alive"
-        }
+        mode: "cors"
       })
       if (start.ok) {
         console.log("Evaluation started successfully")
-        setEvalTask(await fetch("http://127.0.0.1:5003/evaluation/task"))
+        setEvalTask(await fetch("http://127.0.0.1:5004/evaluation/task"))
       }
     } catch (err) {
       console.log(err)
@@ -194,6 +191,7 @@ export default function V2() {
       }))
       if (execute.ok) {
         console.log("Get stability successfully.")
+        setStability(await execute.json())
       } else {
         console.log("Get stability failed.")
       }
@@ -206,14 +204,25 @@ export default function V2() {
 
   const getResults = async (e) => {
     e.preventDefault();
+
     try {
-      const imagesUrl = URL.createObjectURL(images)
-      const heatmapObject = await fetch(`http://localhost:3001/xai/${xaiMethodName}?` + URLSearchParams({
-        task_name: `${taskName}`
+      const img_data = await fetch("http://127.0.0.1:5002/db/imgnet1000?" + new URLSearchParams({
+        "img_group": `t${imgGrp}`,
+        "with_img_data": 1
       }))
-      const heatmapUrl = URL.createObjectURL(heatmapObject)
-      setHeatmapUrl(heatmapObject)
-      setImagesUrl(imagesUrl)
+
+      const dirPath = path.join(__dirname, `../../public/heatmaps/${taskName}`)
+
+      fs.readdirSync(dirPath, (err, files) => {
+        if (err) {
+          return console.log(err)
+        }
+        files.forEach((file) => {
+          console.log(file)
+        })
+      })
+
+      setImgData(await img_data.json())
     } catch (e) {
       console.log(e)
     }
@@ -326,31 +335,42 @@ export default function V2() {
             Results
           </h3>
           <div className="flex items-center space-x-2">
-            <div id="original" className="h-72 w-72 items-center justify-center bg-red-200">
-              <img
-                className="h-72"
-                src={imagesUrl ? imagesUrl : null}
-              ></img>
-              <h3>Original</h3>
-            </div>
-            <div id="heatmap" className="h-72 w-72 items-center justify-center bg-red-500">
-              <img
-                className="h-72"
-                src={heatmapUrl ? heatmapUrl : null}
-              ></img>
-              <h3>Heatmap</h3>
-            </div>
-            <div id="superimposed" className="h-72 w-72 flex items-center justify-center relative">
-              <img
-                className="h-72 w-72 absolute bg-blue-200 -z-99"
-                src={imagesUrl ? imagesUrl : null}
-              ></img>
-              <img
-                className="h-72 w-72 absolute bg-emerald-200 z-99 opacity-50"
-                src={heatmapUrl ? heatmapUrl : null}
-              ></img>
-              <h3 className="absolute -bottom-7 left-0 z-100">Result</h3>
-            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Original</th>
+                  <th>Heatmap</th>
+                  <th>Superimposed</th>
+                </tr>
+              </thead>
+              <tbody>
+                {
+                  imgData.map((data, idx) => {
+                    return <tr key={idx}>
+
+
+                      <td>{idx}</td>
+                      <td>
+
+                        <img className="w-32 h-32" src={"data:image/png;base64," + data[2]}></img>
+                      </td>
+                      <td>
+                        <img className="w-32 h-32" src={`../heatmaps/${taskName}/${data[1]}.png`}></img>
+                      </td>
+                      <td className="relative w-32 h-32">
+                        <img className="absolute top-0 left-0 m-2 w-32 h-32" src={"data:image/png;base64," + data[2]}></img>
+                        <img className="absolute top-0 left-0 m-2 w-32 h-32 opacity-75" src={`../heatmaps/${taskName}/${data[1]}.png`}></img>
+
+                      </td>
+                    </tr>
+                  })
+                }
+                <tr>
+                  <td></td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>

@@ -16,6 +16,8 @@ import torchvision.transforms as T
 
 import torch
 from torchvision import models
+import time
+import subprocess
 
 #device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -55,6 +57,8 @@ def eval_task(xai_service_url, model_service_url, db_service_url, task_name):
     task_time, model_name, method_name, data_set_name, data_set_group_name = task_name.split(
         '|')
 
+    print(task_time, model_name, method_name, data_set_name, data_set_group_name)
+
     print('# get exp from cam')
     exp_zip_path = os.path.join(tmpdir, f"{task_name}.zip")
     response = requests.get(f'{xai_service_url}?task_name={task_name}')
@@ -66,11 +70,12 @@ def eval_task(xai_service_url, model_service_url, db_service_url, task_name):
 
     os.remove(exp_zip_path)
 
+    time.sleep(5)
     print('# get image data')
     response = requests.get(
         db_service_url, params={
-            'img_group': data_set_group_name,
             'with_img_data': 1,
+            'img_group': data_set_group_name,
         })
     # print(response)
     img_data = json.loads(response.content.decode('utf-8'))
@@ -117,7 +122,7 @@ def eval_task(xai_service_url, model_service_url, db_service_url, task_name):
 
     pred_data = {}
 
-    cam_method_name = ['grad-cam']
+    cam_method_name = ['pt_cam']
 
     for cam_method in cam_method_name:
         pred_data[cam_method] = []
@@ -251,6 +256,8 @@ def stability():
             tmpdir, explanation_task_name, f'{method_name}-predictionchangedistance.npy')
         with open(pcd_save_path, 'rb') as f:
             rs = list(np.load(f))
+
+        subprocess.call("$(pwd)/evaluation_service/copy_result.sh", shell=True)
     return jsonify(rs)
 
 

@@ -5,7 +5,7 @@ FROM python:3.8-slim-buster
 WORKDIR /db_service
 
 COPY requirements.txt requirements.txt
-COPY .env .env
+COPY ./.env .env
 
 RUN apt-get update \
     && apt-get install -y ffmpeg libsm6 libxext6 \

@@ -9,3 +9,4 @@ Backup_model/
 *.pt
 *.pth
 .env
+**tmp**

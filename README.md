@@ -44,4 +44,28 @@ It is hosted on [Vercel](https://vercel.com).
 -   Install node depencies: `npm i`
 -   Start development server: `npm run dev`
 
+## TODOs
 
+### Frontend
+- [x] MVP
+  - [ ] Input
+    - [ ] Images
+    - [ ] Map
+    - [ ] Method selector
+  - [x] Data upload
+  - [x] Step-by-step processes
+    - [x] Execute CAM
+    - [x] Run Evaluation
+    - [x] Show Results
+  - [x] Implement Grad CAM
+  - [ ] Implement Grad CAM++
+  - [ ] Implement Layer CAM
+- [ ] Implement custom XAI method
+- [ ] Implement dynamic task group
+
+### Backend
+- [ ] Improve database I/O
+
+### Infrastructure
+- [ ] Deploy Frontend
+- [ ] Deploy Backend

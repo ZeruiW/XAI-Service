@@ -67,5 +67,5 @@ It is hosted on [Vercel](https://vercel.com).
 - [ ] Improve database I/O
 
 ### Infrastructure
-- [ ] Deploy Frontend
+- [x] Deploy Frontend
 - [ ] Deploy Backend

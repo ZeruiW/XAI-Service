@@ -1,0 +1,14 @@
+__pycache__
+
+.idea
+
+.ipynb_checkpoints
+
+Backup_model/
+
+*.pt
+*.pth
+.env
+**tmp**
+
+.DS_Store

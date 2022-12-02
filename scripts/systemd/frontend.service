@@ -1,0 +1,13 @@
+[Unit]
+Description=Run the XAI frontend service
+
+[Install]
+WantedBy=multi-user.target
+
+[Service]
+Type=simple
+ExecStart=/root/start_frontend.sh
+WorkingDirectory=/root/xai-service/frontend
+Restart=Always
+RestartSec=5
+

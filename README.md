@@ -1,7 +1,4 @@
-
 ## docker-compose up --build
-
-
 
 Check routes
 
@@ -44,28 +41,53 @@ It is hosted on [Vercel](https://vercel.com).
 -   Install node depencies: `npm i`
 -   Start development server: `npm run dev`
 
+# XAI Service Backend
+
+## Requirements
+
+### Platforms
+
+-   [ ] Linux x86-64:
+    -   [x] Ubuntu 22.04 LTS (Best)
+    -   [x] Debian 11 "Bullseye" Stable branch
+    -   [x] RHEL 8
+    -   [ ] Arch
+-   [ ] Windows x86-64:
+    -   [ ] Windows 10 >= 1909 update
+    -   [ ] Windows 11
+
+### Hardware Acceleration
+
+-   [ ] NVIDIA CUDA Library
+-   [ ] Vulkan
+
+## Quickstaart
+
 ## TODOs
 
 ### Frontend
-- [x] MVP
-  - [ ] Input
-    - [ ] Images
-    - [ ] Map
-    - [ ] Method selector
-  - [x] Data upload
-  - [x] Step-by-step processes
-    - [x] Execute CAM
-    - [x] Run Evaluation
-    - [x] Show Results
-  - [x] Implement Grad CAM
-  - [ ] Implement Grad CAM++
-  - [ ] Implement Layer CAM
-- [ ] Implement custom XAI method
-- [ ] Implement dynamic task group
+
+-   [x] MVP
+    -   [ ] Input
+        -   [ ] Images
+        -   [ ] Map
+        -   [ ] Method selector
+    -   [x] Data upload
+    -   [x] Step-by-step processes
+        -   [x] Execute CAM
+        -   [x] Run Evaluation
+        -   [x] Show Results
+    -   [x] Implement Grad CAM
+    -   [ ] Implement Grad CAM++
+    -   [ ] Implement Layer CAM
+-   [ ] Implement custom XAI method
+-   [ ] Implement dynamic task group
 
 ### Backend
-- [ ] Improve database I/O
+
+-   [ ] Improve database I/O
 
 ### Infrastructure
-- [x] Deploy Frontend
-- [ ] Deploy Backend
+
+-   [x] Deploy Frontend
+-   [ ] Deploy Backend

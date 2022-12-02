@@ -1,7 +1,4 @@
-
 # docker-compose up --build
-
-
 
 Check routes
 
@@ -30,6 +27,3 @@ flask --app xai_service/pytorch_cam --debug run -p 5003
 flask --app xai_service/pytorch_gradcampp --debug run -p 5005
 flask --app xai_service/pytorch_layercam --debug run -p 5006
 ```
-
-
-

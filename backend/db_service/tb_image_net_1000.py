@@ -1,33 +1,16 @@
 from base64 import encodebytes
 import io
-import json
-import mysql.connector
+import flask
 from flask import (
-    Blueprint, request, jsonify
+    Blueprint, request, jsonify, g
 )
 from PIL import Image
-import numpy as np
-from dotenv import load_dotenv
-import os
-
-load_dotenv()
-
-MYSQL_HOST=os.getenv('MYSQL_HOST')
-MYSQL_USER=os.getenv('MYSQL_USER')
-MYSQL_PASSWORD=os.getenv('MYSQL_PASSWORD')
-MYSQL_DB=os.getenv('MYSQL_DB')
+from db_service.db_helper import trans
 
 bp = Blueprint('imgnet1000', __name__, url_prefix='/db/imgnet1000')
 
-cnx = mysql.connector.connect(
-    host=MYSQL_HOST,
-    user=MYSQL_USER,
-    password=MYSQL_PASSWORD,
-    database=MYSQL_DB
-)
 
-
-def insert_img(img_name, img_data, img_group, img_label):
+def insert_img_db_exe(cnx, img_name, img_data, img_group, img_label):
     cursor = cnx.cursor()
     add_img = (
         "INSERT INTO image_net_1000(img_name, img_data, img_group, img_label) VALUES (%s,%s,%s,%s)")
@@ -38,7 +21,7 @@ def insert_img(img_name, img_data, img_group, img_label):
 
 
 @bp.route('/', methods=['POST'])
-def upload_paper():
+def insert_img_req():
     if request.method == 'POST':
         files = request.files
         imgs = files.getlist('imgs')
@@ -57,7 +40,9 @@ def upload_paper():
             img_name = img.filename
             img_data = img.read()
             # img = np.array(Image.open(img))
-            insert_img(img_name, img_data, img_group, m[img_name])
+            # insert_img_db_exe(img_name, img_data, img_group, m[img_name])
+            trans(insert_img_db_exe, img_name,
+                  img_data, img_group, m[img_name])
             i += 1
 
     return ""
@@ -73,29 +58,35 @@ def get_response_image(img_data):
     return encoded_img
 
 
+def get_img_db_exe(cnx, img_group, with_img_data):
+    l = []
+    cursor = cnx.cursor()
+    q = (
+        f"SELECT id, img_name, {' img_data,' if with_img_data else ''} img_group, img_label FROM image_net_1000 WHERE img_group = '{img_group}'")
+    # print(q)
+    cursor.execute(q)
+    if with_img_data:
+        for (id, img_name, img_data, img_group, img_label) in cursor:
+            l.append((id, img_name, get_response_image(
+                img_data), img_group, img_label))
+            # Image.open(io.BytesIO(img_data)).show()
+    else:
+        for (id, img_name, img_group, img_label) in cursor:
+            l.append((id, img_name, img_group, img_label))
+            # Image.open(io.BytesIO(img_data)).show()
+
+    cursor.close()
+    return l
+
+
 @bp.route('/', methods=['GET'])
 def list_img():
-    l = []
+
     img_group = request.args.get('img_group')
     if img_group == None:
         return "plese provide img_group"
     with_img_data = request.args.get('with_img_data') != None
     if request.method == 'GET':
-        cursor = cnx.cursor()
-        q = (
-            f"SELECT id, img_name, {' img_data,' if with_img_data else ''} img_group, img_label FROM image_net_1000 WHERE img_group = '{img_group}'")
-        # print(q)
-        cursor.execute(q)
-        if with_img_data:
-            for (id, img_name, img_data, img_group, img_label) in cursor:
-                l.append((id, img_name, get_response_image(
-                    img_data), img_group, img_label))
-                # Image.open(io.BytesIO(img_data)).show()
-        else:
-            for (id, img_name, img_group, img_label) in cursor:
-                l.append((id, img_name, img_group, img_label))
-                # Image.open(io.BytesIO(img_data)).show()
-
-        cursor.close()
+        l = trans(get_img_db_exe, img_group, with_img_data)
 
     return jsonify(l)

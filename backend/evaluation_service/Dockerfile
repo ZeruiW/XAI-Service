@@ -1,8 +1,8 @@
 FROM python:3.8-slim-buster
 
-WORKDIR /evaluation
+WORKDIR /evaluation_service
 
-COPY requirements.txt requirements.txt
+COPY ./evaluation_service/requirements.txt requirements.txt
 
 RUN apt-get update \
     && python -m pip install --upgrade pip \
@@ -11,7 +11,7 @@ RUN apt-get update \
     && apt-get -qq autoremove \
     && apt-get -qq clean
     
-COPY . .
+COPY .//evaluation_service .
 
 EXPOSE 5004
 

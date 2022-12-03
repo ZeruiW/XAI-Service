@@ -1,6 +1,7 @@
 import os
-
+import mysql.connector
 from flask import Flask
+from dotenv import load_dotenv, dotenv_values
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 tmpdir = os.path.join(basedir, 'tmp')
@@ -11,11 +12,30 @@ if not os.path.isdir(tmpdir):
 def create_app(test_config=None):
     # create and configure the app
     app = Flask(__name__, instance_relative_config=True)
-    app.config.from_mapping(
-        SECRET_KEY='dev',
-    )
+    print('App Mode: ' + 'DEV' if app.debug else 'PROD')
 
-    from . import tb_image_net_1000, tb_arxiv_cs, tb_explanation
+    if app.debug:
+        config = dotenv_values(os.path.join(basedir, ".env.dev"))
+        for k in config.keys():
+            if os.getenv(k) == None:
+                os.environ[k] = config[k]
+    else:
+        load_dotenv(os.path.join(basedir, ".env.prod"))
+
+    # set global db pool
+    from . import db_helper
+    cnxpool = mysql.connector.pooling.MySQLConnectionPool(
+        pool_name="mypool",
+        pool_size=int(os.getenv('MYSQL_POOL_SIZE') or 20),
+        host=os.getenv('MYSQL_HOST'),
+        user=os.getenv('MYSQL_USER'),
+        password=os.getenv('MYSQL_PASSWORD'),
+        database=os.getenv('MYSQL_DB')
+    )
+    db_helper.set_pool(cnxpool)
+    db_helper.init_db()
+
+    from . import tb_arxiv_cs, tb_image_net_1000, tb_explanation
     app.register_blueprint(tb_image_net_1000.bp)
     app.register_blueprint(tb_arxiv_cs.bp)
     app.register_blueprint(tb_explanation.bp)

@@ -11,6 +11,7 @@ services:
         ports:
             - 5002:5002
     xai_service:
+        platform: linux/amd64
         build:
             dockerfile: ./xai_service/Dockerfile
         ports:

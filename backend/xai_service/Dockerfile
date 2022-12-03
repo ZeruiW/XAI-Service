@@ -15,6 +15,13 @@ RUN apt-get update \
     
 COPY ./xai_service .
 
-EXPOSE 5003
+# from compose args
+ARG ENV 
+ENV ENV=${ENV}
+COPY ./.env.${ENV} .env.${ENV}
 
-CMD [ "flask", "--app", "pytorch_cam", "run", "--host=0.0.0.0", "-p", "5003"]
+COPY ./xai_service/docker_setup.sh ./docker_setup.sh
+RUN ["chmod", "+x", "/xai_service/docker_setup.sh"]
+
+EXPOSE 5003
+CMD ["sh", "/xai_service/docker_setup.sh"]

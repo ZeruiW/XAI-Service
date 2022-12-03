@@ -31,6 +31,7 @@ import base64
 import os
 from . import task_manager as tm
 import matplotlib.pyplot as plt
+import platform
 
 create_and_add_process = tm.create_and_add_process
 terminate_process = tm.terminate_process
@@ -41,15 +42,24 @@ bp = Blueprint('pt_cam', __name__, url_prefix='/xai/pt_cam')
 basedir = os.path.abspath(os.path.dirname(__file__))
 tmpdir = os.path.join(basedir, 'tmp')
 
-device = torch.device("cpu")
-# device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+# device = torch.device("cpu")
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
+print('--------')
+print('Platform:')
+print(platform.platform())
+print("Pytorch device: ")
 print(device)
+# Check PyTorch has access to MPS (Metal Performance Shader, Apple's GPU architecture)
+print(
+    f"Is MPS (Metal Performance Shader) built? {torch.backends.mps.is_built()}")
+print(f"Is MPS available? {torch.backends.mps.is_available()}")
+print('--------')
 
 
 def cam_task(form_data, task_name):
-    # print(form_data)
-    # print(task_name)
+    print(form_data)
+    print(task_name)
 
     print('# get image data')
     response = requests.get(
@@ -135,7 +145,7 @@ def bytes_to_pil_image(b):
 def cam_func():
     if request.method == 'GET':
         task_name = request.args['task_name']
-        #np.load in tmp folder
+        # np.load in tmp folder
         # cam_array_file = os.path.join(basedir, 'tmp\' + task_name + '.zip')
         # cam_array = np.load(cam_array_file)
         # for i in range(len(cam_array)):

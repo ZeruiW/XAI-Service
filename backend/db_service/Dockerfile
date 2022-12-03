@@ -4,8 +4,12 @@ FROM python:3.8-slim-buster
 
 WORKDIR /db_service
 
-COPY requirements.txt requirements.txt
-COPY ./.env .env
+COPY ./db_service/requirements.txt requirements.txt
+
+# from compose args
+ARG ENV 
+ENV ENV=${ENV}
+COPY ./.env.${ENV} .env.${ENV}
 
 RUN apt-get update \
     && apt-get install -y ffmpeg libsm6 libxext6 \
@@ -15,8 +19,10 @@ RUN apt-get update \
     && apt-get -qq autoremove \
     && apt-get -qq clean
 
-COPY . .
+COPY ./db_service/docker_setup.sh ./docker_setup.sh
+RUN ["chmod", "+x", "/db_service/docker_setup.sh"]
+
+COPY ./db_service .
 
 EXPOSE 5002
-
-CMD [ "flask", "--app", ".", "run", "--host=0.0.0.0", "-p", "5002"]
+CMD ["sh", "/db_service/docker_setup.sh"]

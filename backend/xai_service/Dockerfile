@@ -2,7 +2,7 @@ FROM python:3.8-slim-buster
 
 WORKDIR /xai_service
 
-COPY requirements.txt requirements.txt
+COPY ./xai_service/requirements.txt requirements.txt
 
 RUN apt-get update \
     && apt-get install -y ffmpeg libsm6 libxext6 \
@@ -13,7 +13,7 @@ RUN apt-get update \
     && apt-get -qq autoremove \
     && apt-get -qq clean
     
-COPY . .
+COPY ./xai_service .
 
 EXPOSE 5003
 

@@ -1,13 +1,13 @@
 FROM python:3.8-slim-buster
 
-WORKDIR /model
+WORKDIR /model_service
 
-COPY ../requirements.txt requirements.txt
+COPY ./model_service/requirements.txt requirements.txt
 
 RUN python -m pip install --upgrade pip \
     && pip install -r requirements.txt
 
-COPY . .
+COPY ./model_service .
 
 EXPOSE 5001
 

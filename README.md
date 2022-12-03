@@ -28,38 +28,66 @@ It is hosted on [Vercel](https://vercel.com).
 
 ## Development Prequisites:
 
--   Node>= `18.x`
--   npm >= `8.18.0`
--   Docker Engine
+- Node>= `18.x`
+- npm >= `8.18.0`
+- Docker Engine
 
 ## Quickstsart
 
--   Configure your `.env` environment variables from `.env.template`
--   Clone the project: `git clone https://github.com/ZeruiW/xai_service_demo`
--   Change directory into cloned folder: `cd xai_service_demo`
--   docker-compose up --build
--   Install node depencies: `npm i`
--   Start development server: `npm run dev`
+- Configure your `.env` environment variables from `.env.template`
+- Clone the project: `git clone https://github.com/ZeruiW/xai_service_demo`
+- Change directory into cloned folder: `cd xai_service_demo`
+- docker-compose up --build
+- Install node depencies: `npm i`
+- Start development server: `npm run dev`
 
 # XAI Service Backend
+
+## Local Dev with Docker Compose
+
+Up all:
+
+```bash
+docker compose -f backend/docker-compose.yml -f backend/docker-compose-dev.yml up --build
+```
+
+Up single service:
+
+```bash
+docker compose -f backend/docker-compose.yml -f backend/docker-compose-dev.yml up [service_name] --build
+```
+
+## Prod with Docker Compose
+
+Up all:
+
+```bash
+docker compose -f backend/docker-compose.yml -f backend/docker-compose-prod.yml up --build
+```
+
+Up single service:
+
+```bash
+docker compose -f backend/docker-compose.yml -f backend/docker-compose-prod.yml up [service_name] --build
+```
 
 ## Requirements
 
 ### Platforms
 
--   [ ] Linux x86-64:
-    -   [x] Ubuntu 22.04 LTS (Best)
-    -   [x] Debian 11 "Bullseye" Stable branch
-    -   [x] RHEL 8
-    -   [ ] Arch
--   [ ] Windows x86-64:
-    -   [ ] Windows 10 >= 1909 update
-    -   [ ] Windows 11
+- [ ] Linux x86-64:
+  - [x] Ubuntu 22.04 LTS (Best)
+  - [x] Debian 11 "Bullseye" Stable branch
+  - [x] RHEL 8
+  - [ ] Arch
+- [ ] Windows x86-64:
+  - [ ] Windows 10 >= 1909 update
+  - [ ] Windows 11
 
 ### Hardware Acceleration
 
--   [ ] NVIDIA CUDA Library
--   [ ] Vulkan
+- [ ] NVIDIA CUDA Library
+- [ ] Vulkan
 
 ## Quickstaart
 
@@ -67,27 +95,27 @@ It is hosted on [Vercel](https://vercel.com).
 
 ### Frontend
 
--   [x] MVP
-    -   [ ] Input
-        -   [ ] Images
-        -   [ ] Map
-        -   [ ] Method selector
-    -   [x] Data upload
-    -   [x] Step-by-step processes
-        -   [x] Execute CAM
-        -   [x] Run Evaluation
-        -   [x] Show Results
-    -   [x] Implement Grad CAM
-    -   [ ] Implement Grad CAM++
-    -   [ ] Implement Layer CAM
--   [ ] Implement custom XAI method
--   [ ] Implement dynamic task group
+- [x] MVP
+  - [ ] Input
+    - [ ] Images
+    - [ ] Map
+    - [ ] Method selector
+  - [x] Data upload
+  - [x] Step-by-step processes
+    - [x] Execute CAM
+    - [x] Run Evaluation
+    - [x] Show Results
+  - [x] Implement Grad CAM
+  - [ ] Implement Grad CAM++
+  - [ ] Implement Layer CAM
+- [ ] Implement custom XAI method
+- [ ] Implement dynamic task group
 
 ### Backend
 
--   [ ] Improve database I/O
+- [ ] Improve database I/O
 
 ### Infrastructure
 
--   [x] Deploy Frontend
--   [ ] Deploy Backend
+- [x] Deploy Frontend
+- [ ] Deploy Backend

@@ -1,0 +1,30 @@
+version: "3"
+services:
+    model_service:
+        networks:
+            xainet:
+                ipv4_address: 172.16.10.2
+    db_service:
+        build:
+            args:
+                ENV: prod
+        networks:
+            xainet:
+                ipv4_address: 172.16.10.3
+
+    xai_service:
+        networks:
+            xainet:
+                ipv4_address: 172.16.10.4
+
+    evaluation_service:
+        networks:
+            xainet:
+                ipv4_address: 172.16.10.5
+
+networks:
+    xainet:
+        driver: bridge
+        ipam:
+            config:
+                - subnet: 172.16.10.0/24

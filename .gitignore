@@ -12,3 +12,4 @@ Backup_model/
 **tmp**
 
 .DS_Store
+.prettierrc

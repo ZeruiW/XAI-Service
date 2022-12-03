@@ -2,41 +2,19 @@ from base64 import encodebytes
 import io
 import os
 import base64
-import json
-import mysql.connector
+import flask
 from flask import (
-    Blueprint, request, jsonify, send_file
+    Blueprint, request, send_file, g
 )
 from PIL import Image
-import numpy as np
-import requests
-from dotenv import load_dotenv
 import os
-
-load_dotenv()
-
-MYSQL_HOST=os.getenv('MYSQL_HOST')
-MYSQL_USER=os.getenv('MYSQL_USER')
-MYSQL_PASSWORD=os.getenv('MYSQL_PASSWORD')
-MYSQL_DB=os.getenv('MYSQL_DB')
-
-from pytorch_grad_cam.utils.image import show_cam_on_image
-
-from db_service.tb_image_net_1000 import cnx, get_response_image
+from db_service.db_helper import trans
 
 bp = Blueprint('explanation', __name__, url_prefix='/db/explanation')
-
-cnx = mysql.connector.connect(
-    host=MYSQL_HOST,
-    user=MYSQL_USER,
-    password=MYSQL_PASSWORD,
-    database=MYSQL_DB
-)
-
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 
-def insert_exp(form):
+def insert_exp_db_exe(cnx, form):
     cursor = cnx.cursor()
     add_img = (
         "INSERT INTO explanation(model_name, method_name, data_set_name, data_set_group_name, task_name, explanation) VALUES \
@@ -46,7 +24,7 @@ def insert_exp(form):
     cursor.close()
 
 
-def query_exp(form):
+def query_exp_db_exe(cnx, form):
     rs = []
     cursor = cnx.cursor()
     add_img = (
@@ -68,7 +46,7 @@ def add_explanation():
     if request.method == 'POST':
         form = dict(request.form)
         form['explanation'] = request.files.get('explanation').read()
-        insert_exp(form)
+        trans(insert_exp_db_exe, form)
     return ""
 
 
@@ -80,7 +58,7 @@ def bytes_to_pil_image(b):
 def get_explanation():
     if request.method == 'GET':
         form = request.args
-        rs = query_exp(form)
+        rs = trans(query_exp_db_exe, form)
         exp = rs[0][-1]
         exp_output_path = os.path.join(basedir, 'tmp', 'explanation.npz')
         f = open(exp_output_path, 'wb')

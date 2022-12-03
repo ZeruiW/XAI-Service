@@ -1,6 +1,9 @@
 version: "3"
 services:
     model_service:
+        build:
+            args:
+                ENV: prod
         networks:
             xainet:
                 ipv4_address: 172.16.10.2
@@ -13,11 +16,17 @@ services:
                 ipv4_address: 172.16.10.3
 
     xai_service:
+        build:
+            args:
+                ENV: prod
         networks:
             xainet:
                 ipv4_address: 172.16.10.4
 
     evaluation_service:
+        build:
+            args:
+                ENV: prod
         networks:
             xainet:
                 ipv4_address: 172.16.10.5

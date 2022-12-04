@@ -43,7 +43,7 @@ class ExecutorBluePrint(Blueprint):
             if request.method == 'GET':
                 # get task status
                 task_ticket = request.args.get('task_ticket')
-                tl = self.te.thread_holder_str(task_ticket)
+                tl = self.te.process_holder_str(task_ticket)
                 return jsonify(tl)
             else:
                 # get stop a task or register executor
@@ -52,7 +52,7 @@ class ExecutorBluePrint(Blueprint):
                 if act == 'stop':
                     task_ticket = form_data['task_ticket']
                     self.te.terminate_process(task_ticket)
-                    # print(thread_holder_str())
+                    # print(process_holder_str())
                 if act == 'reg':
                     endpoint_url = form_data['endpoint_url']
                     publisher_endpoint = form_data['publisher_endpoint']
@@ -65,12 +65,3 @@ class ExecutorBluePrint(Blueprint):
 
     def get_task_executor(self):
         return self.te
-
-    def request_ticket_and_start_task(self, task_info: dict, func, *func_args, **func_kwargs):
-        task_ticket = self.te.request_task_ticket(task_info)
-        print(f'{self.te.executor_id} requested a ticket: {task_ticket}')
-        if task_ticket != None:
-            # WARNNING: task_ticket will be the first arguments of the func
-            self.te.start_a_task(
-                task_ticket, func, *func_args, **func_kwargs)
-            return task_ticket

@@ -36,8 +36,6 @@ def executor():
 def task():
     if request.method == 'GET':
         # request a task info
-        # TODO: with task status
-        # TODO: multiple tasks
         task_ticket = request.args.get('task_ticket')
         with_status = False if request.args.get('with_status') == None else (
             False if request.args.get('with_status') != '1' else True)

@@ -12,7 +12,7 @@ def create_app(test_config=None):
     fm.load_env(app)
 
     from . import xai_eval
-    app.register_blueprint(xai_eval.bp)
+    app.register_blueprint(xai_eval.ebp)
     # app.register_blueprint(tb_explanation.bp)
 
     return app

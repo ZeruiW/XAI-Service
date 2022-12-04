@@ -40,10 +40,11 @@ class TaskPublisher():
             task_info = self.__feed_info__(task_info)
             task_ticket = self.__get_random_string__(
                 15) + '.' + task_info['__time_tail__'] + '.' + executor_id
+            task_info.pop('task_ticket', None)
             if self.ticket_info_map.get(executor_id) == None:
                 self.ticket_info_map[executor_id] = {}
             self.ticket_info_map[executor_id][task_ticket] = dict(
-                task_ticket=task_ticket,
+                # task_ticket=task_ticket,
                 task_info=task_info,
                 request_time=time.time()
             )
@@ -56,6 +57,7 @@ class TaskPublisher():
         if target_ticket == None:
             if with_status:
                 for executor_id, ticket_infos in all_ticket_info.items():
+                    # TODO: what if unknow executor_id
                     executor_endpoint_url = self.executor_registration[
                         executor_id]['endpoint_url']
                     response = requests.get(
@@ -65,8 +67,18 @@ class TaskPublisher():
                     for executor_task_status in executor_tasks_status:
                         current_task_ticket = executor_task_status['task_ticket']
                         if all_ticket_info[executor_id].get(current_task_ticket) != None:
+                            executor_task_status.pop('task_ticket', None)
                             all_ticket_info[executor_id][current_task_ticket]['task_status'] = executor_task_status
-            return all_ticket_info
+
+            formated_all_ticket_info = {}
+            for executor_id, ticket_infos in all_ticket_info.items():
+                formated_all_ticket_info[executor_id] = dict(
+                    executor=copy.deepcopy(self.executor_registration)[
+                        executor_id],
+                    ticket_infos=ticket_infos
+                )
+
+            return formated_all_ticket_info
         else:
             find_target_task_ticket = None
             find_target_task_ticket_info = None
@@ -87,8 +99,12 @@ class TaskPublisher():
                         params={
                             'task_ticket': find_target_task_ticket,
                         })
-                    find_target_task_ticket_info['task_status'] = json.loads(
+                    executor_task_status = json.loads(
                         response.content.decode('utf-8'))
+                    executor_task_status.pop('task_ticket', None)
+                    find_target_task_ticket_info['task_status'] = executor_task_status
+                find_target_task_ticket_info['executor'] = self.executor_registration[find_target_task_ticket_executor_id]
+                find_target_task_ticket_info['task_ticket'] = find_target_task_ticket
                 return find_target_task_ticket_info
             else:
                 return
@@ -122,7 +138,7 @@ class TaskExecutor():
 
     def __create_and_add_process__(self, task_ticket, func, *args, **kwargs):
         process = multiprocessing.Process(
-            # WARNNING: task_ticket will be the first arguments of the func
+            # WARNNING: task_ticket will be the first two arguments of the func
             target=func, args=[task_ticket, *args], kwargs={**kwargs})
         self.process_holder[task_ticket] = {
             'start_time': time.time(),
@@ -130,16 +146,25 @@ class TaskExecutor():
         }
         return process
 
+    def get_executor_info(self):
+        return copy.deepcopy(self.executor_info)
+
+    def get_publisher_endpoint(self):
+        return copy.deepcopy(self.publisher_endpoint)
+
+    def get_executor_id(self):
+        return copy.deepcopy(self.executor_id)
+
     # should request task ticket from publisher
     def request_task_ticket(self, task_info: dict):
-        if self.publisher_endpoint == None or self.executor_id == None:
+        if self.get_publisher_endpoint() == None or self.get_executor_id() == None:
             print('Executor not register')
             return None
         else:
             response = requests.post(
-                self.publisher_endpoint + '/task_publisher/ticket',
+                self.get_publisher_endpoint() + '/task_publisher/ticket',
                 data={
-                    'executor_id': self.executor_id,
+                    'executor_id': self.get_executor_id(),
                     'task_info': json.dumps(task_info)
                 }
             )
@@ -149,14 +174,14 @@ class TaskExecutor():
     def register_executor_endpoint(self, endpoint_url: str, publisher_endpoint: str):
         self.publisher_endpoint = publisher_endpoint
         response = requests.post(
-            self.publisher_endpoint + '/task_publisher/executor',
+            self.get_publisher_endpoint() + '/task_publisher/executor',
             data={
                 'endpoint_url': endpoint_url,
-                'executor_info': json.dumps(self.executor_info)
+                'executor_info': json.dumps(self.get_executor_info())
             }
         )
         self.executor_id = json.loads(response.content)['executor_id']
-        return self.executor_id
+        return self.get_executor_id()
 
     def start_a_task(self, task_ticket, func, *args, **kwargs):
         p = self.__create_and_add_process__(task_ticket, func, *args, **kwargs)
@@ -175,7 +200,20 @@ class TaskExecutor():
         else:
             return 0 if p['process'].is_alive() else 1
 
-    def thread_holder_str(self, task_ticket=None):
+    def get_ticket_info_from_central(self, target_ticket: str):
+        if self.get_publisher_endpoint() == None or self.get_executor_id() == None:
+            print('Executor not register')
+            return None
+        else:
+            response = requests.get(
+                self.get_publisher_endpoint() + '/task_publisher/task',
+                params={
+                    'task_ticket': target_ticket,
+                }
+            )
+            return json.loads(response.content)
+
+    def process_holder_str(self, task_ticket=None):
         if task_ticket != None and self.process_holder.get(task_ticket) != None:
             status = 'Running' if self.process_holder[task_ticket]['process'].is_alive(
             ) else "Stoped"
@@ -201,3 +239,12 @@ class TaskExecutor():
                     'start_time': self.process_holder[tk]['start_time'],
                 })
             return rs
+
+    def request_ticket_and_start_task(self, task_info: dict, func, *func_args, **func_kwargs):
+        task_ticket = self.request_task_ticket(task_info)
+        print(f'{self.get_executor_id()} requested a ticket: {task_ticket}')
+        if task_ticket != None:
+            # WARNNING: executor and task_ticket will be the first two arguments of the func
+            self.start_a_task(
+                task_ticket, func, *func_args, **func_kwargs)
+            return task_ticket

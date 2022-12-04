@@ -17,7 +17,7 @@ import base64
 import os
 import matplotlib.pyplot as plt
 import platform
-from xai_backend_central_dev.task_manager import TaskPublisher
+from xai_backend_central_dev.task_manager import TaskExecutor
 
 bp = Blueprint('pt_cam', __name__, url_prefix='/xai/pt_cam')
 
@@ -39,7 +39,9 @@ print('--------')
 
 task_publisher_name = 'xai_service_grad_cam'
 
-tp = TaskPublisher(task_publisher_name)
+te = TaskExecutor({
+    'executor_name': 'xai_service:pt_cam'
+})
 
 
 def cam_task(form_data, task_ticket):
@@ -151,23 +153,39 @@ def cam_func():
             data_set_name=form_data['data_set_name'].lower(),
             data_set_group_name=form_data['data_set_group_name'].lower(),
         )
-        task_ticket = tp.gen_ticket(task_info)
-        tp.start_a_task(
-            task_ticket, cam_task, form_data, task_ticket)
-        return jsonify({
-            'task_ticket': task_ticket
-        })
+        task_ticket = te.request_task_ticket(task_info)
+        print(f'Requested ticket: {task_ticket}')
+        if task_ticket != None:
+            te.start_a_task(
+                task_ticket, cam_task, form_data, task_ticket)
+            return jsonify({
+                'task_ticket': task_ticket
+            })
+        else:
+            return "Can not request a task ticket"
 
 
 @bp.route('/task', methods=['GET', 'POST'])
-def list_task():
+def task():
     if request.method == 'GET':
-        tl = tp.thread_holder_str()
+        # get task status
+        task_ticket = request.args.get('task_ticket')
+        tl = te.thread_holder_str(task_ticket)
         return jsonify(tl)
     else:
-        act = request.args['act']
+        # get stop a task or register executor
+        form_data = request.form
+        act = form_data['act']
         if act == 'stop':
-            task_ticket = request.args['task_ticket']
-            tp.terminate_process(task_ticket)
+            task_ticket = form_data['task_ticket']
+            te.terminate_process(task_ticket)
             # print(thread_holder_str())
+        if act == 'reg':
+            endpoint_url = form_data['endpoint_url']
+            publisher_endpoint = form_data['publisher_endpoint']
+            executor_id = te.register_executor_endpoint(
+                endpoint_url, publisher_endpoint)
+            return jsonify({
+                'executor_id': executor_id
+            })
     return ""

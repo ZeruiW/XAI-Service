@@ -53,11 +53,11 @@ def inference(model, img):
 
 
 def eval_task(xai_service_url, model_service_url, db_service_url, task_name):
-    task_time, model_name, method_name, data_set_name, data_set_group_name = task_name.split(
-        '|')
+    # task_time, model_name, method_name, data_set_name, data_set_group_name = task_name.split(
+    #     '|')
 
-    print(task_time, model_name, method_name,
-          data_set_name, data_set_group_name)
+    # print(task_time, model_name, method_name,
+    #       data_set_name, data_set_group_name)
 
     print('# get exp from cam')
     exp_zip_path = os.path.join(tmpdir, f"{task_name}.zip")
@@ -231,7 +231,11 @@ def eval_task(xai_service_url, model_service_url, db_service_url, task_name):
 def eval():
     if request.method == 'POST':
         explanation_task_ticket = request.form['task_ticket']
-        eval_task_name = f'{explanation_task_ticket}#eval'
+        eval_task_info = dict(
+            explanation_task_ticket=explanation_task_ticket,
+        )
+
+        eval_task_ticket = tp.gen_ticket(eval_task_info)
 
         xai_service_url = request.form['xai_service_url']
         model_service_url = request.form['model_service_url']
@@ -240,8 +244,8 @@ def eval():
         # process = create_and_add_process(eval_task_name,
         #                                  eval_task, (xai_service_url, model_service_url, db_service_url, explanation_task_name))
         # process.start()
-        task_ticket = tp.start_a_task(eval_task_name,
-                                      eval_task, xai_service_url, model_service_url, db_service_url, explanation_task_name)
+        task_ticket = tp.start_a_task(eval_task_ticket,
+                                      eval_task, xai_service_url, model_service_url, db_service_url, explanation_task_ticket)
         return jsonify({
             'task_ticket': task_ticket
         })

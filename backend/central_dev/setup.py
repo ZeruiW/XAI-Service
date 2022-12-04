@@ -6,6 +6,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         "tinydb",
-        "python-dotenv"
+        "python-dotenv",
+        "Flask >= 2.2"
     ],
 )

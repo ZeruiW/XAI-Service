@@ -122,7 +122,8 @@ class TaskExecutor():
 
     def __create_and_add_process__(self, task_ticket, func, *args, **kwargs):
         process = multiprocessing.Process(
-            target=func, args=[*args], kwargs={**kwargs})
+            # WARNNING: task_ticket will be the first arguments of the func
+            target=func, args=[task_ticket, *args], kwargs={**kwargs})
         self.process_holder[task_ticket] = {
             'start_time': time.time(),
             'process': process

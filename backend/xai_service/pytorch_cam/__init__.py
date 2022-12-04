@@ -12,6 +12,6 @@ def create_app(test_config=None):
     fm.load_env(app)
 
     from . import xai_cam
-    app.register_blueprint(xai_cam.bp)
+    app.register_blueprint(xai_cam.ebp)
 
     return app

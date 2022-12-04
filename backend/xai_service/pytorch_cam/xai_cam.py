@@ -1,6 +1,5 @@
 from pytorch_grad_cam import GradCAM
 from PIL import Image
-import cv2
 import torchvision.transforms as T
 import torch
 from torchvision import models
@@ -8,7 +7,7 @@ import shutil
 import requests
 import numpy as np
 from flask import (
-    Blueprint, request, jsonify, send_file
+    request, jsonify, send_file
 )
 import json
 import io
@@ -17,9 +16,15 @@ import base64
 import os
 import matplotlib.pyplot as plt
 import platform
-from xai_backend_central_dev.task_manager import TaskExecutor
+from xai_backend_central_dev.flask_manager import ExecutorBluePrint
 
-bp = Blueprint('pt_cam', __name__, url_prefix='/xai/pt_cam')
+task_executor_info = {
+    'executor_name': 'xai_service:pt_cam'
+}
+
+ebp = ExecutorBluePrint(
+    'pt_cam', __name__, task_executor_info=task_executor_info, url_prefix='/xai/pt_cam')
+te = ebp.get_task_executor()
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 tmpdir = os.path.join(basedir, 'tmp')
@@ -37,14 +42,8 @@ print("Pytorch device: ")
 print(device)
 print('--------')
 
-task_publisher_name = 'xai_service_grad_cam'
 
-te = TaskExecutor({
-    'executor_name': 'xai_service:pt_cam'
-})
-
-
-def cam_task(form_data, task_ticket):
+def cam_task(task_ticket, form_data):
     print(form_data)
     print(task_ticket)
 
@@ -128,12 +127,11 @@ def bytes_to_pil_image(b):
         'RGB')
 
 
-@bp.route('/', methods=['POST', 'GET'])
+@ebp.route('/', methods=['POST', 'GET'])
 def cam_func():
     if request.method == 'GET':
         task_ticket = request.args['task_ticket']
-        task_name = task_ticket.replace(f'{task_publisher_name}#', '')
-        file_name = os.path.join(tmpdir, f'{task_name}.zip')
+        file_name = os.path.join(tmpdir, f'{task_ticket}.zip')
         if os.path.exists(file_name):
             # np.load in tmp folder
             # cam_array_file = os.path.join(basedir, 'tmp\' + task_name + '.zip')
@@ -153,39 +151,11 @@ def cam_func():
             data_set_name=form_data['data_set_name'].lower(),
             data_set_group_name=form_data['data_set_group_name'].lower(),
         )
-        task_ticket = te.request_task_ticket(task_info)
-        print(f'Requested ticket: {task_ticket}')
-        if task_ticket != None:
-            te.start_a_task(
-                task_ticket, cam_task, form_data, task_ticket)
+        task_ticket = ebp.request_ticket_and_start_task(
+            task_info, cam_task, form_data)
+        if task_ticket == None:
+            return "Can not request a task ticket"
+        else:
             return jsonify({
                 'task_ticket': task_ticket
             })
-        else:
-            return "Can not request a task ticket"
-
-
-@bp.route('/task', methods=['GET', 'POST'])
-def task():
-    if request.method == 'GET':
-        # get task status
-        task_ticket = request.args.get('task_ticket')
-        tl = te.thread_holder_str(task_ticket)
-        return jsonify(tl)
-    else:
-        # get stop a task or register executor
-        form_data = request.form
-        act = form_data['act']
-        if act == 'stop':
-            task_ticket = form_data['task_ticket']
-            te.terminate_process(task_ticket)
-            # print(thread_holder_str())
-        if act == 'reg':
-            endpoint_url = form_data['endpoint_url']
-            publisher_endpoint = form_data['publisher_endpoint']
-            executor_id = te.register_executor_endpoint(
-                endpoint_url, publisher_endpoint)
-            return jsonify({
-                'executor_id': executor_id
-            })
-    return ""

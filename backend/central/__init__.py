@@ -1,5 +1,4 @@
 import os
-
 from flask import Flask
 import xai_backend_central_dev.flask_manager as fm
 
@@ -11,7 +10,9 @@ def create_app(test_config=None):
     app = Flask(__name__, instance_relative_config=True)
     fm.load_env(app)
 
-    from . import xai_cam
-    app.register_blueprint(xai_cam.ebp)
+    from . import central
+    app.register_blueprint(central.bp)
+    # app.register_blueprint(tb_arxiv_cs.bp)
+    # app.register_blueprint(tb_explanation.bp)
 
     return app

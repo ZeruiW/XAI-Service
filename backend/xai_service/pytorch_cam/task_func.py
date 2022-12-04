@@ -1,55 +1,34 @@
-from pytorch_grad_cam.utils.image import show_cam_on_image
-from pytorch_grad_cam import GradCAM, \
-    HiResCAM, \
-    ScoreCAM, \
-    GradCAMPlusPlus, \
-    AblationCAM, \
-    XGradCAM, \
-    EigenCAM, \
-    EigenGradCAM, \
-    LayerCAM, \
-    FullGrad, \
-    GradCAMElementWise
+# device = torch.device("cpu")
+from pytorch_grad_cam import GradCAM
 from PIL import Image
-import cv2
 import torchvision.transforms as T
 import torch
-import torch.cuda as cuda
-import torch.nn as nn
 from torchvision import models
 import shutil
 import requests
 import numpy as np
-from flask import (
-    Blueprint, request, jsonify, send_file
-)
+
 import json
 import io
-from base64 import encodebytes
 import time
 import base64
 import os
-from . import task_manager as tm
 import matplotlib.pyplot as plt
 
-create_and_add_process = tm.create_and_add_process
-terminate_process = tm.terminate_process
-thread_holder_str = tm.thread_holder_str
-
-bp = Blueprint('pt_cam', __name__, url_prefix='/xai/gradcampp')
-
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 basedir = os.path.abspath(os.path.dirname(__file__))
 tmpdir = os.path.join(basedir, 'tmp')
 
-device = torch.device("cpu")
-# device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
+print("Pytorch device: ")
 print(device)
 
+if torch.backends.mps.is_built() and torch.backends.mps.is_available():
+    device = torch.device("mps")
 
-def cam_task(form_data, task_name):
-    # print(form_data)
-    # print(task_name)
+
+def cam_task(task_ticket, form_data):
+    print(form_data)
+    print(task_ticket)
 
     print('# get image data')
     response = requests.get(
@@ -93,7 +72,7 @@ def cam_task(form_data, task_name):
 
     # explanation save dir
     e_save_dir = os.path.join(tmpdir, form_data['model_name'], form_data['method_name'],
-                              form_data['data_set_name'], form_data['data_set_group_name'], task_name)
+                              form_data['data_set_name'], form_data['data_set_group_name'], task_ticket)
     if not os.path.isdir(e_save_dir):
         os.makedirs(e_save_dir, exist_ok=True)
 
@@ -105,9 +84,9 @@ def cam_task(form_data, task_name):
         input_tensor = torch.tensor(np.array([
             preprocessing(x).numpy()
             for x in [rgb_img]
-        ]))
+        ])).to(device)
 
-        cam = GradCAMPlusPlus(model=model,
+        cam = GradCAM(model=model,
                       target_layers=target_layers,
                       use_cuda=torch.cuda.is_available())
 
@@ -122,45 +101,10 @@ def cam_task(form_data, task_name):
 
         np.save(os.path.join(e_save_dir, f'{imgd[1]}.npy'), grayscale_cam)
         plt.imsave(os.path.join(e_save_dir, f'{imgd[1]}.png'), grayscale_cam)
-    shutil.make_archive(os.path.join(tmpdir, task_name), 'zip', e_save_dir)
+    shutil.make_archive(os.path.join(tmpdir, task_ticket), 'zip', e_save_dir)
     shutil.rmtree(e_save_dir)
 
 
 def bytes_to_pil_image(b):
     return Image.open(io.BytesIO(base64.b64decode(b))).convert(
         'RGB')
-
-
-@bp.route('/', methods=['POST', 'GET'])
-def cam_func():
-    if request.method == 'GET':
-        task_name = request.args['task_name']
-        #np.load in tmp folder
-        # cam_array_file = os.path.join(basedir, 'tmp\' + task_name + '.zip')
-        # cam_array = np.load(cam_array_file)
-        # for i in range(len(cam_array)):
-        return send_file(os.path.join(tmpdir, f'{task_name}.zip'), as_attachment=True)
-
-    if request.method == "POST":
-        form_data = request.form
-        task_name = f"{time.time()}|{form_data['model_name'].lower()}|{form_data['method_name'].lower()}|{form_data['data_set_name'].lower()}|{form_data['data_set_group_name'].lower()}"
-        process = create_and_add_process(task_name,
-                                         cam_task, (form_data, task_name))
-        process.start()
-        return jsonify({
-            'task_name': task_name
-        })
-
-
-@bp.route('/task', methods=['GET', 'POST'])
-def list_task():
-    if request.method == 'GET':
-        tl = thread_holder_str()
-        return jsonify(tl)
-    else:
-        act = request.args['act']
-        if act == 'stop':
-            task_name = request.args['task_name']
-            terminate_process(task_name)
-            # print(thread_holder_str())
-    return ""

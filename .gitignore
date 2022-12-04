@@ -13,3 +13,6 @@ Backup_model/
 
 .DS_Store
 .prettierrc
+
+build
+*.egg-info

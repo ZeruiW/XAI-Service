@@ -1,6 +1,4 @@
-from . import task_manager as tm
 import zipfile
-from base64 import encodebytes
 import io
 import os
 import base64
@@ -18,15 +16,16 @@ import torch
 from torchvision import models
 import time
 import subprocess
+from xai_backend_central_dev.task_manager import TaskPublisher
+
+task_publisher_name = 'eval_service'
+
+tp = TaskPublisher(task_publisher_name)
 
 #device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-#print(device)
+# print(device)
 device = torch.device("cpu")
-
-create_and_add_process = tm.create_and_add_process
-terminate_process = tm.terminate_process
-thread_holder_str = tm.thread_holder_str
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 tmpdir = os.path.join(basedir, 'tmp')
@@ -57,7 +56,8 @@ def eval_task(xai_service_url, model_service_url, db_service_url, task_name):
     task_time, model_name, method_name, data_set_name, data_set_group_name = task_name.split(
         '|')
 
-    print(task_time, model_name, method_name, data_set_name, data_set_group_name)
+    print(task_time, model_name, method_name,
+          data_set_name, data_set_group_name)
 
     print('# get exp from cam')
     exp_zip_path = os.path.join(tmpdir, f"{task_name}.zip")
@@ -230,18 +230,20 @@ def eval_task(xai_service_url, model_service_url, db_service_url, task_name):
 @bp.route('/', methods=['POST'])
 def eval():
     if request.method == 'POST':
-        explanation_task_name = request.form['task_name']
-        eval_task_name = f'{explanation_task_name}|eval'
+        explanation_task_ticket = request.form['task_ticket']
+        eval_task_name = f'{explanation_task_ticket}#eval'
 
         xai_service_url = request.form['xai_service_url']
         model_service_url = request.form['model_service_url']
         db_service_url = request.form['db_service_url']
 
-        process = create_and_add_process(eval_task_name,
-                                         eval_task, (xai_service_url, model_service_url, db_service_url, explanation_task_name))
-        process.start()
+        # process = create_and_add_process(eval_task_name,
+        #                                  eval_task, (xai_service_url, model_service_url, db_service_url, explanation_task_name))
+        # process.start()
+        task_ticket = tp.start_a_task(eval_task_name,
+                                      eval_task, xai_service_url, model_service_url, db_service_url, explanation_task_name)
         return jsonify({
-            'task_name': eval_task_name
+            'task_ticket': task_ticket
         })
     return "done"
 
@@ -264,12 +266,12 @@ def stability():
 @ bp.route('/task', methods=['GET', 'POST'])
 def list_task():
     if request.method == 'GET':
-        tl = thread_holder_str()
+        tl = tp.thread_holder_str()
         return jsonify(tl)
     else:
         act = request.args['act']
         if act == 'stop':
-            task_name = request.args['task_name']
-            terminate_process(task_name)
+            task_ticket = request.args['task_ticket']
+            tp.terminate_process(task_ticket)
             # print(thread_holder_str())
     return ""

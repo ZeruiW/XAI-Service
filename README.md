@@ -28,16 +28,15 @@ It is hosted on [Vercel](https://vercel.com).
 
 ## Development Prequisites:
 
-- Node>= `18.x`
+- Node >= `18.x`
 - npm >= `8.18.0`
 - Docker Engine
 
-## Quickstsart
+## Quickstart
 
 - Configure your `.env` environment variables from `.env.template`
-- Clone the project: `git clone https://github.com/ZeruiW/xai_service_demo`
-- Change directory into cloned folder: `cd xai_service_demo`
-- docker-compose up --build
+- Clone the project: `git clone https://github.com/ZeruiW/XAI-Service`
+- Change directory into cloned folder: `cd XAI-Service`
 - Install node depencies: `npm i`
 - Start development server: `npm run dev`
 
@@ -89,12 +88,15 @@ docker compose -f backend/docker-compose.yml -f backend/docker-compose-prod.yml 
 - [ ] NVIDIA CUDA Library
 - [ ] Vulkan
 
-## Quickstaart
-
 ## TODOs
 
 ### Frontend
 
+- [ ] Refactor code base (Priority 0)
+  - This task ensures scalability and extensibility
+  - [ ] Break functions in the Index page into reusable components
+  - [ ] Rename state functions
+  - [ ] Clean up unused functions
 - [x] MVP
   - [ ] Input
     - [ ] Images
@@ -110,6 +112,7 @@ docker compose -f backend/docker-compose.yml -f backend/docker-compose-prod.yml 
   - [ ] Implement Layer CAM
 - [ ] Implement custom XAI method
 - [ ] Implement dynamic task group
+
 
 ### Backend
 

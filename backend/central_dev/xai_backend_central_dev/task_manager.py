@@ -5,14 +5,26 @@ import random
 import string
 import requests
 import copy
+import os
+import sys
+from tinydb import TinyDB, Query
 
 
 class TaskPublisher():
 
-    def __init__(self, publisher: str) -> None:
-        self.ticket_info_map = {}
-        self.executor_registration = {}
+    def __init__(self, publisher: str, db_path: str) -> None:
         self.publisher = publisher
+
+        if not os.path.exists(db_path):
+            os.mkdir(db_path)
+
+        c_db_path = os.path.join(db_path, 'central_db.json')
+        self.db = TinyDB(c_db_path)
+        self.ticket_info_map_tb = self.db.table('ticket_info_map')
+        self.executor_registration_tb = self.db.table('executor_registration')
+
+        # print(self.ticket_info_map_tb.all())
+        # print(self.executor_registration_tb.all())
 
     def __get_random_string__(self, length):
         letters = string.ascii_lowercase + string.ascii_uppercase + string.digits
@@ -29,7 +41,7 @@ class TaskPublisher():
         return task_info
 
     def get_executor(self):
-        return copy.deepcopy(self.executor_registration)
+        return self.executor_registration_tb.all()
 
     def gen_task_name(self, task_info: dict):
         task_info = self.__feed_info__(task_info)
@@ -41,25 +53,46 @@ class TaskPublisher():
             task_ticket = self.__get_random_string__(
                 15) + '.' + task_info['__time_tail__'] + '.' + executor_id
             task_info.pop('task_ticket', None)
-            if self.ticket_info_map.get(executor_id) == None:
-                self.ticket_info_map[executor_id] = {}
-            self.ticket_info_map[executor_id][task_ticket] = dict(
+
+            executor_ticket_info = self.ticket_info_map_tb.search(
+                Query().executor_id == executor_id)
+            if len(executor_ticket_info) == 0:
+                self.ticket_info_map_tb.insert({
+                    'executor_id': executor_id,
+                    'ticket_infos': {}
+                })
+
+            executor_ticket_info = self.ticket_info_map_tb.search(
+                Query().executor_id == executor_id)[0]
+
+            executor_ticket_info['ticket_infos'][task_ticket] = dict(
                 # task_ticket=task_ticket,
                 task_info=task_info,
                 request_time=time.time()
             )
+
+            self.ticket_info_map_tb.update(
+                executor_ticket_info, Query().executor_id == executor_id)
+
             return task_ticket
         else:
             return "executor not register"
 
-    def get_ticker_info(self, target_ticket: str, with_status: bool):
-        all_ticket_info = copy.deepcopy(self.ticket_info_map)
+    def get_ticket_info(self, target_ticket: str, with_status: bool):
+        all_ticket_info = self.ticket_info_map_tb.all()
+
+        # print(self.ticket_info_map_tb.all())
+
         if target_ticket == None:
             if with_status:
-                for executor_id, ticket_infos in all_ticket_info.items():
+                for executor_ticket_info in all_ticket_info:
+                    executor_id = executor_ticket_info['executor_id']
+                    ticket_infos = executor_ticket_info['ticket_infos']
                     # TODO: what if unknow executor_id
-                    executor_endpoint_url = self.executor_registration[
-                        executor_id]['endpoint_url']
+                    executor_info = self.executor_registration_tb.search(
+                        Query().executor_id == executor_id)[0]
+
+                    executor_endpoint_url = executor_info['endpoint_url']
                     response = requests.get(
                         executor_endpoint_url + '/task')
                     executor_tasks_status = json.loads(
@@ -71,10 +104,14 @@ class TaskPublisher():
                             all_ticket_info[executor_id][current_task_ticket]['task_status'] = executor_task_status
 
             formated_all_ticket_info = {}
-            for executor_id, ticket_infos in all_ticket_info.items():
+            for executor_ticket_info in all_ticket_info:
+                executor_id = executor_ticket_info['executor_id']
+                ticket_infos = executor_ticket_info['ticket_infos']
+                executor_info = self.executor_registration_tb.search(
+                    Query().executor_id == executor_id)[0]
+
                 formated_all_ticket_info[executor_id] = dict(
-                    executor=copy.deepcopy(self.executor_registration)[
-                        executor_id],
+                    executor=executor_info,
                     ticket_infos=ticket_infos
                 )
 
@@ -91,9 +128,11 @@ class TaskPublisher():
                         find_target_task_ticket_executor_id = executor_id
                         break
             if find_target_task_ticket_executor_id != None:
+                executor_info = self.executor_registration_tb.search(
+                    Query().executor_id == find_target_task_ticket_executor_id)[0]
                 if with_status:
-                    executor_endpoint_url = self.executor_registration[
-                        find_target_task_ticket_executor_id]['endpoint_url']
+
+                    executor_endpoint_url = executor_info['endpoint_url']
                     response = requests.get(
                         executor_endpoint_url + '/task',
                         params={
@@ -103,33 +142,44 @@ class TaskPublisher():
                         response.content.decode('utf-8'))
                     executor_task_status.pop('task_ticket', None)
                     find_target_task_ticket_info['task_status'] = executor_task_status
-                find_target_task_ticket_info['executor'] = self.executor_registration[find_target_task_ticket_executor_id]
+                find_target_task_ticket_info['executor'] = executor_info
                 find_target_task_ticket_info['task_ticket'] = find_target_task_ticket
                 return find_target_task_ticket_info
             else:
                 return
 
     def register_executor_endpoint(self, endpoint_url: str, executor_info: dict):
-        executor_id = self.__get_random_string_no_low__(10)
         existed_executor_id = None
-        for e_id, info in self.executor_registration.items():
-            if info['executor_info'] == executor_info:
-                existed_executor_id = e_id
+        all_executor_registration_info = self.executor_registration_tb.all()
+        print(all_executor_registration_info)
+        for e_rg_info in all_executor_registration_info:
+            if e_rg_info['executor_info'] == executor_info:
+                existed_executor_id = e_rg_info['executor_id']
                 break
+
         if existed_executor_id != None:
-            self.executor_registration.pop(existed_executor_id, None)
-        self.executor_registration[executor_id] = dict(
-            endpoint_url=endpoint_url,
-            executor_info=executor_info
-        )
-        return executor_id
+            self.executor_registration_tb.update({
+                'executor_id': existed_executor_id,
+                'executor_info': executor_info,
+                'endpoint_url': endpoint_url,
+            }, Query().executor_id == existed_executor_id)
+            return existed_executor_id
+        else:
+            executor_id = self.__get_random_string_no_low__(10)
+            self.executor_registration_tb.insert({
+                'executor_id': executor_id,
+                'executor_info': executor_info,
+                'endpoint_url': endpoint_url,
+            })
+            return executor_id
 
     def if_executor_registered(self, executor_id: str):
-        return self.executor_registration.get(executor_id) != None
+        return len(self.executor_registration_tb.search(Query().executor_id == executor_id)) > 0
 
 
 class TaskExecutor():
 
+    # executor db
     def __init__(self, executor_info: str) -> None:
         self.executor_info = executor_info
         self.process_holder = {}

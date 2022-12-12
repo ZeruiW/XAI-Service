@@ -14,7 +14,7 @@ tmpdir = os.path.join(basedir, 'tmp')
 
 task_publisher_name = 'central'
 
-tp = TaskPublisher(task_publisher_name)
+tp = TaskPublisher(task_publisher_name, db_path=os.path.join(basedir, 'db'))
 
 
 @bp.route('/executor', methods=['GET', 'POST'])
@@ -39,8 +39,8 @@ def task():
         task_ticket = request.args.get('task_ticket')
         with_status = False if request.args.get('with_status') == None else (
             False if request.args.get('with_status') != '1' else True)
-        print(with_status)
-        return jsonify(tp.get_ticker_info(task_ticket, with_status))
+        # print(with_status)
+        return jsonify(tp.get_ticket_info(task_ticket, with_status))
     else:
         return ""
 

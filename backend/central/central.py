@@ -6,7 +6,7 @@ from flask import (
 
 from xai_backend_central_dev.task_manager import TaskPublisher
 
-bp = Blueprint('central_task_publisher', __name__,
+bp = Blueprint('central', __name__,
                url_prefix='/task_publisher')
 
 basedir = os.path.abspath(os.path.dirname(__file__))

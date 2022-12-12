@@ -1,12 +1,24 @@
 version: "3"
 services:
-    model_service:
+    central:
+        build:
+            args:
+                ENV: dev
+        networks:
+            xainet:
+                ipv4_address: 172.16.10.6
+    model_service_rn50_1:
         build:
             args:
                 ENV: dev
         networks:
             xainet:
                 ipv4_address: 172.16.10.2
+        volumes:
+            - type: bind
+              source: ./model_service/resnet50
+              target: /model_service/resnet50
+            # - model_service_rn50_1_volumes:/model_service/resnet50
     db_service:
         build:
             args:
@@ -37,3 +49,6 @@ networks:
         ipam:
             config:
                 - subnet: 172.16.10.0/24
+
+volumes:
+    model_service_rn50_1_volumes:

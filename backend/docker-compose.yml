@@ -1,8 +1,13 @@
 version: "3"
 services:
-    model_service:
+    central:
         build:
-            dockerfile: ./model_service/Dockerfile
+            dockerfile: ./central/Dockerfile
+        ports:
+            - 5006:5006
+    model_service_rn50_1:
+        build:
+            dockerfile: ./model_service/resnet50/Dockerfile
         ports:
             - 5001:5001
     db_service:

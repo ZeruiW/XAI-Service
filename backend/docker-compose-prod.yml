@@ -1,12 +1,21 @@
 version: "3"
 services:
-    model_service:
+    central:
+        build:
+            args:
+                ENV: prod
+        networks:
+            xainet:
+                ipv4_address: 172.16.10.6
+    model_service_rn50_1:
         build:
             args:
                 ENV: prod
         networks:
             xainet:
                 ipv4_address: 172.16.10.2
+        volumes:
+            - model_service_rn50_1_volumes:/model_service/resnet50
     db_service:
         build:
             args:

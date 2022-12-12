@@ -57,13 +57,11 @@ def eval():
 @ebp.route('/stability', methods=['GET'])
 def stability():
     if request.method == 'GET':
-        explanation_task_name = request.args['task_name']
-        task_time, model_name, method_name, data_set_name, data_set_group_name = explanation_task_name.split(
-            '|')
+        explanation_task_ticket = request.args['explanation_task_ticket']
         pcd_save_path = os.path.join(
-            ebp.tmp_path, explanation_task_name, f'{method_name}-predictionchangedistance.npy')
+            ebp.tmp_path, explanation_task_ticket, f'prediction_change_distance.npy')
         with open(pcd_save_path, 'rb') as f:
             rs = list(np.load(f))
 
-        subprocess.call("$(pwd)/evaluation_service/copy_result.sh", shell=True)
+        # subprocess.call("$(pwd)/evaluation_service/copy_result.sh", shell=True)
     return jsonify(rs)

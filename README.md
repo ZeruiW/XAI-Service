@@ -42,33 +42,56 @@ It is hosted on [Vercel](https://vercel.com).
 
 # XAI Service Backend
 
-## Local Dev with Docker Compose
+## Run Docker in Dev Env
 
-Up all:
+### 1. Start-Up Local MySQL
+
+If you are the first time, please also create a volume for MySQL.
+
+``` bash
+docker volume create xaifw-mysql
+```
+
+Then:
+
+``` bash
+docker compose -f backend/db_service/docker-compos-mysql.yaml up -d
+```
+
+### 2. Volume for All the Services
+
+``` bash
+docker volume create xai_fw_volumes
+```
+
+### 3. Bring Up Services
 
 ```bash
 docker compose -f backend/docker-compose.yml -f backend/docker-compose-dev.yml up --build
 ```
 
-Up single service:
+Or for single service:
 
 ```bash
 docker compose -f backend/docker-compose.yml -f backend/docker-compose-dev.yml up [service_name] --build
 ```
 
-## Prod with Docker Compose
 
-Up all:
 
-```bash
-docker compose -f backend/docker-compose.yml -f backend/docker-compose-prod.yml up --build
-```
+## Basic Work Flow
 
-Up single service:
+### Case 1. ResNet50 & GradCAM
 
-```bash
-docker compose -f backend/docker-compose.yml -f backend/docker-compose-prod.yml up [service_name] --build
-```
+API Document: https://documenter.getpostman.com/view/2019955/2s8YzUw1he
+
+1. Register four services to central;
+2. Upload Dataset;
+3. Execute CAM task;
+4. Once CAM task finished, execute Evaluation task;
+
+
+
+
 
 ## Requirements
 

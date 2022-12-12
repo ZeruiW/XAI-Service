@@ -60,7 +60,8 @@ def eval_task(eval_task_ticket, xai_service_url, model_service_url, db_service_u
     #       data_set_name, data_set_group_name)
 
     print('# get exp from cam')
-    exp_zip_path = os.path.join(tmpdir, f"{explanation_task_ticket}.zip")
+    exp_zip_path = os.path.join(
+        tmpdir, f"{explanation_task_ticket}_for_eval.zip")
     response = requests.get(xai_service_url, params={
         'task_ticket': explanation_task_ticket
     })
@@ -188,7 +189,7 @@ def eval_task(eval_task_ticket, xai_service_url, model_service_url, db_service_u
     print('# save score')
     for cam_method in cam_method_name:
         score_save_path = os.path.join(tmpdir, explanation_task_ticket,
-                                       f'{cam_method}-rs.npy')
+                                       f'rs.npy')
         np.save(score_save_path, pred_data[cam_method])
 
     prediction_change = {}
@@ -196,11 +197,11 @@ def eval_task(eval_task_ticket, xai_service_url, model_service_url, db_service_u
 
     for cam_method in cam_method_name:
         score_save_path = os.path.join(tmpdir, explanation_task_ticket,
-                                       f'{cam_method}-rs.npy')
+                                       f'rs.npy')
         pc_save_path = os.path.join(tmpdir, explanation_task_ticket,
-                                    f'{cam_method}-predictionchange.npy')
+                                    f'prediction_change.npy')
         pcd_save_path = os.path.join(tmpdir, explanation_task_ticket,
-                                     f'{cam_method}-predictionchangedistance.npy')
+                                     f'prediction_change_distance.npy')
         prediction_change[cam_method] = []
         prediction_change_distance[cam_method] = []
         with open(score_save_path, 'rb') as f:

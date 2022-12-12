@@ -13,12 +13,12 @@ task_executor_info = {
     'create_time': time.time()
 }
 
-ebp = ExecutorBluePrint(
-    'evaluation', __name__, task_executor_info=task_executor_info, url_prefix='/evaluation')
-te = ebp.get_task_executor()
-
 basedir = os.path.abspath(os.path.dirname(__file__))
 tmpdir = os.path.join(basedir, 'tmp')
+
+ebp = ExecutorBluePrint(
+    'evaluation', __name__, db_path=os.path.join(basedir, 'db'), url_prefix='/evaluation')
+te = ebp.get_task_executor()
 
 
 @ebp.route('/', methods=['POST'])

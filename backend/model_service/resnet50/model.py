@@ -6,8 +6,10 @@ from torchvision import models
 import torchvision.transforms as transforms
 from PIL import Image
 from flask import (
-    Blueprint, request, jsonify, send_file
+    request, jsonify, send_file
 )
+from xai_backend_central_dev.flask_manager import ExecutorBluePrint
+
 import numpy as np
 
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -38,7 +40,9 @@ def transform_image(image_bytes):
     return my_transforms(image)
 
 
-bp = Blueprint('resnet50', __name__, url_prefix='/resnet50')
+# bp = Blueprint('resnet50', __name__, url_prefix='/resnet50')
+ebp = ExecutorBluePrint(
+    'resnet50', __name__, db_path=os.path.join(basedir, 'db'), url_prefix='/resnet50')
 
 
 def get_prediction(imgs):
@@ -50,7 +54,7 @@ def get_prediction(imgs):
     return outputs
 
 
-@bp.route('/', methods=['GET', 'POST'])
+@ebp.route('/', methods=['GET', 'POST'])
 def pred():
     if request.method == 'POST':
         files = request.files

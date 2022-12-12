@@ -81,13 +81,19 @@ class TaskPublisher():
     def get_ticket_info(self, target_ticket: str, with_status: bool):
         all_ticket_info = self.ticket_info_map_tb.all()
 
+        all_ticket_info_tmp = {}
+        for executor_ticket_info in all_ticket_info:
+            executor_id = executor_ticket_info['executor_id']
+            ticket_infos = executor_ticket_info['ticket_infos']
+            all_ticket_info_tmp[executor_id] = ticket_infos
+
+        all_ticket_info = all_ticket_info_tmp
+
         # print(self.ticket_info_map_tb.all())
 
         if target_ticket == None:
             if with_status:
-                for executor_ticket_info in all_ticket_info:
-                    executor_id = executor_ticket_info['executor_id']
-                    ticket_infos = executor_ticket_info['ticket_infos']
+                for executor_id, ticket_infos in all_ticket_info.items():
                     # TODO: what if unknow executor_id
                     executor_info = self.executor_registration_tb.search(
                         Query().executor_id == executor_id)[0]
@@ -104,9 +110,7 @@ class TaskPublisher():
                             all_ticket_info[executor_id][current_task_ticket]['task_status'] = executor_task_status
 
             formated_all_ticket_info = {}
-            for executor_ticket_info in all_ticket_info:
-                executor_id = executor_ticket_info['executor_id']
-                ticket_infos = executor_ticket_info['ticket_infos']
+            for executor_id, ticket_infos in all_ticket_info.items():
                 executor_info = self.executor_registration_tb.search(
                     Query().executor_id == executor_id)[0]
 
@@ -148,7 +152,9 @@ class TaskPublisher():
             else:
                 return
 
-    def register_executor_endpoint(self, endpoint_url: str, executor_info: dict):
+    def register_executor_endpoint(self, executor_endpoint_url: str,
+                                   executor_info: dict,
+                                   publisher_endpoint_url: str):
         existed_executor_id = None
         all_executor_registration_info = self.executor_registration_tb.all()
         print(all_executor_registration_info)
@@ -157,21 +163,36 @@ class TaskPublisher():
                 existed_executor_id = e_rg_info['executor_id']
                 break
 
+        _id = None
         if existed_executor_id != None:
             self.executor_registration_tb.update({
                 'executor_id': existed_executor_id,
                 'executor_info': executor_info,
-                'endpoint_url': endpoint_url,
+                'endpoint_url': executor_endpoint_url,
             }, Query().executor_id == existed_executor_id)
-            return existed_executor_id
+            _id = existed_executor_id
         else:
             executor_id = self.__get_random_string_no_low__(10)
             self.executor_registration_tb.insert({
                 'executor_id': executor_id,
                 'executor_info': executor_info,
-                'endpoint_url': endpoint_url,
+                'endpoint_url': executor_endpoint_url,
             })
-            return executor_id
+            _id = executor_id
+
+        # send reg info to executor service
+        requests.post(
+            executor_endpoint_url + '/task',
+            data={
+                'act': 'reg',
+                'executor_id': _id,
+                'executor_endpoint_url': executor_endpoint_url,
+                'executor_info': json.dumps(executor_info),
+                'publisher_endpoint_url': publisher_endpoint_url
+            }
+        )
+
+        return _id
 
     def if_executor_registered(self, executor_id: str):
         return len(self.executor_registration_tb.search(Query().executor_id == executor_id)) > 0
@@ -179,12 +200,16 @@ class TaskPublisher():
 
 class TaskExecutor():
 
-    # executor db
-    def __init__(self, executor_info: str) -> None:
-        self.executor_info = executor_info
+    # TODO: executor process db
+    def __init__(self, db_path: str) -> None:
         self.process_holder = {}
-        self.executor_id = None
-        self.publisher_endpoint = None
+
+        if not os.path.exists(db_path):
+            os.mkdir(db_path)
+
+        c_db_path = os.path.join(db_path, 'microservice_instance_db.json')
+        self.db = TinyDB(c_db_path)
+        self.executor_reg_info_tb = self.db.table('executor_info')
 
     def __create_and_add_process__(self, task_ticket, func, *args, **kwargs):
         process = multiprocessing.Process(
@@ -197,22 +222,31 @@ class TaskExecutor():
         return process
 
     def get_executor_info(self):
-        return copy.deepcopy(self.executor_info)
+        executor_reg_info = self.executor_reg_info_tb.all()
+        if len(executor_reg_info) > 0:
+            return executor_reg_info[0]['executor_info']
+        return
 
-    def get_publisher_endpoint(self):
-        return copy.deepcopy(self.publisher_endpoint)
+    def get_publisher_endpoint_url(self):
+        executor_reg_info = self.executor_reg_info_tb.all()
+        if len(executor_reg_info) > 0:
+            return executor_reg_info[0]['publisher_endpoint_url']
+        return
 
     def get_executor_id(self):
-        return copy.deepcopy(self.executor_id)
+        executor_reg_info = self.executor_reg_info_tb.all()
+        if len(executor_reg_info) > 0:
+            return executor_reg_info[0]['executor_id']
+        return
 
     # should request task ticket from publisher
     def request_task_ticket(self, task_info: dict):
-        if self.get_publisher_endpoint() == None or self.get_executor_id() == None:
+        if self.get_publisher_endpoint_url() == None or self.get_executor_id() == None:
             print('Executor not register')
             return None
         else:
             response = requests.post(
-                self.get_publisher_endpoint() + '/task_publisher/ticket',
+                self.get_publisher_endpoint_url() + '/task_publisher/ticket',
                 data={
                     'executor_id': self.get_executor_id(),
                     'task_info': json.dumps(task_info)
@@ -221,16 +255,20 @@ class TaskExecutor():
             return json.loads(response.content)['task_ticket']
 
     # should register executor to publisher
-    def register_executor_endpoint(self, endpoint_url: str, publisher_endpoint: str):
-        self.publisher_endpoint = publisher_endpoint
-        response = requests.post(
-            self.get_publisher_endpoint() + '/task_publisher/executor',
-            data={
-                'endpoint_url': endpoint_url,
-                'executor_info': json.dumps(self.get_executor_info())
-            }
-        )
-        self.executor_id = json.loads(response.content)['executor_id']
+    def keep_reg_info(self, executor_id,  endpoint_url: str, executor_info, publisher_endpoint_url: str):
+        executor_reg_info = self.executor_reg_info_tb.all()
+        if len(executor_reg_info) > 0:
+            # remove exicting reg info
+            # one service instance, one record in reg info db
+            self.executor_reg_info_tb.truncate()
+
+        self.executor_reg_info_tb.insert({
+            'executor_id': executor_id,
+            'endpoint_url': endpoint_url,
+            'executor_info': json.loads(executor_info),
+            'publisher_endpoint_url': publisher_endpoint_url,
+        })
+
         return self.get_executor_id()
 
     def start_a_task(self, task_ticket, func, *args, **kwargs):
@@ -251,12 +289,12 @@ class TaskExecutor():
             return 0 if p['process'].is_alive() else 1
 
     def get_ticket_info_from_central(self, target_ticket: str):
-        if self.get_publisher_endpoint() == None or self.get_executor_id() == None:
+        if self.get_publisher_endpoint_url() == None or self.get_executor_id() == None:
             print('Executor not register')
             return None
         else:
             response = requests.get(
-                self.get_publisher_endpoint() + '/task_publisher/task',
+                self.get_publisher_endpoint_url() + '/task_publisher/task',
                 params={
                     'task_ticket': target_ticket,
                 }

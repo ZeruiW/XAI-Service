@@ -15,7 +15,14 @@ import numpy as np
 #device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # print(device)
-device = torch.device("cpu")
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+if torch.backends.mps.is_built() and torch.backends.mps.is_available():
+    device = torch.device("mps")
+
+print("Pytorch device: ")
+print(device)
+
 basedir = os.path.abspath(os.path.dirname(__file__))
 tmpdir = os.path.join(basedir, 'tmp')
 

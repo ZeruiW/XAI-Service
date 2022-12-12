@@ -24,9 +24,11 @@ def executor():
     else:
         # executor register
         form_data = request.form
-        endpoint_url = form_data['endpoint_url']
+        executor_endpoint_url = form_data['executor_endpoint_url']
         exector_info = json.loads(form_data['executor_info'])
-        exector_id = tp.register_executor_endpoint(endpoint_url, exector_info)
+        publisher_endpoint_url = form_data['publisher_endpoint_url']
+        exector_id = tp.register_executor_endpoint(
+            executor_endpoint_url, exector_info, publisher_endpoint_url)
         return jsonify({
             'executor_id': exector_id
         })

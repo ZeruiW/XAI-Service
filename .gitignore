@@ -16,3 +16,5 @@ Backup_model/
 
 build
 *.egg-info
+
+*_db.json

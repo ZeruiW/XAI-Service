@@ -8,16 +8,17 @@ from xai_backend_central_dev.flask_manager import ExecutorBluePrint
 
 from . import task_func
 
-task_executor_info = {
-    'executor_name': 'xai_service:pt_cam'
-}
-
-ebp = ExecutorBluePrint(
-    'pt_cam', __name__, task_executor_info=task_executor_info, url_prefix='/xai/pt_cam')
-te = ebp.get_task_executor()
+# task_executor_info = {
+#     'executor_name': 'xai_service:pt_cam'
+# }
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 tmpdir = os.path.join(basedir, 'tmp')
+
+ebp = ExecutorBluePrint(
+    'pt_cam', __name__, db_path=os.path.join(basedir, 'db'), url_prefix='/xai/pt_cam')
+te = ebp.get_task_executor()
+
 
 print('--------')
 print('Platform:')

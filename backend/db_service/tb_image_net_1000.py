@@ -1,13 +1,19 @@
 from base64 import encodebytes
 import io
+import os
 import flask
 from flask import (
     Blueprint, request, jsonify, g
 )
 from PIL import Image
 from db_service.db_helper import trans
+from xai_backend_central_dev.flask_manager import ExecutorBluePrint
 
-bp = Blueprint('imgnet1000', __name__, url_prefix='/db/imgnet1000')
+basedir = os.path.abspath(os.path.dirname(__file__))
+
+# bp = Blueprint('imgnet1000', __name__, url_prefix='/db/imgnet1000')
+bp = ExecutorBluePrint(
+    'imgnet1000', __name__, db_path=os.path.join(basedir, 'db'), url_prefix='/db/imgnet1000')
 
 
 def insert_img_db_exe(cnx, img_name, img_data, img_group, img_label):

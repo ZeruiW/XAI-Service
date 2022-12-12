@@ -32,9 +32,9 @@ def load_env(app):
 
 class ExecutorBluePrint(Blueprint):
 
-    def __init__(self, name, import_name, *args, task_executor_info: dict, **kwargs) -> None:
+    def __init__(self, name, import_name, *args, db_path, **kwargs) -> None:
 
-        self.te = task_manager.TaskExecutor(task_executor_info)
+        self.te = task_manager.TaskExecutor(db_path)
 
         super().__init__(name, import_name, *args, **kwargs)
 
@@ -54,10 +54,12 @@ class ExecutorBluePrint(Blueprint):
                     self.te.terminate_process(task_ticket)
                     # print(process_holder_str())
                 if act == 'reg':
-                    endpoint_url = form_data['endpoint_url']
-                    publisher_endpoint = form_data['publisher_endpoint']
-                    executor_id = self.te.register_executor_endpoint(
-                        endpoint_url, publisher_endpoint)
+                    executor_id = form_data['executor_id']
+                    endpoint_url = form_data['executor_endpoint_url']
+                    executor_info = form_data['executor_info']
+                    publisher_endpoint_url = form_data['publisher_endpoint_url']
+                    executor_id = self.te.keep_reg_info(
+                        executor_id, endpoint_url, executor_info, publisher_endpoint_url)
                     return jsonify({
                         'executor_id': executor_id
                     })

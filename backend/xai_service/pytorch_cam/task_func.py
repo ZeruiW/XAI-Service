@@ -19,11 +19,12 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 basedir = os.path.abspath(os.path.dirname(__file__))
 tmpdir = os.path.join(basedir, 'tmp')
 
-print("Pytorch device: ")
-print(device)
 
 if torch.backends.mps.is_built() and torch.backends.mps.is_available():
     device = torch.device("mps")
+
+print("Pytorch device: ")
+print(device)
 
 
 def cam_task(task_ticket, form_data):

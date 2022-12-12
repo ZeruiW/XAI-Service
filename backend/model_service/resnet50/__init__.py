@@ -13,6 +13,6 @@ def create_app(test_config=None):
     fm.load_env(app)
 
     from . import model
-    app.register_blueprint(model.bp)
+    app.register_blueprint(model.ebp)
 
     return app

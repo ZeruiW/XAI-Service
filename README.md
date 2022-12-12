@@ -28,18 +28,17 @@ It is hosted on [Vercel](https://vercel.com).
 
 ## Development Prequisites:
 
-- Node>= `18.x`
-- npm >= `8.18.0`
-- Docker Engine
+-   Node >= `18.x`
+-   npm >= `8.18.0`
+-   Docker Engine
 
-## Quickstsart
+## Quickstart
 
-- Configure your `.env` environment variables from `.env.template`
-- Clone the project: `git clone https://github.com/ZeruiW/xai_service_demo`
-- Change directory into cloned folder: `cd xai_service_demo`
-- docker-compose up --build
-- Install node depencies: `npm i`
-- Start development server: `npm run dev`
+-   Configure your `.env` environment variables from `.env.template`
+-   Clone the project: `git clone https://github.com/ZeruiW/XAI-Service`
+-   Change directory into cloned folder: `cd XAI-Service`
+-   Install node depencies: `npm i`
+-   Start development server: `npm run dev`
 
 # XAI Service Backend
 
@@ -75,47 +74,58 @@ docker compose -f backend/docker-compose.yml -f backend/docker-compose-prod.yml 
 
 ### Platforms
 
-- [ ] Linux x86-64:
-  - [x] Ubuntu 22.04 LTS (Best)
-  - [x] Debian 11 "Bullseye" Stable branch
-  - [x] RHEL 8
-  - [ ] Arch
-- [ ] Windows x86-64:
-  - [ ] Windows 10 >= 1909 update
-  - [ ] Windows 11
+-   [ ] Linux x86-64:
+    -   [x] Ubuntu 22.04 LTS (Best)
+    -   [x] Debian 11 "Bullseye" Stable branch
+    -   [x] RHEL 8
+    -   [ ] Arch
+-   [ ] Windows x86-64:
+    -   [ ] Windows 10 >= 1909 update
+    -   [ ] Windows 11
 
 ### Hardware Acceleration
 
-- [ ] NVIDIA CUDA Library
-- [ ] Vulkan
-
-## Quickstaart
+-   [ ] NVIDIA CUDA Library
+-   [ ] Vulkan
 
 ## TODOs
 
+Tasks and child tasks are priority tagged starting from 0 as the highest priority. E.g. `P0`, `P1`,...`Pn`. Finished tasks are stripped of the priority tag.
+
+For maintainers, it is advised to follow the Notion documentation (shared internally) as the single source of truth.
+
 ### Frontend
 
-- [x] MVP
-  - [ ] Input
-    - [ ] Images
-    - [ ] Map
-    - [ ] Method selector
-  - [x] Data upload
-  - [x] Step-by-step processes
-    - [x] Execute CAM
-    - [x] Run Evaluation
-    - [x] Show Results
-  - [x] Implement Grad CAM
-  - [ ] Implement Grad CAM++
-  - [ ] Implement Layer CAM
-- [ ] Implement custom XAI method
-- [ ] Implement dynamic task group
+-   [ ] Refactor code base `P0`
+    -   This task ensures scalability and extensibility
+    -   [ ] Break functions in the Index page into reusable components `P0`
+    -   [ ] Rename state functions `P0`
+    -   [ ] Clean up unused functions `P1`
+    -   [ ] Migrate Web API Fetch() to React/TanStack Query `P2`
+-   [x] MVP `P0`
+    -   [ ] Input `P0`
+        -   [x] Images
+        -   [ ] Non-images `P0`
+        -   [x] Mapping
+        -   [ ] Method selector `P1`
+    -   [x] Data upload
+    -   [x] Step-by-step processes
+        -   [x] Execute CAM
+        -   [x] Run Evaluation
+        -   [x] Show Results
+    -   [x] Implement Grad CAM API
+    -   [ ] Implement Grad CAM++ API `P0`
+    -   [ ] Implement Layer CAM API `P0`
+-   [ ] Implement custom XAI method `P1`
+-   [ ] Implement dynamic task group `P1`
+-   [ ] Migrate over to DaisyUI instead of the vanilla Tailwindcss `P2`
+-   [ ] Write User Stories (on Notion) `P2`
 
 ### Backend
 
-- [ ] Improve database I/O
+> TBA
 
 ### Infrastructure
 
-- [x] Deploy Frontend
-- [ ] Deploy Backend
+-   [x] Deploy Frontend
+-   [ ] Deploy Backend `P0`

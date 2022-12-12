@@ -13,11 +13,8 @@ task_executor_info = {
     'create_time': time.time()
 }
 
-basedir = os.path.abspath(os.path.dirname(__file__))
-tmpdir = os.path.join(basedir, 'tmp')
-
 ebp = ExecutorBluePrint(
-    'evaluation', __name__, db_path=os.path.join(basedir, 'db'), url_prefix='/evaluation')
+    'evaluation', __name__, component_path=__file__, url_prefix='/evaluation')
 te = ebp.get_task_executor()
 
 
@@ -64,7 +61,7 @@ def stability():
         task_time, model_name, method_name, data_set_name, data_set_group_name = explanation_task_name.split(
             '|')
         pcd_save_path = os.path.join(
-            tmpdir, explanation_task_name, f'{method_name}-predictionchangedistance.npy')
+            ebp.tmp_path, explanation_task_name, f'{method_name}-predictionchangedistance.npy')
         with open(pcd_save_path, 'rb') as f:
             rs = list(np.load(f))
 

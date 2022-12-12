@@ -10,15 +10,35 @@ import sys
 from tinydb import TinyDB, Query
 
 
-class TaskPublisher():
+class TaskComponent():
+    def __init__(self, component_name: str, component_path: str) -> None:
+        self.component_name = component_name
+        self.component_path = os.path.abspath(os.path.dirname(component_path))
 
-    def __init__(self, publisher: str, db_path: str) -> None:
+        self.storage_path = os.path.join(
+            self.component_path, f'{component_name}_storage')
+        self.tmp_path = os.path.join(self.storage_path, 'tmp')
+        self.db_path = os.path.join(self.storage_path, 'db')
+
+        if not os.path.exists(self.tmp_path):
+            os.makedirs(self.tmp_path, exist_ok=True)
+
+        if not os.path.exists(self.db_path):
+            os.makedirs(self.db_path, exist_ok=True)
+
+        os.environ['COMPONENT_STORAGE_DIR'] = self.storage_path
+        os.environ['COMPONENT_TMP_DIR'] = self.tmp_path
+
+
+class TaskPublisher(TaskComponent):
+
+    def __init__(self, publisher: str, component_path: str) -> None:
+
+        super().__init__(publisher, component_path)
+
         self.publisher = publisher
 
-        if not os.path.exists(db_path):
-            os.mkdir(db_path)
-
-        c_db_path = os.path.join(db_path, 'central_db.json')
+        c_db_path = os.path.join(self.db_path, 'central_db.json')
         self.db = TinyDB(c_db_path)
         self.ticket_info_map_tb = self.db.table('ticket_info_map')
         self.executor_registration_tb = self.db.table('executor_registration')
@@ -182,7 +202,7 @@ class TaskPublisher():
 
         # send reg info to executor service
         requests.post(
-            executor_endpoint_url + '/task',
+            executor_endpoint_url + '/executor',
             data={
                 'act': 'reg',
                 'executor_id': _id,
@@ -198,16 +218,16 @@ class TaskPublisher():
         return len(self.executor_registration_tb.search(Query().executor_id == executor_id)) > 0
 
 
-class TaskExecutor():
+class TaskExecutor(TaskComponent):
 
     # TODO: executor process db
-    def __init__(self, db_path: str) -> None:
+    def __init__(self, executor_name: str, component_path: str) -> None:
+        super().__init__(executor_name, component_path)
+
         self.process_holder = {}
 
-        if not os.path.exists(db_path):
-            os.mkdir(db_path)
-
-        c_db_path = os.path.join(db_path, 'microservice_instance_db.json')
+        c_db_path = os.path.join(
+            self.db_path, f'executor_{executor_name}_db.json')
         self.db = TinyDB(c_db_path)
         self.executor_reg_info_tb = self.db.table('executor_info')
 

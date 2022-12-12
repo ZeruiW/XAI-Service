@@ -2,7 +2,11 @@ FROM python:3.8-slim-buster
 
 WORKDIR /evaluation_service
 
-COPY ./evaluation_service/requirements.txt requirements.txt
+COPY ./evaluation_service .
+COPY ./central_dev /central_dev
+COPY ./docker_setup.sh /
+
+RUN pip install /central_dev
 
 RUN apt-get update \
     && python -m pip install --upgrade pip \
@@ -10,9 +14,13 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get -qq autoremove \
     && apt-get -qq clean
-    
-COPY .//evaluation_service .
+
+# from compose args
+ARG ENV 
+ENV ENV=${ENV}
+COPY ./.env.${ENV} .env.${ENV}
+
+RUN ["chmod", "+x", "/docker_setup.sh"]
 
 EXPOSE 5004
-
-CMD [ "flask", "--app", ".", "run", "--host=0.0.0.0", "-p", "5004"]
+CMD ["sh", "/docker_setup.sh", "/evaluation_service", "5004"]

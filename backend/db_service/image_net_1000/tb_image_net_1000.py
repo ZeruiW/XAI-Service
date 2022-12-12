@@ -6,14 +6,11 @@ from flask import (
     Blueprint, request, jsonify, g
 )
 from PIL import Image
-from db_service.db_helper import trans
+from . import db_helper
 from xai_backend_central_dev.flask_manager import ExecutorBluePrint
 
-basedir = os.path.abspath(os.path.dirname(__file__))
-
-# bp = Blueprint('imgnet1000', __name__, url_prefix='/db/imgnet1000')
 bp = ExecutorBluePrint(
-    'imgnet1000', __name__, db_path=os.path.join(basedir, 'db'), url_prefix='/db/imgnet1000')
+    'image_net_1000', __name__, component_path=__file__, url_prefix='/db/imgnet1000')
 
 
 def insert_img_db_exe(cnx, img_name, img_data, img_group, img_label):
@@ -47,8 +44,8 @@ def insert_img_req():
             img_data = img.read()
             # img = np.array(Image.open(img))
             # insert_img_db_exe(img_name, img_data, img_group, m[img_name])
-            trans(insert_img_db_exe, img_name,
-                  img_data, img_group, m[img_name])
+            db_helper.trans(insert_img_db_exe, img_name,
+                            img_data, img_group, m[img_name])
             i += 1
 
     return ""
@@ -93,6 +90,6 @@ def list_img():
         return "plese provide img_group"
     with_img_data = request.args.get('with_img_data') != None
     if request.method == 'GET':
-        l = trans(get_img_db_exe, img_group, with_img_data)
+        l = db_helper.trans(get_img_db_exe, img_group, with_img_data)
 
     return jsonify(l)

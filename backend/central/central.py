@@ -9,12 +9,8 @@ from xai_backend_central_dev.task_manager import TaskPublisher
 bp = Blueprint('central', __name__,
                url_prefix='/task_publisher')
 
-basedir = os.path.abspath(os.path.dirname(__file__))
-tmpdir = os.path.join(basedir, 'tmp')
-
 task_publisher_name = 'central'
-
-tp = TaskPublisher(task_publisher_name, db_path=os.path.join(basedir, 'db'))
+tp = TaskPublisher(task_publisher_name, component_path=__file__)
 
 
 @bp.route('/executor', methods=['GET', 'POST'])

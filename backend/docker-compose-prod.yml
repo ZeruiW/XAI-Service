@@ -14,9 +14,7 @@ services:
         networks:
             xainet:
                 ipv4_address: 172.16.10.2
-        volumes:
-            - model_service_rn50_1_volumes:/model_service/resnet50
-    db_service:
+    db_service_imgnet_1000:
         build:
             args:
                 ENV: prod
@@ -24,7 +22,7 @@ services:
             xainet:
                 ipv4_address: 172.16.10.3
 
-    xai_service:
+    xai_service_pytorch_cam:
         build:
             args:
                 ENV: prod

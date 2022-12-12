@@ -2,9 +2,9 @@
 
 if [ "$ENV" = "prod" ]; then
     echo "prod"
-    flask --app . run --host=0.0.0.0 -p 5006
+    flask --app $1 run --host=0.0.0.0 -p $2
 else
     echo "dev"
     export MYSQL_HOST=host.docker.internal
-    flask --app . --debug run --host=0.0.0.0 -p 5006
+    flask --app $1 --debug run --host=0.0.0.0 -p $2
 fi;

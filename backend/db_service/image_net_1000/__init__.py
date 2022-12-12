@@ -3,8 +3,6 @@ import mysql.connector
 from flask import Flask
 import xai_backend_central_dev.flask_manager as fm
 
-fm.create_tmp_dir(__file__)
-
 
 def create_app(test_config=None):
     # create and configure the app
@@ -24,9 +22,7 @@ def create_app(test_config=None):
     db_helper.set_pool(cnxpool)
     db_helper.init_db()
 
-    from . import tb_arxiv_cs, tb_image_net_1000, tb_explanation
+    from . import tb_image_net_1000
     app.register_blueprint(tb_image_net_1000.bp)
-    app.register_blueprint(tb_arxiv_cs.bp)
-    app.register_blueprint(tb_explanation.bp)
 
     return app

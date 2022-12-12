@@ -16,9 +16,7 @@ import os
 import matplotlib.pyplot as plt
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-basedir = os.path.abspath(os.path.dirname(__file__))
-tmpdir = os.path.join(basedir, 'tmp')
-
+tmpdir = os.environ.get('COMPONENT_TMP_DIR')
 
 if torch.backends.mps.is_built() and torch.backends.mps.is_available():
     device = torch.device("mps")

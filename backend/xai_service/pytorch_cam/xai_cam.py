@@ -12,13 +12,10 @@ from . import task_func
 #     'executor_name': 'xai_service:pt_cam'
 # }
 
-basedir = os.path.abspath(os.path.dirname(__file__))
-tmpdir = os.path.join(basedir, 'tmp')
 
 ebp = ExecutorBluePrint(
-    'pt_cam', __name__, db_path=os.path.join(basedir, 'db'), url_prefix='/xai/pt_cam')
+    'pt_cam', __name__, component_path=__file__, url_prefix='/xai/pt_cam')
 te = ebp.get_task_executor()
-
 
 print('--------')
 print('Platform:')
@@ -30,7 +27,7 @@ print('--------')
 def cam_func():
     if request.method == 'GET':
         task_ticket = request.args['task_ticket']
-        file_name = os.path.join(tmpdir, f'{task_ticket}.zip')
+        file_name = os.path.join(ebp.tmp_path, f'{task_ticket}.zip')
         if os.path.exists(file_name):
             # np.load in tmp folder
             # cam_array_file = os.path.join(basedir, 'tmp\' + task_name + '.zip')

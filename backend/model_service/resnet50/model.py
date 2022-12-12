@@ -14,19 +14,13 @@ import numpy as np
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
-# print(basedir)
-
 # Download this file <https://s3.amazonaws.com/deep-learning-models/image-models/imagenet_class_index.json>_ as imagenet_class_index.json
 imagenet_class_index = json.load(
     open(os.path.join(basedir, "static", 'imagenet_class_index.json')))
 
 # model
 model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
-# model = models.resnet50(pretrained=True)
 model.eval()
-#target_layers = model.layer4[-1]
-
-# preprocess for transform
 
 
 def transform_image(image_bytes):
@@ -40,9 +34,8 @@ def transform_image(image_bytes):
     return my_transforms(image)
 
 
-# bp = Blueprint('resnet50', __name__, url_prefix='/resnet50')
 ebp = ExecutorBluePrint(
-    'resnet50', __name__, db_path=os.path.join(basedir, 'db'), url_prefix='/resnet50')
+    'resnet50', __name__, component_path=__file__, url_prefix='/resnet50')
 
 
 def get_prediction(imgs):

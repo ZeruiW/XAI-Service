@@ -23,8 +23,7 @@ if torch.backends.mps.is_built() and torch.backends.mps.is_available():
 print("Pytorch device: ")
 print(device)
 
-basedir = os.path.abspath(os.path.dirname(__file__))
-tmpdir = os.path.join(basedir, 'tmp')
+tmpdir = os.environ.get('COMPONENT_TMP_DIR')
 
 
 def inference(model, img):

@@ -1,0 +1,11 @@
+FROM python:3.8-slim-buster
+
+RUN apt-get update
+RUN apt-get install -y ffmpeg libsm6 libxext6
+RUN python -m pip install --upgrade pip
+
+
+RUN pip install numpy grad-cam matplotlib Pillow pandas
+RUN rm -rf /var/lib/apt/lists/*
+RUN apt-get -qq autoremove
+RUN apt-get -qq clean

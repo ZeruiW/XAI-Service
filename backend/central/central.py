@@ -56,3 +56,46 @@ def ticket():
         return jsonify({
             'task_ticket': tk
         })
+
+
+@bp.route('/pipeline', methods=['GET', 'POST'])
+def pipeline():
+    if request.method == 'GET':
+        pipeline_id = request.args.get('pipeline_id')
+        rs = tp.pipeline.get_pipeline(pipeline_id)
+        return jsonify(rs)
+    else:
+        form_data = request.form
+        act = form_data['act']
+        if act == 'create':
+            pipeline_name = form_data['pipeline_name']
+            pipeline_id = tp.pipeline.create_pipeline(pipeline_name)
+            return jsonify({
+                'pipeline_id': pipeline_id
+            })
+        if act == 'add_task_sheet':
+            pipeline_id = form_data['pipeline_id']
+            task_sheet_id = form_data['task_sheet_id']
+            code = tp.pipeline.add_task_sheet_to_pipeline(
+                pipeline_id, task_sheet_id)
+            return jsonify(code)
+        if act == 'run':
+            pipeline_id = form_data['pipeline_id']
+            pipeline = tp.pipeline.run_pipeline(pipeline_id)
+            return jsonify(pipeline)
+
+
+@bp.route('/task_sheet', methods=['GET', 'POST'])
+def task_sheet():
+    if request.method == 'GET':
+        task_sheet_ids = request.args.get('task_sheet_ids')
+        rs = tp.pipeline.get_task_sheet(task_sheet_ids)
+        return jsonify(rs)
+    else:
+        form_data = request.form
+        task_type = form_data['task_type']
+        payload = json.loads(form_data['payload'])
+        task_sheet_id = tp.pipeline.create_task_sheet(task_type, payload)
+        return jsonify({
+            'task_sheet_id': task_sheet_id
+        })

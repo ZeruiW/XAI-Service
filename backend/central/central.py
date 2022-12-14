@@ -10,7 +10,8 @@ bp = Blueprint('central', __name__,
                url_prefix='/task_publisher')
 
 task_publisher_name = 'central'
-tp = TaskPublisher(task_publisher_name, component_path=__file__)
+tp = TaskPublisher(task_publisher_name,
+                   component_path=__file__, import_name=__name__)
 
 
 @bp.route('/executor', methods=['GET', 'POST'])

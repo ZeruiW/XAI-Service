@@ -5,6 +5,7 @@ from flask import (
     Blueprint, request, jsonify,
 )
 from . import task_manager
+import xai_backend_central_dev.constant.ExecutorRegInfo as ExecutorRegInfo
 
 
 def create_tmp_dir(service_init_path):
@@ -57,14 +58,14 @@ class ExecutorBluePrint(Blueprint):
                     self.te.terminate_process(task_ticket)
                     # print(process_holder_str())
                 if act == 'reg':
-                    executor_id = form_data['executor_id']
-                    endpoint_url = form_data['executor_endpoint_url']
-                    executor_info = form_data['executor_info']
-                    publisher_endpoint_url = form_data['publisher_endpoint_url']
+                    executor_id = form_data[ExecutorRegInfo.executor_id]
+                    endpoint_url = form_data[ExecutorRegInfo.executor_endpoint_url]
+                    executor_info = form_data[ExecutorRegInfo.executor_info]
+                    publisher_endpoint_url = form_data[ExecutorRegInfo.publisher_endpoint_url]
                     executor_id = self.te.keep_reg_info(
                         executor_id, endpoint_url, executor_info, publisher_endpoint_url)
                     return jsonify({
-                        'executor_id': executor_id
+                        ExecutorRegInfo.executor_id: executor_id
                     })
             return ""
 
@@ -75,14 +76,14 @@ class ExecutorBluePrint(Blueprint):
                 form_data = request.form
                 act = form_data['act']
                 if act == 'reg':
-                    executor_id = form_data['executor_id']
-                    endpoint_url = form_data['executor_endpoint_url']
-                    executor_info = form_data['executor_info']
-                    publisher_endpoint_url = form_data['publisher_endpoint_url']
+                    executor_id = form_data[ExecutorRegInfo.executor_id]
+                    endpoint_url = form_data[ExecutorRegInfo.executor_endpoint_url]
+                    executor_info = form_data[ExecutorRegInfo.executor_info]
+                    publisher_endpoint_url = form_data[ExecutorRegInfo.publisher_endpoint_url]
                     executor_id = self.te.keep_reg_info(
                         executor_id, endpoint_url, executor_info, publisher_endpoint_url)
                     return jsonify({
-                        'executor_id': executor_id
+                        ExecutorRegInfo.executor_id: executor_id
                     })
             return ""
 

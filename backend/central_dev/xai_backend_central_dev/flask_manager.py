@@ -4,7 +4,7 @@ import os
 from flask import (
     Blueprint, request, jsonify,
 )
-from . import task_manager
+from xai_backend_central_dev.task_executor import TaskExecutor
 import xai_backend_central_dev.constant.ExecutorRegInfo as ExecutorRegInfo
 
 
@@ -35,7 +35,7 @@ class ExecutorBluePrint(Blueprint):
 
     def __init__(self, name, import_name, component_path, *args, **kwargs) -> None:
 
-        self.te = task_manager.TaskExecutor(
+        self.te = TaskExecutor(
             executor_name=name, component_path=component_path)
 
         super().__init__(name, import_name, *args, **kwargs)

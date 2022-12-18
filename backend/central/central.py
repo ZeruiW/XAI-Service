@@ -4,7 +4,7 @@ from flask import (
     Blueprint, request, jsonify, send_file
 )
 
-from xai_backend_central_dev.task_manager import TaskPublisher
+from xai_backend_central_dev.task_publisher import TaskPublisher
 
 bp = Blueprint('central', __name__,
                url_prefix='/task_publisher')
@@ -14,18 +14,31 @@ tp = TaskPublisher(task_publisher_name,
                    component_path=__file__, import_name=__name__)
 
 
+@bp.route('/publisher', methods=['GET', 'POST'])
+def publisher():
+    if request.method == 'GET':
+        pass
+        # return jsonify(tp.get_executor())
+    else:
+        form_data = request.form
+        publisher_endpoint_url = form_data['publisher_endpoint_url']
+        executor_registration_info = tp.activate_publisher(
+            publisher_endpoint_url=publisher_endpoint_url)
+        return jsonify(executor_registration_info)
+
+
 @bp.route('/executor', methods=['GET', 'POST'])
 def executor():
     if request.method == 'GET':
-        return jsonify(tp.get_executor())
+        return jsonify(tp.get_executor_registration_info())
     else:
         # executor register
         form_data = request.form
         executor_endpoint_url = form_data['executor_endpoint_url']
         exector_info = json.loads(form_data['executor_info'])
-        publisher_endpoint_url = form_data['publisher_endpoint_url']
+        # publisher_endpoint_url = form_data['publisher_endpoint_url']
         exector_id = tp.register_executor_endpoint(
-            executor_endpoint_url, exector_info, publisher_endpoint_url)
+            executor_endpoint_url, exector_info)
         return jsonify({
             'executor_id': exector_id
         })

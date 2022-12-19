@@ -10,7 +10,8 @@ bp = Blueprint('central', __name__,
                url_prefix='/task_publisher')
 
 task_publisher_name = 'central'
-tp = TaskPublisher(task_publisher_name, component_path=__file__)
+tp = TaskPublisher(task_publisher_name,
+                   component_path=__file__, import_name=__name__)
 
 
 @bp.route('/executor', methods=['GET', 'POST'])
@@ -69,10 +70,8 @@ def pipeline():
         act = form_data['act']
         if act == 'create':
             pipeline_name = form_data['pipeline_name']
-            pipeline_id = tp.pipeline.create_pipeline(pipeline_name)
-            return jsonify({
-                'pipeline_id': pipeline_id
-            })
+            pipeline_info = tp.pipeline.create_pipeline(pipeline_name)
+            return jsonify(pipeline_info)
         if act == 'add_task_sheet':
             pipeline_id = form_data['pipeline_id']
             task_sheet_id = form_data['task_sheet_id']
@@ -81,14 +80,21 @@ def pipeline():
             return jsonify(code)
         if act == 'run':
             pipeline_id = form_data['pipeline_id']
-            pipeline = tp.pipeline.run_pipeline(pipeline_id)
-            return jsonify(pipeline)
+            pipeline_info = tp.pipeline.run_pipeline(pipeline_id)
+            return jsonify(pipeline_info)
+
+        if act == 'duplicate':
+            pipeline_id = form_data['pipeline_id']
+            pipeline_info = tp.pipeline.duplicate_pipeline(pipeline_id)
+            return jsonify(pipeline_info)
 
 
 @bp.route('/task_sheet', methods=['GET', 'POST'])
 def task_sheet():
     if request.method == 'GET':
         task_sheet_ids = request.args.get('task_sheet_ids')
+        if task_sheet_ids != None:
+            task_sheet_ids = json.loads(task_sheet_ids)
         rs = tp.pipeline.get_task_sheet(task_sheet_ids)
         return jsonify(rs)
     else:

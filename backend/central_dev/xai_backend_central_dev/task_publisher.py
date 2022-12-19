@@ -358,22 +358,39 @@ class TaskPipeline():
     def remove_task_sheet_to_pipeline(self, pipeline_id: str, task_sheet_id: str):
         pass
 
+    def __xai_task_ready_for_run__(self, pipeline):
+        return pipeline[Pipeline.xai_task_sheet_id] != TaskSheet.empty and \
+            pipeline[Pipeline.xai_task_sheet_status] == TaskStatus.initialized
+
+    def __eval_task_ready_for_run__(self, pipeline):
+        return pipeline[Pipeline.evaluation_task_sheet_id] != TaskSheet.empty and \
+            pipeline[Pipeline.evaluation_task_sheet_status] == TaskStatus.initialized
+
     def run_pipeline(self, pipeline_id):
         pipeline = self.get_pipeline(pipeline_id)[0]
-        if pipeline[Pipeline.xai_task_sheet_id] != TaskSheet.empty and pipeline[Pipeline.xai_task_sheet_status] == TaskStatus.initialized:
+
+        # TODO: can not run the pipeline while it is running
+
+        xai_ready = self.__xai_task_ready_for_run__(pipeline=pipeline)
+        eval_ready = self.__eval_task_ready_for_run__(pipeline=pipeline)
+
+        if xai_ready or eval_ready:
+            pass
+        elif xai_ready:
             ticket = self.run_task_with_sheet(
                 pipeline[Pipeline.xai_task_sheet_id])
             pipeline[Pipeline.xai_task_sheet_status] = TaskStatus.running
             pipeline[Pipeline.xai_task_ticket] = ticket
             self.pipeline_tb.update(
                 pipeline, Query().pipeline_id == pipeline_id)
-        elif pipeline[Pipeline.evaluation_task_sheet_id] != TaskSheet.empty and pipeline[Pipeline.evaluation_task_sheet_status] == TaskStatus.initialized:
+        elif eval_ready:
             ticket = self.run_task_with_sheet(
                 pipeline[Pipeline.evaluation_task_sheet_id])
             pipeline[Pipeline.evaluation_task_sheet_status] = TaskStatus.running
             pipeline[Pipeline.evaluation_task_ticket] = ticket
             self.pipeline_tb.update(
                 pipeline, Query().pipeline_id == pipeline_id)
+
         return pipeline
 
     def duplicate_pipeline(self, pipeline_id):

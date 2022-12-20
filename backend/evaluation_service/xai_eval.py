@@ -62,6 +62,9 @@ def stability():
             ebp.tmp_path, explanation_task_ticket, f'prediction_change_distance.npy')
         with open(pcd_save_path, 'rb') as f:
             rs = list(np.load(f))
-
+        rs = np.array(rs)
         # subprocess.call("$(pwd)/evaluation_service/copy_result.sh", shell=True)
-    return jsonify(rs)
+    return jsonify({
+        'stability': np.mean(np.abs(rs)),
+        'prediction_change_distance': list(rs)
+    })

@@ -211,6 +211,7 @@ def eval_task(eval_task_ticket, xai_service_url, model_service_url, db_service_u
 
     prediction_change = {}
     prediction_change_distance = {}
+    score_map = {}
 
     for cam_method in cam_method_name:
         score_save_path = os.path.join(tmpdir, explanation_task_ticket,
@@ -219,8 +220,12 @@ def eval_task(eval_task_ticket, xai_service_url, model_service_url, db_service_u
                                     f'prediction_change.npy')
         pcd_save_path = os.path.join(tmpdir, explanation_task_ticket,
                                      f'prediction_change_distance.npy')
+
+        score_map_path = os.path.join(tmpdir, explanation_task_ticket,
+                                      f'score_map.npy')
         prediction_change[cam_method] = []
         prediction_change_distance[cam_method] = []
+        score_map[cam_method] = {}
         with open(score_save_path, 'rb') as f:
             data = np.load(f, allow_pickle=True)
             for d in data:
@@ -232,8 +237,15 @@ def eval_task(eval_task_ticket, xai_service_url, model_service_url, db_service_u
                 score_in_original = original_pred[ground_truth_label_idx]
                 score_in_mask = mask_pred[ground_truth_label_idx]
 
-                prediction_change[cam_method].append(
-                    abs((score_in_original - score_in_mask) / score_in_original * 100))
+                diff = abs((score_in_original - score_in_mask) /
+                           score_in_original * 100)
+                score_map[cam_method][file_name] = {
+                    'score_original': score_in_original,
+                    'score_masked': score_in_mask,
+                    'score_diff': diff,
+                }
+
+                prediction_change[cam_method].append(diff)
 
         n = len(prediction_change[cam_method])
         for i in range(n):
@@ -246,9 +258,13 @@ def eval_task(eval_task_ticket, xai_service_url, model_service_url, db_service_u
         np.save(pcd_save_path,
                 prediction_change_distance[cam_method])
 
+        np.save(score_map_path, score_map[cam_method])
+
+    # print(score_map)
     # print(prediction_change)
     # print(prediction_change_distance)
 
+    # Image save
     for img in img_data:
         img_name = img[1]
 

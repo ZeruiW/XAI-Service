@@ -58,13 +58,28 @@ def eval():
 def stability():
     if request.method == 'GET':
         explanation_task_ticket = request.args['explanation_task_ticket']
+        # prediction change difference
         pcd_save_path = os.path.join(
             ebp.tmp_path, explanation_task_ticket, f'prediction_change_distance.npy')
+        pc_save_path = os.path.join(
+            ebp.tmp_path, explanation_task_ticket, f'prediction_change.npy')
+        sm_save_path = os.path.join(
+            ebp.tmp_path, explanation_task_ticket, f'score_map.npy')
+
         with open(pcd_save_path, 'rb') as f:
-            rs = list(np.load(f))
-        rs = np.array(rs)
+            pcd_rs = list(np.load(f))
+        pcd_rs = np.array(pcd_rs)
+
+        with open(pc_save_path, 'rb') as f:
+            pc_rs = list(np.load(f))
+        pc_rs = np.array(pc_rs)
+
+        with open(sm_save_path, 'rb') as f:
+            sm_rs = np.load(f, allow_pickle=True).item()
         # subprocess.call("$(pwd)/evaluation_service/copy_result.sh", shell=True)
     return jsonify({
-        'stability': np.mean(np.abs(rs)),
-        'prediction_change_distance': list(rs)
+        'stability': np.mean(np.abs(pcd_rs)),
+        'prediction_change_distance': list(pcd_rs),
+        'prediction_change': list(pc_rs),
+        'score_map': sm_rs
     })

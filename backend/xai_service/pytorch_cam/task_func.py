@@ -51,6 +51,7 @@ def cam_task(task_ticket, form_data):
         f.write(response.content)
 
     # load model
+    # TODO: generalize this part for different models
 
     model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
     model.eval()
@@ -85,6 +86,7 @@ def cam_task(task_ticket, form_data):
             for x in [rgb_img]
         ])).to(device)
 
+        # TODO: generalize this part for different cam method
         cam = GradCAM(model=model,
                       target_layers=target_layers,
                       use_cuda=torch.cuda.is_available())

@@ -2,11 +2,13 @@ import io
 import os
 import json
 import torch
+import base64
+import copy
 from torchvision import models
 import torchvision.transforms as transforms
 from PIL import Image
 from flask import (
-    request, jsonify, send_file
+    request, jsonify, send_file, Response
 )
 from xai_backend_central_dev.flask_manager import ExecutorBluePrint
 
@@ -24,13 +26,16 @@ model.eval()
 
 
 def transform_image(image_bytes):
-    my_transforms = transforms.Compose([transforms.Resize(255),
-                                        transforms.CenterCrop(224),
-                                        transforms.ToTensor(),
-                                        transforms.Normalize(
-                                            [0.485, 0.456, 0.406],
-                                            [0.229, 0.224, 0.225])])
+    my_transforms = transforms.Compose([
+        # transforms.Resize(255),
+        # transforms.CenterCrop(224),
+        transforms.ToTensor(),
+        transforms.Normalize(
+            [0.485, 0.456, 0.406],
+            [0.229, 0.224, 0.225])
+    ])
     image = Image.open(io.BytesIO(image_bytes))
+    # image.show()
     return my_transforms(image)
 
 

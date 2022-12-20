@@ -11,6 +11,7 @@ import torchvision.transforms as T
 from torchvision import models
 import torch
 import numpy as np
+import cv2
 
 #device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -26,7 +27,19 @@ print(device)
 tmpdir = os.environ.get('COMPONENT_TMP_DIR')
 
 
-def inference(model, img):
+def image_to_byte_array(image: Image) -> bytes:
+    # BytesIO is a fake file stored in memory
+    imgByteArr = io.BytesIO()
+    # image.save expects a file as a argument, passing a bytes io ins
+    image.save(imgByteArr, format="JPEG")
+    # Turn the BytesIO object back into a bytes object
+    imgByteArr = imgByteArr.getvalue()
+    return imgByteArr
+
+# ANCHOR: this method is discard
+
+
+def resnet50_prediction(model, img):
     img_transforms = T.Compose(
         [
             T.ToTensor()]
@@ -73,7 +86,6 @@ def eval_task(eval_task_ticket, xai_service_url, model_service_url, db_service_u
 
     os.remove(exp_zip_path)
 
-    time.sleep(5)
     print('# get image data')
     response = requests.get(
         db_service_url, params={
@@ -83,38 +95,42 @@ def eval_task(eval_task_ticket, xai_service_url, model_service_url, db_service_u
     # print(response)
     img_data = json.loads(response.content.decode('utf-8'))
 
-    print('# get model pt')
-    model_pt_path = os.path.join(tmpdir, f"{model_name}.pth")
-    response = requests.get(
-        model_service_url)
-    with open(model_pt_path, "wb") as f:
-        f.write(response.content)
+    # ANCHOR: evaluation doesn't have to do with the model structure
+    # print('# get model pt')
+    # model_pt_path = os.path.join(tmpdir, f"{model_name}.pth")
+    # response = requests.get(
+    #     model_service_url)
 
-    # load model
-
-    model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
-    model.eval()
-    model.to(device)
-    model.load_state_dict(torch.load(model_pt_path))
-
-    # for igd in img_data:
-    #     dcode = base64.b64decode(igd[2])
-    #     img = Image.open(io.BytesIO(dcode))
-    #     img.show()
-    #     break
+    # ANCHOR: generalize this part for different models
+    def predict_one_img(img):
+        # img.show()
+        payload = {}
+        files = [('image',
+                  ('dummy.JPEG',
+                   image_to_byte_array(img),
+                   'application/octet-stream'))
+                 ]
+        headers = {}
+        response = requests.request(
+            "POST", model_service_url, headers=headers, data=payload, files=files)
+        return json.loads(response.text)['dummy.JPEG']
 
     print('# get original pred')
     original_pred = {}
     i = 0
     for img in img_data:
         sys.stdout.write(f'\r{i + 1} / {len(img_data)}')
+        img_name = img[1]
         imgg = Image.open(io.BytesIO(base64.b64decode(img[2]))).convert('RGB')
         # imgg.show()
-        rs = inference(model, imgg)[0].cpu().detach().numpy()
+        imgg.save(os.path.join(
+            tmpdir, explanation_task_ticket, f'{img_name}_original.png'))
+        rs = predict_one_img(imgg)
+
         original_pred[img[1]] = rs
         i += 1
 
-    print('# mask pred')
+    print('\r\n# mask pred')
 
     def get_cam_data(img_name):
         # print(os.path.join(tmpdir, task_name, f'{img_name}.npy'))
@@ -132,7 +148,6 @@ def eval_task(eval_task_ticket, xai_service_url, model_service_url, db_service_u
         for i in range(len(img_data)):
             img = img_data[i]
             sys.stdout.write(f'\r{i + 1} / {len(img_data)}')
-            # print(img_path)
             img_name = img[1]
             ground_truth_label_idx = int(img[4])
             imgg = Image.open(io.BytesIO(
@@ -163,9 +178,11 @@ def eval_task(eval_task_ticket, xai_service_url, model_service_url, db_service_u
                         cam_on_pixel
 
             new_img = Image.fromarray(img_data_array_copy)
+            new_img.save(os.path.join(
+                tmpdir, explanation_task_ticket, f'{img_name}_masked.png'))
             # new_img.show()
 
-            rs2 = inference(model, new_img)[0].cpu().detach().numpy()
+            rs2 = predict_one_img(new_img)
 
             pred_label2 = np.argmax(rs2)
             pred_score2 = rs2[pred_label2]
@@ -228,3 +245,20 @@ def eval_task(eval_task_ticket, xai_service_url, model_service_url, db_service_u
         np.save(pc_save_path, prediction_change[cam_method])
         np.save(pcd_save_path,
                 prediction_change_distance[cam_method])
+
+    # print(prediction_change)
+    # print(prediction_change_distance)
+
+    for img in img_data:
+        img_name = img[1]
+
+        heatmap = cv2.imread(os.path.join(
+            tmpdir, explanation_task_ticket, f'{img_name}.png'))
+        original = cv2.imread(os.path.join(
+            tmpdir, explanation_task_ticket, f'{img_name}_original.png'))
+        masked = cv2.imread(os.path.join(
+            tmpdir, explanation_task_ticket, f'{img_name}_masked.png'))
+
+        im_concat = cv2.vconcat([original, heatmap, masked])
+        cv2.imwrite(os.path.join(
+            tmpdir, explanation_task_ticket, f'{img_name}_concat.png'), im_concat)

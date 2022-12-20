@@ -1,6 +1,6 @@
 <mxfile host="65bd71144e" scale="6" border="0" pages="7">
     <diagram name="ProvenanceData approach" id="rjcOAr3a4IcXh_Ae9sIa">
-        <mxGraphModel dx="-866" dy="-105" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+        <mxGraphModel dx="-1294" dy="-50" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
             <root>
                 <mxCell id="mu7Y5IwJnyrlo47Lrttj-0"/>
                 <mxCell id="mu7Y5IwJnyrlo47Lrttj-1" parent="mu7Y5IwJnyrlo47Lrttj-0"/>
@@ -610,7 +610,7 @@
         </mxGraphModel>
     </diagram>
     <diagram name="New sys layer arch" id="mc0riBfWzkPziMGJyCiT">
-        <mxGraphModel dx="1472" dy="722" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+        <mxGraphModel dx="1514" dy="740" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
             <root>
                 <mxCell id="_S-W5f8qDSxopO8shr0j-0"/>
                 <mxCell id="_S-W5f8qDSxopO8shr0j-1" parent="_S-W5f8qDSxopO8shr0j-0"/>
@@ -727,6 +727,9 @@
                 </mxCell>
                 <mxCell id="hMrttdvCACOiJ2RxIuGW-0" value="&amp;lt;&amp;lt;&lt;span style=&quot;font-size: 13px&quot;&gt;Microservice&lt;/span&gt;&amp;gt;&amp;gt;&lt;br&gt;Machine Learning Data Set" style="rounded=0;whiteSpace=wrap;html=1;fontSize=15;verticalAlign=top;shadow=1;" parent="_S-W5f8qDSxopO8shr0j-1" vertex="1">
                     <mxGeometry x="60" y="400" width="200" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="2HkOkp9HAcukwyyJF2TS-4" value="Extension&lt;br&gt;&lt;br&gt;Make the system be deployed to any kind of cloud platform&lt;br&gt;&lt;br&gt;Case 1:(Azure)" style="rounded=0;whiteSpace=wrap;html=1;fontSize=15;align=center;verticalAlign=top;shadow=0;" vertex="1" parent="_S-W5f8qDSxopO8shr0j-1">
+                    <mxGeometry x="1000" y="40" width="140" height="530" as="geometry"/>
                 </mxCell>
             </root>
         </mxGraphModel>

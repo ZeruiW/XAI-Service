@@ -1,7 +1,7 @@
 FROM python:3.8-slim-buster
 
-WORKDIR /model_service/ACSCV
-COPY ./model_service/ACSCV .
+WORKDIR /model_service/azure_cog
+COPY ./model_service/azure_cog .
 COPY ./central_dev /central_dev
 COPY ./docker_setup.sh /
 
@@ -18,5 +18,5 @@ COPY ./.env.${ENV} .env.${ENV}
 
 RUN ["chmod", "+x", "/docker_setup.sh"]
 
-EXPOSE 5001
-CMD ["sh", "/docker_setup.sh", "/model_service/resnet50", "5001"]
+EXPOSE 5007
+CMD ["sh", "/docker_setup.sh", "/model_service/azure_cog", "5007"]

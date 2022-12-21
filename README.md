@@ -102,10 +102,10 @@ API Document: https://documenter.getpostman.com/view/2019955/2s8YzUw1he
     -   [x] Debian 11 "Bullseye" Stable branch
     -   [x] RHEL 8
     -   [ ] Arch
--   [ ] macOS x86-64 / ARM64 (local dev only)
--   [ ] Windows x86-64:
-    -   [ ] Windows 10 >= 1909 update
-    -   [ ] Windows 11
+-   [x] macOS x86-64 / ARM64 (local dev only)
+-   [x] Windows x86-64:
+    -   [x] Windows 10 >= 1909 update
+    -   [x] Windows 11
 
 ### Hardware Acceleration
 

@@ -117,38 +117,4 @@ Tasks and child tasks are priority tagged starting from 0 as the highest priorit
 
 For maintainers, it is advised to follow the Notion documentation (shared internally) as the single source of truth.
 
-### Frontend
-
--   [ ] Refactor code base `P0`
-    -   This task ensures scalability and extensibility
-    -   [ ] Break functions in the Index page into reusable components `P0`
-    -   [ ] Rename state functions `P0`
-    -   [ ] Clean up unused functions `P1`
-    -   [ ] Migrate Web API Fetch() to React/TanStack Query `P2`
--   [x] MVP `P0`
-    -   [ ] Input `P0`
-        -   [x] Images
-        -   [ ] Non-images `P0`
-        -   [x] Mapping
-        -   [ ] Method selector `P1`
-    -   [x] Data upload
-    -   [x] Step-by-step processes
-        -   [x] Execute CAM
-        -   [x] Run Evaluation
-        -   [x] Show Results
-    -   [x] Implement Grad CAM API
-    -   [ ] Implement Grad CAM++ API `P0`
-    -   [ ] Implement Layer CAM API `P0`
--   [ ] Implement custom XAI method `P1`
--   [ ] Implement dynamic task group `P1`
--   [ ] Migrate over to DaisyUI instead of the vanilla Tailwindcss `P2`
--   [ ] Write User Stories (on Notion) `P2`
-
-### Backend
-
-> TBA
-
-### Infrastructure
-
--   [x] Deploy Frontend
--   [ ] Deploy Backend `P0`
+Progress moved to [Github Projects](https://github.com/users/ZeruiW/projects/4)

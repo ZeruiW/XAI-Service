@@ -14,6 +14,8 @@ import time
 import base64
 import os
 import matplotlib.pyplot as plt
+from xai_backend_central_dev.constant import TaskInfo
+from xai_backend_central_dev.constant import TaskStatus
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 tmpdir = os.environ.get('COMPONENT_TMP_DIR')
@@ -25,14 +27,14 @@ print("Pytorch device: ")
 print(device)
 
 
-def cam_task(task_ticket, form_data):
-    print(form_data)
-    print(task_ticket)
+def cam_task(task_ticket, publisher_endpoint_url, task_parameters):
+    # print(task_ticket, publisher_endpoint_url)
+    # print(task_parameters)
 
     print('# get image data')
     response = requests.get(
-        form_data['db_service_url'], params={
-            'img_group': form_data['data_set_group_name'],
+        task_parameters[TaskInfo.db_service_url], params={
+            'img_group': task_parameters['data_set_group_name'],
             'with_img_data': 1,
         })
     # print(response)
@@ -44,9 +46,10 @@ def cam_task(task_ticket, form_data):
     #     img.show()
 
     print('# get model pt')
-    model_pt_path = os.path.join(tmpdir, f"{form_data['model_name']}.pth")
+    model_pt_path = os.path.join(
+        tmpdir, f"{task_parameters['model_name']}.pth")
     response = requests.get(
-        form_data['model_service_url'])
+        task_parameters[TaskInfo.model_service_url])
     with open(model_pt_path, "wb") as f:
         f.write(response.content)
 
@@ -71,8 +74,8 @@ def cam_task(task_ticket, form_data):
     i = 0
 
     # explanation save dir
-    e_save_dir = os.path.join(tmpdir, form_data['model_name'], form_data['method_name'],
-                              form_data['data_set_name'], form_data['data_set_group_name'], task_ticket)
+    e_save_dir = os.path.join(tmpdir, task_parameters['model_name'], task_parameters['method_name'],
+                              task_parameters['data_set_name'], task_parameters['data_set_group_name'], task_ticket)
     if not os.path.isdir(e_save_dir):
         os.makedirs(e_save_dir, exist_ok=True)
 
@@ -104,6 +107,8 @@ def cam_task(task_ticket, form_data):
         plt.imsave(os.path.join(e_save_dir, f'{imgd[1]}.png'), grayscale_cam)
     shutil.make_archive(os.path.join(tmpdir, task_ticket), 'zip', e_save_dir)
     shutil.rmtree(e_save_dir)
+
+    return TaskStatus.finished
 
 
 def bytes_to_pil_image(b):

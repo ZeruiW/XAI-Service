@@ -65,8 +65,9 @@ def ticket():
         # request a ticket
         form_data = request.form
         executor_id = form_data['executor_id']
-        task_info = json.loads(form_data['task_info'])
-        tk = tp.gen_task_ticket(executor_id, task_info)
+        task_name = form_data['task_name']
+        # task_sheet_id = form_data['task_sheet_id']
+        tk = tp.gen_task_ticket(executor_id, task_name)
         return jsonify({
             'task_ticket': tk
         })
@@ -85,11 +86,12 @@ def pipeline():
             pipeline_name = form_data['pipeline_name']
             pipeline_info = tp.pipeline.create_pipeline(pipeline_name)
             return jsonify(pipeline_info)
-        if act == 'add_task_sheet':
+        if act == 'add_task':
             pipeline_id = form_data['pipeline_id']
+            task_name = form_data['task_name']
             task_sheet_id = form_data['task_sheet_id']
-            code = tp.pipeline.add_task_sheet_to_pipeline(
-                pipeline_id, task_sheet_id)
+            code = tp.pipeline.add_task_to_pipeline(
+                pipeline_id, task_name, task_sheet_id)
             return jsonify(code)
         if act == 'run':
             pipeline_id = form_data['pipeline_id']
@@ -100,6 +102,13 @@ def pipeline():
             pipeline_id = form_data['pipeline_id']
             pipeline_info = tp.pipeline.duplicate_pipeline(pipeline_id)
             return jsonify(pipeline_info)
+
+        if act == 'update_task_status':
+            task_ticket = form_data['task_ticket']
+            task_status = form_data['task_status']
+            tp.pipeline.update_pipeline_task_status(task_ticket, task_status)
+
+        return ""
 
 
 @bp.route('/task_sheet', methods=['GET', 'POST'])
@@ -112,9 +121,8 @@ def task_sheet():
         return jsonify(rs)
     else:
         form_data = request.form
-        task_type = form_data['task_type']
-        payload = json.loads(form_data['payload'])
-        task_sheet_id = tp.pipeline.create_task_sheet(task_type, payload)
+        payload = dict(form_data)
+        task_sheet_id = tp.pipeline.create_task_sheet(payload)
         return jsonify({
             'task_sheet_id': task_sheet_id
         })

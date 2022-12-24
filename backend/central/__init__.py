@@ -10,8 +10,6 @@ def create_app(test_config=None):
 
     from . import central
     app.register_blueprint(central.bp)
-    app.register_blueprint(central.tp.pipeline.ebp)
-    # app.register_blueprint(tb_arxiv_cs.bp)
-    # app.register_blueprint(tb_explanation.bp)
+    # app.register_blueprint(central.tp.pipeline.ebp)
 
     return app

@@ -6,6 +6,7 @@ import numpy as np
 import time
 import subprocess
 from xai_backend_central_dev.flask_manager import ExecutorBluePrint
+from xai_backend_central_dev.constant import TaskInfo
 from . import task_func
 
 task_executor_info = {
@@ -29,9 +30,9 @@ def eval():
             task_desc="evaluate for cam explanation",
             explanation_task_ticket=explanation_task_ticket,
         )
-        xai_service_url = request.form['xai_service_url']
-        model_service_url = request.form['model_service_url']
-        db_service_url = request.form['db_service_url']
+        xai_service_url = request.form[TaskInfo.xai_service_url]
+        model_service_url = request.form[TaskInfo.model_service_url]
+        db_service_url = request.form[TaskInfo.db_service_url]
 
         # eval_task_ticket = te.gen_ticket(eval_task_info)
 

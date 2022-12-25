@@ -145,10 +145,15 @@ class TaskPublisher(TaskComponent):
                         Query().executor_id == executor_id)[0]
 
                     executor_endpoint_url = executor_reg_info[ExecutorRegInfo.executor_endpoint_url]
-                    response = requests.get(
-                        executor_endpoint_url + '/task')
-                    executor_tasks_status = json.loads(
-                        response.content.decode('utf-8'))
+                    try:
+                        response = requests.get(
+                            executor_endpoint_url + '/task')
+                        executor_tasks_status = json.loads(
+                            response.content.decode('utf-8'))
+                    except:
+                        if executor_tasks_status == None:
+                            executor_tasks_status = []
+
                     for executor_task_status in executor_tasks_status:
                         current_task_ticket = executor_task_status[TaskInfo.task_ticket]
                         if all_ticket_info[executor_id].get(current_task_ticket) != None:

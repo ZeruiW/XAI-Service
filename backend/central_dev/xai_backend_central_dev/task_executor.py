@@ -148,30 +148,17 @@ class TaskExecutor(TaskComponent):
             )
             return json.loads(response.content)
 
-    def gen_task_status_dict(self, task_ticket):
-        task_info = self.get_task_info(task_ticket)
-        if task_info == None:
-            return {
-                TaskInfo.task_ticket: task_ticket,
-                TaskInfo.task_status: TaskStatus.undefined
-            }
-        else:
-            return task_info
-
     def process_holder_str(self, task_ticket=None):
         if task_ticket != None:
-            return self.gen_task_status_dict(task_ticket)
+            return self.get_task_info(task_ticket)
         else:
-            rs = []
-            for task_ticket in self.process_holder.keys():
-                rs.append(self.gen_task_status_dict(task_ticket))
-            return rs
+            return self.executor_task_info_tb.all()
 
     def define_task_func_map(self, key, func):
         self.task_func_map[key] = func
         return self
 
-    def get_task_info(self, task_ticket):
+    def get_task_info(self, task_ticket=None):
         query = self.executor_task_info_tb.search(
             Query().task_ticket == task_ticket)
         if len(query) == 1:

@@ -58,7 +58,8 @@ def resnet50_prediction(model, img):
     return model(batch)
 
 
-def eval_task(eval_task_ticket, xai_service_url, model_service_url, db_service_url, explanation_ticket_info):
+def eval_task(task_ticket, publisher_endpoint_url, task_parameters):
+
     # print(explanation_ticket_info)
 
     explanation_task_info = explanation_ticket_info['task_info']

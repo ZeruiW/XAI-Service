@@ -5,6 +5,9 @@ from flask import (
 )
 
 from xai_backend_central_dev.task_publisher import TaskPublisher
+from xai_backend_central_dev.constant import Pipeline
+from xai_backend_central_dev.constant import TaskInfo
+from xai_backend_central_dev.constant import TaskSheet
 
 bp = Blueprint('central', __name__,
                url_prefix='/task_publisher')
@@ -76,36 +79,36 @@ def ticket():
 @bp.route('/pipeline', methods=['GET', 'POST'])
 def pipeline():
     if request.method == 'GET':
-        pipeline_id = request.args.get('pipeline_id')
+        pipeline_id = request.args.get(Pipeline.pipeline_id)
         rs = tp.pipeline.get_pipeline(pipeline_id)
         return jsonify(rs)
     else:
         form_data = request.form
         act = form_data['act']
         if act == 'create':
-            pipeline_name = form_data['pipeline_name']
+            pipeline_name = form_data[Pipeline.pipeline_name]
             pipeline_info = tp.pipeline.create_pipeline(pipeline_name)
             return jsonify(pipeline_info)
         if act == 'add_task':
-            pipeline_id = form_data['pipeline_id']
-            task_name = form_data['task_name']
-            task_sheet_id = form_data['task_sheet_id']
+            pipeline_id = form_data[Pipeline.pipeline_id]
+            task_name = form_data[TaskInfo.task_name]
+            task_sheet_id = form_data[TaskSheet.task_sheet_id]
             code = tp.pipeline.add_task_to_pipeline(
                 pipeline_id, task_name, task_sheet_id)
             return jsonify(code)
         if act == 'run':
-            pipeline_id = form_data['pipeline_id']
+            pipeline_id = form_data[Pipeline.pipeline_id]
             pipeline_info = tp.pipeline.run_pipeline(pipeline_id)
             return jsonify(pipeline_info)
 
         if act == 'duplicate':
-            pipeline_id = form_data['pipeline_id']
+            pipeline_id = form_data[Pipeline.pipeline_id]
             pipeline_info = tp.pipeline.duplicate_pipeline(pipeline_id)
             return jsonify(pipeline_info)
 
         if act == 'update_task_status':
-            task_ticket = form_data['task_ticket']
-            task_status = form_data['task_status']
+            task_ticket = form_data[TaskInfo.task_ticket]
+            task_status = form_data[TaskInfo.task_status]
             tp.pipeline.update_pipeline_task_status(task_ticket, task_status)
 
         return ""

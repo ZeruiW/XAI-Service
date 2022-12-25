@@ -88,17 +88,17 @@ class TaskPublisher(TaskComponent):
         if not self.is_activated():
             return "central not activated"
         if self.if_executor_registered(executor_id):
-            task_info = {
+            task_ticket_gen_info = {
                 'executor_id': executor_id,
                 # 'task_sheet_id': task_sheet_id,
                 'task_name': task_name,
             }
-            task_info = self.__feed_info__(task_info)
+            task_ticket_gen_info = self.__feed_info__(task_ticket_gen_info)
             task_ticket = __get_random_string__(
-                15) + '.' + task_info[TaskInfo.time_tail] + '.' + executor_id
+                15) + '.' + task_ticket_gen_info[TaskInfo.time_tail] + '.' + executor_id
 
             # remove duplicated ticket information
-            task_info.pop(TaskInfo.task_ticket, None)
+            task_ticket_gen_info.pop(TaskInfo.task_ticket, None)
 
             executor_ticket_info = self.ticket_info_map_tb.search(
                 Query().executor_id == executor_id)
@@ -113,8 +113,7 @@ class TaskPublisher(TaskComponent):
                 Query().executor_id == executor_id)[0]
 
             executor_ticket_info[ExecutorTicketInfo.ticket_infos][task_ticket] = dict(
-                # task_ticket=task_ticket,
-                task_info=task_info,
+                **task_ticket_gen_info,
                 request_time=time.time()
             )
 
@@ -351,22 +350,28 @@ class TaskPipeline():
     def update_pipeline_task_status(self, task_ticket, task_status):
         pipelines = self.get_pipeline()
         find = False
+        task_type = None
         for pipeline in pipelines:
             if task_ticket == pipeline[Pipeline.xai_task_ticket]:
                 pipeline[Pipeline.xai_task_sheet_status] = task_status
                 find = True
+                task_type = TaskType.xai
             if task_ticket == pipeline[Pipeline.evaluation_task_ticket]:
                 pipeline[Pipeline.evaluation_task_sheet_status] = task_status
                 find = True
+                task_type = TaskType.evaluation
             if find:
                 pipeline_id = pipeline[Pipeline.pipeline_id]
                 print('update pipeline status ', pipeline_id,
                       ' ', task_ticket,  ' ', task_status)
                 self.pipeline_tb.update(
                     pipeline, Query().pipeline_id == pipeline_id)
+                if task_type == TaskType.xai and self.__eval_task_ready_for_run__(pipeline):
+                    self.__run_pipeline_with_pipeline__(pipeline)
+
                 break
 
-    def get_pipeline(self, pipeline_id: str):
+    def get_pipeline(self, pipeline_id: str = None):
         if pipeline_id == None:
             all_pipeline = self.pipeline_tb.all()
             for pipeline in all_pipeline:
@@ -502,11 +507,9 @@ class TaskPipeline():
 
         return task_ticket[TaskInfo.task_ticket]
 
-    def run_pipeline(self, pipeline_id):
-        pipeline = self.get_pipeline(pipeline_id)[0]
-
-        # TODO: can not run the pipeline while it is running
-        pipeline_status = self.get_pipeline_status(pipeline_id)
+    def __run_pipeline_with_pipeline__(self, pipeline):
+        pipeline_id = pipeline[Pipeline.pipeline_id]
+        pipeline_status = self.get_pipeline_status(pipeline)
 
         if TaskStatus.initialized in pipeline_status:
             xai_ready = self.__xai_task_ready_for_run__(pipeline=pipeline)
@@ -538,23 +541,11 @@ class TaskPipeline():
                 self.pipeline_tb.update(
                     pipeline, Query().pipeline_id == pipeline_id)
 
-            # self.ebp.get_task_executor().request_ticket_and_start_task(
-            #     f'pipeline_task_{time.time()}_{pipeline[Pipeline.pipeline_id]}',
-            #     'default',
-            #     dict(
-            #         xai_ready=xai_ready,
-            #         eval_ready=eval_ready,
-            #         pipeline=pipeline,
-            #         pipeline_db_path=self.pipeline_db_path,
-            #         xai_task_sheet=xai_task_sheet[0] if len(
-            #             xai_task_sheet) == 1 else None,
-            #         eval_task_sheet=eval_task_sheet[0] if len(
-            #             eval_task_sheet) == 1 else None,
-            #         executor_registration_infos=executor_registration_infos,
-            #     )
-            # )
-
         return pipeline
+
+    def run_pipeline(self, pipeline_id):
+        pipeline = self.get_pipeline(pipeline_id)[0]
+        return self.__run_pipeline_with_pipeline__(pipeline)
 
     def duplicate_pipeline(self, pipeline_id):
         src_pipeline = self.get_pipeline(pipeline_id)[0]
@@ -575,10 +566,7 @@ class TaskPipeline():
         self.pipeline_tb.insert(pipeline_info)
         return pipeline_info
 
-    def get_pipeline_status(self, pipeline_id):
-        pipeline = self.get_pipeline(pipeline_id)[0]
-        self.check_pipeline_status(pipeline)
-        pipeline = self.get_pipeline(pipeline_id)[0]
+    def get_pipeline_status(self, pipeline):
         return (pipeline[Pipeline.xai_task_sheet_status], pipeline[Pipeline.evaluation_task_sheet_status])
 
     def check_pipeline_status(self, pipeline):
@@ -586,9 +574,9 @@ class TaskPipeline():
             task_ticket = pipeline[Pipeline.xai_task_ticket]
             ticket_info = self.task_publisher.get_ticket_info(
                 task_ticket, True)
-            task_status = ticket_info['task_status']
-            if task_status['status'] != pipeline[Pipeline.xai_task_sheet_status]:
-                pipeline[Pipeline.xai_task_sheet_status] = task_status['status']
+            task_status = ticket_info[TaskInfo.task_status]
+            if task_status[TaskInfo.task_status] != pipeline[Pipeline.xai_task_sheet_status]:
+                pipeline[Pipeline.xai_task_sheet_status] = task_status[TaskInfo.task_status]
             self.pipeline_tb.update(
                 pipeline, Query().pipeline_id == pipeline[Pipeline.pipeline_id])
             return pipeline
@@ -596,9 +584,9 @@ class TaskPipeline():
             task_ticket = pipeline[Pipeline.evaluation_task_ticket]
             ticket_info = self.task_publisher.get_ticket_info(
                 task_ticket, True)
-            task_status = ticket_info['task_status']
-            if task_status['status'] != pipeline[Pipeline.evaluation_task_sheet_status]:
-                pipeline[Pipeline.evaluation_task_sheet_status] = task_status['status']
+            task_status = ticket_info[TaskInfo.task_status]
+            if task_status[TaskInfo.task_status] != pipeline[Pipeline.evaluation_task_sheet_status]:
+                pipeline[Pipeline.evaluation_task_sheet_status] = task_status[TaskInfo.task_status]
             self.pipeline_tb.update(
                 pipeline, Query().pipeline_id == pipeline[Pipeline.pipeline_id])
             return pipeline

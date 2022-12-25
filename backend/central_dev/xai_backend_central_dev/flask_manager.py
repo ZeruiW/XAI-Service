@@ -3,7 +3,7 @@ import glob
 import os
 import json
 from flask import (
-    Blueprint, request, jsonify, Response
+    Blueprint, request, jsonify, Response, send_file
 )
 from xai_backend_central_dev.task_executor import TaskExecutor
 import xai_backend_central_dev.constant.ExecutorRegInfo as ExecutorRegInfo
@@ -44,6 +44,17 @@ class ExecutorBluePrint(Blueprint):
         super().__init__(name, import_name, *args, **kwargs)
 
         self.tmp_path = self.te.tmp_path
+
+        @self.route('/task_result', methods=['GET'])
+        def task_result():
+            if request.method == 'GET':
+                task_ticket = request.args['task_ticket']
+                file_name = os.path.join(self.tmp_path, f'{task_ticket}.zip')
+                if os.path.exists(file_name):
+                    return send_file(file_name, as_attachment=True)
+                else:
+                    # TODO: should follow the restful specification
+                    return "no such task"
 
         @self.route('/task', methods=['GET', 'POST'])
         def task():

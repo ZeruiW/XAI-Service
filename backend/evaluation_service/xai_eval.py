@@ -17,6 +17,7 @@ task_executor_info = {
 ebp = ExecutorBluePrint(
     'evaluation', __name__, component_path=__file__, url_prefix='/evaluation')
 te = ebp.get_task_executor()
+te.define_task_func_map('default', task_func.eval_task)
 
 
 @ebp.route('/', methods=['POST'])
@@ -45,7 +46,8 @@ def eval():
         #     'task_ticket': task_ticket
         # })
         task_ticket = te.request_ticket_and_start_task(
-            eval_task_info, task_func.eval_task, xai_service_url, model_service_url, db_service_url, explanation_ticket_info)
+            eval_task_info, task_func.eval_task, xai_service_url,
+            model_service_url, db_service_url, explanation_ticket_info)
         if task_ticket == None:
             return "Can not request a task ticket"
         else:

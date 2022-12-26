@@ -7,6 +7,7 @@ from tinydb import TinyDB, Query
 
 from xai_backend_central_dev.constant import ExecutorRegInfo
 from xai_backend_central_dev.constant import TaskInfo
+from xai_backend_central_dev.constant import TaskSheet
 from xai_backend_central_dev.constant import TaskStatus
 from xai_backend_central_dev.task_manager import TaskComponent
 
@@ -19,21 +20,14 @@ class TaskExecutor(TaskComponent):
 
         self.process_holder = {}
 
-        c_db_path = os.path.join(
-            self.db_path, f'executor_{executor_name}_db.json')
-        self.db = TinyDB(c_db_path)
-        print(executor_name, c_db_path)
+        self.db = TinyDB(self.executor_db_path)
+        # print(executor_name, c_db_path)
         self.executor_reg_info_tb = self.db.table('executor_info')
 
-    def __create_and_add_process__(self, task_ticket, func, *args, **kwargs):
-        process = multiprocessing.Process(
-            # WARNNING: task_ticket will be the first two arguments of the func
-            target=func, args=[task_ticket, *args], kwargs={**kwargs})
-        self.process_holder[task_ticket] = {
-            'start_time': time.time(),
-            'process': process
-        }
-        return process
+        # this keep the task parameters in db
+        self.executor_task_info_tb = self.db.table('executor_task_info')
+        # this keep the task and function mapping in memory
+        self.task_func_map = {}
 
     def get_executor_info(self):
         executor_reg_info = self.executor_reg_info_tb.all()
@@ -54,7 +48,7 @@ class TaskExecutor(TaskComponent):
         return
 
     # should request task ticket from publisher
-    def request_task_ticket(self, task_info: dict):
+    def request_task_ticket(self, task_name):
         if self.get_publisher_endpoint_url() == None or self.get_executor_id() == None:
             print('Executor not register')
             return None
@@ -63,7 +57,8 @@ class TaskExecutor(TaskComponent):
                 self.get_publisher_endpoint_url() + '/task_publisher/ticket',
                 data={
                     'executor_id': self.get_executor_id(),
-                    'task_info': json.dumps(task_info)
+                    'task_name': task_name,
+                    # 'task_sheet_id': task_sheet_id
                 }
             )
             return json.loads(response.content)[TaskInfo.task_ticket]
@@ -85,22 +80,76 @@ class TaskExecutor(TaskComponent):
 
         return self.get_executor_id()
 
-    def start_a_task(self, task_ticket, func, *args, **kwargs):
-        p = self.__create_and_add_process__(task_ticket, func, *args, **kwargs)
-        p.start()
+    def update_task_info_locally(self, task_info):
+        self.executor_task_info_tb.update(
+            task_info, Query().task_ticket == task_info[TaskInfo.task_ticket])
+
+    def update_task_status_to_central(self, task_ticket, task_status):
+        requests.post(
+            self.get_publisher_endpoint_url() + '/task_publisher/pipeline',
+            data={
+                'act': 'update_task_status',
+                TaskInfo.task_ticket: task_ticket,
+                TaskInfo.task_status: task_status
+            }
+        )
+
+    def execution_call_back(self, task_status, task_ticket, process):
+        process.close()
+        et = time.time()
+        task_info = self.get_task_info(task_ticket)
+        task_info[TaskInfo.task_status] = task_status
+        task_info[TaskInfo.end_time] = et
+        task_info[TaskInfo.formated_end_time] = time.strftime("%m/%d/%Y, %H:%M:%S",
+                                                              time.localtime(et))
+        self.update_task_info_locally(task_info)
+        self.update_task_status_to_central(task_ticket, task_status)
+
+    def start_a_task(self, task_ticket, function, task_paramenters):
+        process = multiprocessing.Pool()
+
+        as_rs = process.apply_async(function, args=[
+            task_ticket, self.get_publisher_endpoint_url(), task_paramenters],
+            callback=lambda status: self.execution_call_back(status, task_ticket, process))
+
+        st = time.time()
+
+        self.process_holder[task_ticket] = {
+            'start_time': st,
+            'process': process,
+            'as_rs': as_rs
+        }
+
+        task_info = self.get_task_info(task_ticket)
+
+        # update info
+        task_info[TaskInfo.start_time] = st
+        task_info[TaskInfo.formated_start_time] = time.strftime("%m/%d/%Y, %H:%M:%S",
+                                                                time.localtime(st))
+        task_info[TaskInfo.task_status] = TaskStatus.running
+
+        self.update_task_info_locally(task_info)
+
         return task_ticket
+
+    def set_clean_task_function(self, cf):
+        self.cf = cf
 
     def terminate_process(self, task_ticket):
         if self.process_holder.get(task_ticket) != None:
             self.process_holder[task_ticket]['process'].terminate(
             )
-
-    def get_task_status(self, tk):
-        p = self.process_holder.get(tk)
-        if p == None:
-            return -1   # task not exist
-        else:
-            return 0 if p['process'].is_alive() else 1
+        print('teriminate ', task_ticket)
+        task_info = self.get_task_info(task_ticket)
+        task_info[TaskInfo.task_status] = TaskStatus.initialized
+        self.update_task_info_locally(task_info)
+        self.update_task_status_to_central(task_ticket, TaskStatus.initialized)
+        if hasattr(self, 'cf') and callable(self.cf):
+            try:
+                self.cf(task_ticket)
+            except Exception as e:
+                print('clean function error ', task_ticket)
+                print(e)
 
     def get_ticket_info_from_central(self, target_ticket: str):
         if self.get_publisher_endpoint_url() == None or self.get_executor_id() == None:
@@ -116,37 +165,63 @@ class TaskExecutor(TaskComponent):
             return json.loads(response.content)
 
     def process_holder_str(self, task_ticket=None):
-        if task_ticket != None and self.process_holder.get(task_ticket) != None:
-            status = TaskStatus.running if self.process_holder[task_ticket]['process'].is_alive(
-            ) else TaskStatus.stopped
-            # rs.append(f"({tk}, {status})")
-            return {
-                TaskInfo.task_ticket: task_ticket,
-                'status': status,
-                'formated_start_time': time.strftime("%m/%d/%Y, %H:%M:%S",
-                                                     time.localtime(self.process_holder[task_ticket]['start_time'])),
-                'start_time': self.process_holder[task_ticket]['start_time'],
-            }
+        if task_ticket != None:
+            return self.get_task_info(task_ticket)
         else:
-            rs = []
-            for task_ticket in self.process_holder.keys():
-                status = TaskStatus.running if self.process_holder[task_ticket]['process'].is_alive(
-                ) else TaskStatus.stopped
-                # rs.append(f"({tk}, {status})")
-                rs.append({
-                    TaskInfo.task_ticket: task_ticket,
-                    'status': status,
-                    'formated_start_time': time.strftime("%m/%d/%Y, %H:%M:%S",
-                                                         time.localtime(self.process_holder[task_ticket]['start_time'])),
-                    'start_time': self.process_holder[task_ticket]['start_time'],
-                })
-            return rs
+            return self.executor_task_info_tb.all()
 
-    def request_ticket_and_start_task(self, task_info: dict, func, *func_args, **func_kwargs):
-        task_ticket = self.request_task_ticket(task_info)
+    def define_task_func_map(self, key, func):
+        self.task_func_map[key] = func
+        return self
+
+    def get_task_info(self, task_ticket=None):
+        query = self.executor_task_info_tb.search(
+            Query().task_ticket == task_ticket)
+        if len(query) == 1:
+            return query[0]
+        else:
+            return None
+
+    # this keep all the task parameters and which function to be choose in db
+    def create_a_task_with_from_central(self, task_ticket, task_name, task_function_key, task_parameters):
+        # this function did not map any task function
+        if self.task_func_map.get(task_function_key) == None:
+            return False
+        task_info = self.get_task_info(task_ticket)
+
+        # new task
+        if task_info == None:
+            self.executor_task_info_tb.insert({
+                TaskInfo.task_ticket: task_ticket,
+                TaskInfo.task_name: task_name,
+                TaskSheet.task_function_key: task_function_key,
+                TaskSheet.task_parameters: task_parameters,
+                TaskInfo.task_status: TaskStatus.initialized
+            })
+            return True
+        # duplicate creation
+        else:
+            return False
+
+    # run the task created by central
+    def run_the_task(self, task_ticket):
+        task_info = self.get_task_info(task_ticket)
+
+        self.start_a_task(
+            task_info[TaskInfo.task_ticket],
+            self.task_func_map[task_info[TaskSheet.task_function_key]],
+            task_info[TaskSheet.task_parameters]
+        )
+
+        return task_ticket
+
+    # TODO: run the task created by executor
+    def request_ticket_and_start_task(self, task_name, task_function_key, task_parameters):
+        task_ticket = self.request_task_ticket(task_name)
+        self.create_a_task_with_from_central(
+            task_ticket, task_name, task_function_key, task_parameters)
         print(f'{self.get_executor_id()} requested a ticket: {task_ticket}')
         if task_ticket != None:
             # WARNNING: executor and task_ticket will be the first two arguments of the func
-            self.start_a_task(
-                task_ticket, func, *func_args, **func_kwargs)
+            self.run_the_task(task_ticket)
             return task_ticket

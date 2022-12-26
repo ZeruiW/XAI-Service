@@ -18,3 +18,5 @@ build
 *.egg-info
 
 *_db.json
+
+.vscode/

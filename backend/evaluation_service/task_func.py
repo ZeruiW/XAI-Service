@@ -13,6 +13,8 @@ import torch
 import numpy as np
 import cv2
 
+from xai_backend_central_dev.constant import TaskStatus
+
 #device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # print(device)
@@ -58,16 +60,20 @@ def resnet50_prediction(model, img):
     return model(batch)
 
 
-def eval_task(eval_task_ticket, xai_service_url, model_service_url, db_service_url, explanation_ticket_info):
+def eval_task(task_ticket, publisher_endpoint_url, task_parameters):
+
     # print(explanation_ticket_info)
+    explanation_task_ticket = task_parameters['explanation_task_ticket']
 
-    explanation_task_info = explanation_ticket_info['task_info']
-    explanation_task_ticket = explanation_ticket_info['task_ticket']
+    xai_service_url = task_parameters['xai_service_url']
+    db_service_url = task_parameters['db_service_url']
+    model_service_url = task_parameters['model_service_url']
+    explanation_task_parameters = task_parameters['explanation_task_parameters']
 
-    model_name = explanation_task_info['model_name']
-    method_name = explanation_task_info['method_name']
-    data_set_name = explanation_task_info['data_set_name']
-    data_set_group_name = explanation_task_info['data_set_group_name']
+    model_name = explanation_task_parameters['model_name']
+    method_name = explanation_task_parameters['method_name']
+    data_set_name = explanation_task_parameters['data_set_name']
+    data_set_group_name = explanation_task_parameters['data_set_group_name']
 
     # print(task_time, model_name, method_name,
     #       data_set_name, data_set_group_name)
@@ -75,9 +81,11 @@ def eval_task(eval_task_ticket, xai_service_url, model_service_url, db_service_u
     print('# get exp from cam')
     exp_zip_path = os.path.join(
         tmpdir, f"{explanation_task_ticket}_for_eval.zip")
-    response = requests.get(xai_service_url, params={
-        'task_ticket': explanation_task_ticket
-    })
+    response = requests.get(
+        xai_service_url + '/task_result',
+        params={
+            'task_ticket': explanation_task_ticket
+        })
     with open(exp_zip_path, "wb") as f:
         f.write(response.content)
 
@@ -278,3 +286,5 @@ def eval_task(eval_task_ticket, xai_service_url, model_service_url, db_service_u
         im_concat = cv2.vconcat([original, heatmap, masked])
         cv2.imwrite(os.path.join(
             tmpdir, explanation_task_ticket, f'{img_name}_concat.png'), im_concat)
+
+    return TaskStatus.finished

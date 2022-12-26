@@ -1,11 +1,14 @@
 from dotenv import load_dotenv, dotenv_values
 import glob
 import os
+import json
 from flask import (
-    Blueprint, request, jsonify,
+    Blueprint, request, jsonify, Response, send_file
 )
 from xai_backend_central_dev.task_executor import TaskExecutor
 import xai_backend_central_dev.constant.ExecutorRegInfo as ExecutorRegInfo
+import xai_backend_central_dev.constant.TaskInfo as TaskInfo
+import xai_backend_central_dev.constant.TaskSheet as TaskSheet
 
 
 def create_tmp_dir(service_init_path):
@@ -42,37 +45,69 @@ class ExecutorBluePrint(Blueprint):
 
         self.tmp_path = self.te.tmp_path
 
+        @self.route('/task_result', methods=['GET'])
+        def task_result():
+            if request.method == 'GET':
+                task_ticket = request.args['task_ticket']
+                file_name = os.path.join(self.tmp_path, f'{task_ticket}.zip')
+                if os.path.exists(file_name):
+                    return send_file(file_name, as_attachment=True)
+                else:
+                    # TODO: should follow the restful specification
+                    return "no such task"
+
         @self.route('/task', methods=['GET', 'POST'])
         def task():
             if request.method == 'GET':
                 # get task status
-                task_ticket = request.args.get('task_ticket')
+                task_ticket = request.args.get(TaskInfo.task_ticket)
                 tl = self.te.process_holder_str(task_ticket)
                 return jsonify(tl)
             else:
-                # get stop a task or register executor
                 form_data = request.form
                 act = form_data['act']
+                # stop a task
                 if act == 'stop':
-                    task_ticket = form_data['task_ticket']
+                    task_ticket = form_data[TaskInfo.task_ticket]
                     self.te.terminate_process(task_ticket)
-                    # print(process_holder_str())
-                if act == 'reg':
-                    executor_id = form_data[ExecutorRegInfo.executor_id]
-                    endpoint_url = form_data[ExecutorRegInfo.executor_endpoint_url]
-                    executor_info = form_data[ExecutorRegInfo.executor_info]
-                    publisher_endpoint_url = form_data[ExecutorRegInfo.publisher_endpoint_url]
-                    executor_id = self.te.keep_reg_info(
-                        executor_id, endpoint_url, executor_info, publisher_endpoint_url)
+
+                # create a task info which assigned by the central
+                if act == 'create':
+                    task_ticket = form_data[TaskInfo.task_ticket]
+                    task_name = form_data[TaskInfo.task_name]
+                    task_function_key = form_data[TaskSheet.task_function_key]
+                    print(form_data[TaskSheet.task_parameters])
+                    task_parameters = dict(json.loads(
+                        form_data[TaskSheet.task_parameters]))
+
+                    rs = self.te.create_a_task_with_from_central(
+                        task_ticket,
+                        task_name,
+                        task_function_key,
+                        task_parameters
+                    )
+
+                    if not rs:
+                        return Response("", status=400)
+
+                # run a task which assigned by the central
+                if act == 'run':
+                    task_ticket = form_data[TaskInfo.task_ticket]
+                    self.te.run_the_task(task_ticket)
                     return jsonify({
-                        ExecutorRegInfo.executor_id: executor_id
+                        TaskInfo.task_ticket: task_ticket
                     })
+
+                # run a task which create by the executor
+                if act == 'run_in_self':
+                    pass
+
             return ""
 
         @self.route('/executor', methods=['POST'])
         def exe():
             if request.method == 'POST':
-                # get stop a task or register executor
+                # register executor
                 form_data = request.form
                 act = form_data['act']
                 if act == 'reg':

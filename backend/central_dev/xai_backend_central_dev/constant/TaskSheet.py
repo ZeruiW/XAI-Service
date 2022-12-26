@@ -15,5 +15,7 @@ db_service_executor_id = 'db_service_executor_id'
 xai_service_executor_id = 'xai_service_executor_id'
 evaluation_service_executor_id = 'evaluation_service_executor_id'
 task_parameters = 'task_parameters'
+task_sheet_name = 'task_sheet_name'
+task_function_key = 'task_function_key'
 
 empty = ''

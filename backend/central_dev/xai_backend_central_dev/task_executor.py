@@ -84,24 +84,26 @@ class TaskExecutor(TaskComponent):
         self.executor_task_info_tb.update(
             task_info, Query().task_ticket == task_info[TaskInfo.task_ticket])
 
-    def execution_call_back(self, status, task_ticket, process):
-        process.close()
-        et = time.time()
-        task_info = self.get_task_info(task_ticket)
-        task_info[TaskInfo.task_status] = status
-        task_info[TaskInfo.end_time] = et
-        task_info[TaskInfo.formated_end_time] = time.strftime("%m/%d/%Y, %H:%M:%S",
-                                                              time.localtime(et))
-        self.update_task_info_locally(task_info)
-
+    def update_task_status_to_central(self, task_ticket, task_status):
         requests.post(
             self.get_publisher_endpoint_url() + '/task_publisher/pipeline',
             data={
                 'act': 'update_task_status',
                 TaskInfo.task_ticket: task_ticket,
-                TaskInfo.task_status: status
+                TaskInfo.task_status: task_status
             }
         )
+
+    def execution_call_back(self, task_status, task_ticket, process):
+        process.close()
+        et = time.time()
+        task_info = self.get_task_info(task_ticket)
+        task_info[TaskInfo.task_status] = task_status
+        task_info[TaskInfo.end_time] = et
+        task_info[TaskInfo.formated_end_time] = time.strftime("%m/%d/%Y, %H:%M:%S",
+                                                              time.localtime(et))
+        self.update_task_info_locally(task_info)
+        self.update_task_status_to_central(task_ticket, task_status)
 
     def start_a_task(self, task_ticket, function, task_paramenters):
         process = multiprocessing.Pool()
@@ -130,10 +132,24 @@ class TaskExecutor(TaskComponent):
 
         return task_ticket
 
+    def set_clean_task_function(self, cf):
+        self.cf = cf
+
     def terminate_process(self, task_ticket):
         if self.process_holder.get(task_ticket) != None:
             self.process_holder[task_ticket]['process'].terminate(
             )
+        print('teriminate ', task_ticket)
+        task_info = self.get_task_info(task_ticket)
+        task_info[TaskInfo.task_status] = TaskStatus.initialized
+        self.update_task_info_locally(task_info)
+        self.update_task_status_to_central(task_ticket, TaskStatus.initialized)
+        if hasattr(self, 'cf') and callable(self.cf):
+            try:
+                self.cf(task_ticket)
+            except Exception as e:
+                print('clean function error ', task_ticket)
+                print(e)
 
     def get_ticket_info_from_central(self, target_ticket: str):
         if self.get_publisher_endpoint_url() == None or self.get_executor_id() == None:

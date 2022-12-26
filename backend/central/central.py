@@ -105,6 +105,11 @@ def pipeline():
             pipeline_id = form_data[Pipeline.pipeline_id]
             pipeline_info = tp.pipeline.duplicate_pipeline(pipeline_id)
             return jsonify(pipeline_info)
+        
+        if act == 'stop':
+            pipeline_id = form_data[Pipeline.pipeline_id]
+            pipeline_info = tp.pipeline.stop_pipeline(pipeline_id)
+            return jsonify(pipeline_info)
 
         if act == 'update_task_status':
             task_ticket = form_data[TaskInfo.task_ticket]
@@ -124,8 +129,18 @@ def task_sheet():
         return jsonify(rs)
     else:
         form_data = request.form
-        payload = dict(form_data)
-        task_sheet_id = tp.pipeline.create_task_sheet(payload)
-        return jsonify({
-            'task_sheet_id': task_sheet_id
-        })
+        act = form_data['act']
+        if act == 'create':
+            payload = dict(form_data)
+            task_sheet_id = tp.pipeline.create_task_sheet(payload)
+            return jsonify({
+                'task_sheet_id': task_sheet_id
+            })
+        if act == 'run':
+            task_sheet_id = form_data[TaskSheet.task_sheet_id]
+            task_name = form_data[TaskInfo.task_name]
+
+            return jsonify({
+                'task_ticket': tp.pipeline.run_task_sheet_directly(task_sheet_id, task_name)
+            })
+            

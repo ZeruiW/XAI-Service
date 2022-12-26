@@ -18,7 +18,6 @@ from xai_backend_central_dev.constant import TaskInfo
 from xai_backend_central_dev.constant import TaskStatus
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-tmpdir = os.environ.get('COMPONENT_TMP_DIR')
 
 if torch.backends.mps.is_built() and torch.backends.mps.is_available():
     device = torch.device("mps")
@@ -28,6 +27,8 @@ print(device)
 
 
 def cam_task(task_ticket, publisher_endpoint_url, task_parameters):
+    tmpdir = os.environ.get('COMPONENT_TMP_DIR')
+
     # print(task_ticket, publisher_endpoint_url)
     # print(task_parameters)
 
@@ -74,8 +75,8 @@ def cam_task(task_ticket, publisher_endpoint_url, task_parameters):
     i = 0
 
     # explanation save dir
-    e_save_dir = os.path.join(tmpdir, task_parameters['model_name'], task_parameters['method_name'],
-                              task_parameters['data_set_name'], task_parameters['data_set_group_name'], task_ticket)
+    e_save_dir = os.path.join(tmpdir, task_ticket)
+
     if not os.path.isdir(e_save_dir):
         os.makedirs(e_save_dir, exist_ok=True)
 
@@ -114,3 +115,8 @@ def cam_task(task_ticket, publisher_endpoint_url, task_parameters):
 def bytes_to_pil_image(b):
     return Image.open(io.BytesIO(base64.b64decode(b))).convert(
         'RGB')
+
+
+def cf(task_ticket):
+    e_save_dir = os.path.join(os.environ.get('COMPONENT_TMP_DIR'), task_ticket)
+    shutil.rmtree(e_save_dir)

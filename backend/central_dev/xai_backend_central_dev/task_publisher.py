@@ -123,7 +123,7 @@ class TaskPublisher(TaskComponent):
         else:
             return "executor not register"
 
-    def get_ticket_info(self, target_ticket: str, with_status: bool):
+    def get_ticket_info(self, target_ticket: str, with_status: bool = False):
         all_ticket_info = self.ticket_info_map_tb.all()
 
         all_ticket_info_tmp = {}
@@ -284,18 +284,7 @@ class TaskPipeline():
 
         self.storage_path = os.path.join(
             self.component_path_parent, f'{self.component_name}_storage')
-
         self.import_name = self.task_publisher.import_name
-
-        # # A pipeline holds an executor
-        # self.ebp = ExecutorBluePrint(
-        #     'central_pipeline_task_executor', self.import_name,
-        #     component_path=self.component_path,
-        #     url_prefix='/task_publisher/central_executor')
-
-        # self.ebp.get_task_executor(
-        # ).task_func_map['default'] = run_pipeline_tasks
-
         self.db_path = os.path.join(self.storage_path, 'db')
 
         if not os.path.exists(self.db_path):
@@ -385,7 +374,9 @@ class TaskPipeline():
                       ' ', task_ticket,  ' ', task_status)
                 self.pipeline_tb.update(
                     pipeline, Query().pipeline_id == pipeline_id)
-                if task_type == TaskType.xai and self.__eval_task_ready_for_run__(pipeline):
+                if task_type == TaskType.xai \
+                    and self.__eval_task_ready_for_run__(pipeline) \
+                        and pipeline[Pipeline.xai_task_sheet_status] == TaskStatus.finished:
                     self.__run_pipeline_with_pipeline__(pipeline)
 
                 break
@@ -417,6 +408,61 @@ class TaskPipeline():
                 Query().task_sheet_id.test(tf, *task_sheet_ids)),
         ]
 
+    def tell_executor_about_the_task(self, task_executor_id, task_name, task_sheet):
+        # request a ticket from central here
+        task_ticket = self.task_publisher.gen_task_ticket(
+            executor_id=task_executor_id, task_name=task_name)
+
+        executor_reg_info = self.task_publisher.get_executor_registration_info(
+            executor_id=task_executor_id)
+
+        # add services url into the parameters
+        if task_sheet[TaskSheet.db_service_executor_id] != TaskSheet.empty:
+            db_executor_reg_info = self.task_publisher.get_executor_registration_info(
+                executor_id=task_sheet[TaskSheet.db_service_executor_id])
+            task_sheet[TaskSheet.task_parameters][TaskInfo.db_service_url] = db_executor_reg_info[ExecutorRegInfo.executor_endpoint_url]
+
+        if task_sheet[TaskSheet.model_service_executor_id] != TaskSheet.empty:
+            model_executor_reg_info = self.task_publisher.get_executor_registration_info(
+                executor_id=task_sheet[TaskSheet.model_service_executor_id])
+            task_sheet[TaskSheet.task_parameters][TaskInfo.model_service_url] = model_executor_reg_info[ExecutorRegInfo.executor_endpoint_url]
+
+        if task_sheet[TaskSheet.xai_service_executor_id] != TaskSheet.empty:
+            xai_executor_reg_info = self.task_publisher.get_executor_registration_info(
+                executor_id=task_sheet[TaskSheet.xai_service_executor_id])
+            task_sheet[TaskSheet.task_parameters][TaskInfo.xai_service_url] = xai_executor_reg_info[ExecutorRegInfo.executor_endpoint_url]
+
+        if task_sheet[TaskSheet.evaluation_service_executor_id] != TaskSheet.empty:
+            evaluation_executor_reg_info = self.task_publisher.get_executor_registration_info(
+                executor_id=task_sheet[TaskSheet.evaluation_service_executor_id])
+            task_sheet[TaskSheet.task_parameters][TaskInfo.evaluation_service_url] = evaluation_executor_reg_info[ExecutorRegInfo.executor_endpoint_url]
+
+        if task_sheet[TaskSheet.task_type] == TaskType.evaluation:
+            explanation_task_ticket = task_sheet[TaskSheet.task_parameters]['explanation_task_ticket']
+            xai_task_ticket_info = self.task_publisher.get_ticket_info(
+                explanation_task_ticket, with_status=True)
+            task_sheet[TaskSheet.task_parameters]['explanation_task_parameters'] = \
+                xai_task_ticket_info[TaskInfo.task_status][TaskSheet.task_parameters]
+
+        # tell executor about the task
+        resp = requests.post(
+            executor_reg_info[ExecutorRegInfo.executor_endpoint_url] + '/task',
+            data={
+                'act': 'create',
+                TaskInfo.task_ticket: task_ticket,
+                TaskInfo.task_name: task_name,
+                TaskSheet.task_function_key: task_sheet[TaskSheet.task_function_key],
+                TaskSheet.task_parameters: json.dumps(task_sheet[TaskSheet.task_parameters]),
+            }
+        )
+
+        if resp.status_code != 200:
+            self.task_publisher.remove_task_ticket(
+                task_executor_id, task_ticket)
+            return None
+        else:
+            return task_ticket
+
     def add_task_to_pipeline(self, pipeline_id: str, task_name: str, task_sheet_id: str):
         pipeline = self.get_pipeline(pipeline_id)[0]
 
@@ -441,62 +487,12 @@ class TaskPipeline():
         if pipeline[task_sheet_id_key] != TaskSheet.empty:
             return -1   # xai task already exist
         else:
-
-            # request a ticket from central here
-            task_ticket = self.task_publisher.gen_task_ticket(
-                executor_id=task_executor_id, task_name=task_name)
-
-            executor_reg_info = self.task_publisher.get_executor_registration_info(
-                executor_id=task_executor_id)
-
-            # add services url into the parameters
-            if task_sheet[TaskSheet.db_service_executor_id] != TaskSheet.empty:
-                db_executor_reg_info = self.task_publisher.get_executor_registration_info(
-                    executor_id=task_sheet[TaskSheet.db_service_executor_id])
-                task_sheet[TaskSheet.task_parameters][TaskInfo.db_service_url] = db_executor_reg_info[ExecutorRegInfo.executor_endpoint_url]
-
-            if task_sheet[TaskSheet.model_service_executor_id] != TaskSheet.empty:
-                model_executor_reg_info = self.task_publisher.get_executor_registration_info(
-                    executor_id=task_sheet[TaskSheet.model_service_executor_id])
-                task_sheet[TaskSheet.task_parameters][TaskInfo.model_service_url] = model_executor_reg_info[ExecutorRegInfo.executor_endpoint_url]
-
-            if task_sheet[TaskSheet.xai_service_executor_id] != TaskSheet.empty:
-                xai_executor_reg_info = self.task_publisher.get_executor_registration_info(
-                    executor_id=task_sheet[TaskSheet.xai_service_executor_id])
-                task_sheet[TaskSheet.task_parameters][TaskInfo.xai_service_url] = xai_executor_reg_info[ExecutorRegInfo.executor_endpoint_url]
-
-            if task_sheet[TaskSheet.evaluation_service_executor_id] != TaskSheet.empty:
-                evaluation_executor_reg_info = self.task_publisher.get_executor_registration_info(
-                    executor_id=task_sheet[TaskSheet.evaluation_service_executor_id])
-                task_sheet[TaskSheet.task_parameters][TaskInfo.evaluation_service_url] = evaluation_executor_reg_info[ExecutorRegInfo.executor_endpoint_url]
-
-            if task_type == TaskType.evaluation:
-                explanation_task_ticket = task_sheet[TaskSheet.task_parameters]['explanation_task_ticket']
-                xai_task_ticket_info = self.task_publisher.get_ticket_info(
-                    explanation_task_ticket, with_status=True)
-                task_sheet[TaskSheet.task_parameters]['explanation_task_parameters'] = \
-                    xai_task_ticket_info[TaskInfo.task_status][TaskSheet.task_parameters]
-
-            # tell executor about the task
-            resp = requests.post(
-                executor_reg_info[ExecutorRegInfo.executor_endpoint_url] + '/task',
-                data={
-                    'act': 'create',
-                    TaskInfo.task_ticket: task_ticket,
-                    TaskInfo.task_name: task_name,
-                    TaskSheet.task_function_key: task_sheet[TaskSheet.task_function_key],
-                    TaskSheet.task_parameters: json.dumps(task_sheet[TaskSheet.task_parameters]),
-                }
-            )
-
-            pipeline[task_sheet_id_key] = task_sheet_id
-            pipeline[task_sheet_status_key] = TaskStatus.initialized
-            pipeline[task_task_ticket_key] = task_ticket
-
-            if resp.status_code != 200:
-                self.task_publisher.remove_task_ticket(
-                    task_executor_id, task_ticket)
-                return -2
+            required_task_ticket = self.tell_executor_about_the_task(
+                task_executor_id, task_name, task_sheet)
+            if required_task_ticket != None:
+                pipeline[task_sheet_id_key] = task_sheet_id
+                pipeline[task_sheet_status_key] = TaskStatus.initialized
+                pipeline[task_task_ticket_key] = required_task_ticket
 
         self.pipeline_tb.update(pipeline, Query().pipeline_id == pipeline_id)
         return 1
@@ -527,7 +523,6 @@ class TaskPipeline():
         response = requests.request(
             "POST", f"{executor_endpoint_url}/task", headers={}, data=payload)
 
-        print(response.content)
         task_ticket = json.loads(
             response.content.decode('utf-8'))
 
@@ -573,20 +568,71 @@ class TaskPipeline():
         pipeline = self.get_pipeline(pipeline_id)[0]
         return self.__run_pipeline_with_pipeline__(pipeline)
 
+    def run_task_sheet_directly(self, task_sheet_id, task_name):
+        task_sheet = self.get_task_sheet([task_sheet_id])[0]
+
+        task_sheet = self.get_task_sheet([task_sheet_id])[0]
+        task_type = task_sheet[TaskSheet.task_type]
+
+        if task_type == TaskType.xai:
+            task_executor_id = task_sheet[TaskSheet.xai_service_executor_id]
+
+        elif task_type == TaskType.evaluation:
+            task_executor_id = task_sheet[TaskSheet.evaluation_service_executor_id]
+        else:
+            # the prediction task does not involve in XAI pipeline
+            pass
+
+        required_task_ticket = self.tell_executor_about_the_task(
+            task_executor_id, task_name, task_sheet)
+
+        if required_task_ticket != None:
+            executor_registration_infos = self.task_publisher.get_executor_registration_info()
+            executor_endpoint_url = self.__get_url_from_executor_id__(
+                executor_registration_infos, task_executor_id)
+            return self.run_task_with_sheet(
+                required_task_ticket, executor_endpoint_url)
+        else:
+            return None
+
     def duplicate_pipeline(self, pipeline_id):
         src_pipeline = self.get_pipeline(pipeline_id)[0]
 
         pipeline_id = __get_random_string_no_low__(18)
+
+        has_xai_task_sheet = src_pipeline[Pipeline.xai_task_sheet_id] != TaskSheet.empty
+        has_evaluation_task_sheet = src_pipeline[Pipeline.evaluation_task_sheet_id] != TaskSheet.empty
+
+        if has_xai_task_sheet:
+            src_task_sheet = self.get_task_sheet(
+                [src_pipeline[Pipeline.xai_task_sheet_id]])[0]
+            src_task_info = self.task_publisher.get_ticket_info(
+                src_pipeline[Pipeline.xai_task_ticket])
+            src_task_name = src_task_info[TaskInfo.task_name]
+            src_executor_id = src_task_info['executor_id']
+            new_xai_task_ticket = self.tell_executor_about_the_task(
+                src_executor_id, src_task_name + ' Copied', src_task_sheet)
+
+        if has_evaluation_task_sheet:
+            src_task_sheet = self.get_task_sheet(
+                [src_pipeline[Pipeline.evaluation_task_sheet_id]])[0]
+            src_task_info = self.task_publisher.get_ticket_info(
+                src_pipeline[Pipeline.evaluation_task_ticket])
+            src_task_name = src_task_info[TaskInfo.task_name]
+            src_executor_id = src_task_info['executor_id']
+            new_evaluation_task_ticket = self.tell_executor_about_the_task(
+                src_executor_id, src_task_name + ' Copied', src_task_sheet)
+
         pipeline_info = {
             Pipeline.pipeline_id: pipeline_id,
             Pipeline.created_time: time.time(),
-            Pipeline.pipeline_name: src_pipeline[Pipeline.pipeline_name] + 'Copied',
+            Pipeline.pipeline_name: src_pipeline[Pipeline.pipeline_name] + ' Copied',
             Pipeline.xai_task_sheet_id: src_pipeline[Pipeline.xai_task_sheet_id],
-            Pipeline.xai_task_sheet_status: TaskStatus.initialized if src_pipeline[Pipeline.xai_task_sheet_id] != TaskSheet.empty else TaskStatus.undefined,
-            Pipeline.xai_task_ticket: TaskSheet.empty,
+            Pipeline.xai_task_sheet_status: TaskStatus.initialized if has_xai_task_sheet else TaskStatus.undefined,
+            Pipeline.xai_task_ticket: new_xai_task_ticket if has_xai_task_sheet else TaskSheet.empty,
             Pipeline.evaluation_task_sheet_id: src_pipeline[Pipeline.evaluation_task_sheet_id],
-            Pipeline.evaluation_task_sheet_status: TaskStatus.initialized if src_pipeline[Pipeline.evaluation_task_sheet_id] != TaskSheet.empty else TaskStatus.undefined,
-            Pipeline.evaluation_task_ticket: TaskSheet.empty,
+            Pipeline.evaluation_task_sheet_status: TaskStatus.initialized if has_evaluation_task_sheet else TaskStatus.undefined,
+            Pipeline.evaluation_task_ticket: new_evaluation_task_ticket if has_evaluation_task_sheet else TaskSheet.empty,
         }
 
         self.pipeline_tb.insert(pipeline_info)
@@ -618,7 +664,40 @@ class TaskPipeline():
             return pipeline
 
     def stop_pipeline(self, pipeline_id):
-        pass
+        pipeline = self.get_pipeline(pipeline_id)[0]
+        executor_endpoint_url = None
+        if pipeline[Pipeline.xai_task_sheet_status] == TaskStatus.running:
+            task_sheet = self.get_task_sheet(
+                [pipeline[Pipeline.xai_task_sheet_id]])[0]
+            task_ticket = pipeline[Pipeline.xai_task_ticket]
+
+            task_executor_id = task_sheet[TaskSheet.xai_service_executor_id]
+            executor_registration_infos = self.task_publisher.get_executor_registration_info()
+
+            executor_endpoint_url = self.__get_url_from_executor_id__(
+                executor_registration_infos, task_executor_id)
+
+        if pipeline[Pipeline.evaluation_task_sheet_status] == TaskStatus.running:
+            task_sheet = self.get_task_sheet(
+                [pipeline[Pipeline.evaluation_task_sheet_id]])[0]
+            task_ticket = pipeline[Pipeline.evaluation_task_ticket]
+
+            task_executor_id = task_sheet[TaskSheet.evaluation_service_executor_id]
+            executor_registration_infos = self.task_publisher.get_executor_registration_info()
+
+            executor_endpoint_url = self.__get_url_from_executor_id__(
+                executor_registration_infos, task_executor_id)
+
+        if executor_endpoint_url != None:
+            requests.post(
+                executor_endpoint_url + '/task',
+                data={
+                    'act': 'stop',
+                    TaskInfo.task_ticket: task_ticket
+                }
+            )
+
+        return self.get_pipeline(pipeline_id)[0]
 
     def check_task_sheet_status(self, task_sheet_id):
         pass

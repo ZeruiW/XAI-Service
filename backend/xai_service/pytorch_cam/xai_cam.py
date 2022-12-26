@@ -22,3 +22,5 @@ ebp = ExecutorBluePrint(
     'pt_cam', __name__, component_path=__file__, url_prefix='/xai/pt_cam')
 te = ebp.get_task_executor()
 te.define_task_func_map('default', task_func.cam_task)
+
+te.set_clean_task_function(task_func.cf)

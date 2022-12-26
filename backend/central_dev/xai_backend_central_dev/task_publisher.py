@@ -31,17 +31,16 @@ class TaskPublisher(TaskComponent):
         self.db = TinyDB(c_db_path)
         self.ticket_info_map_tb = self.db.table('ticket_info_map')
         self.executor_registration_tb = self.db.table('executor_registration')
+        self.central_info_tb = self.db.table('central_info')
 
         self.pipeline = TaskPipeline(self)
         # print(self.ticket_info_map_tb.all())
         # print(self.executor_registration_tb.all())
 
         # recover activation
-        for executor_reg_info in self.get_executor_registration_info():
-            if executor_reg_info.get('executor_info').get('executor_name') == 'central_task_executor':
-                self.publisher_endpoint_url = executor_reg_info.get('executor_info').get(
-                    'publisher_endpoint_url')
-                print('central activated at: ', self.publisher_endpoint_url)
+        central_info = self.central_info_tb.all()
+        if len(central_info) == 1:
+            self.publisher_endpoint_url = central_info[0]['publisher_endpoint_url']
 
     def __feed_info__(self, task_info: dict):
         task_info[TaskInfo.publisher] = self.publisher_name
@@ -54,14 +53,14 @@ class TaskPublisher(TaskComponent):
 
     def activate_publisher(self, publisher_endpoint_url: str):
         self.publisher_endpoint_url = publisher_endpoint_url
-        # self.register_executor_endpoint(
-        #     f"{self.publisher_endpoint_url}/task_publisher/central_executor",
-        #     {
-        #         'executor_name': 'central_task_executor',
-        #         'publisher_endpoint_url': publisher_endpoint_url,
-        #     }
-        # )
-        return self.get_executor_registration_info()
+        central_info = self.central_info_tb.all()
+        if len(central_info) == 0:
+            self.central_info_tb.insert({
+                'central_name': self.publisher_name,
+                'publisher_endpoint_url': publisher_endpoint_url,
+                'activate_time': time.time()
+            })
+        return self.central_info_tb.all()[0]
 
     def get_executor_registration_info(self, executor_id=None):
         if executor_id == None:
@@ -142,7 +141,12 @@ class TaskPublisher(TaskComponent):
                 for executor_id, ticket_infos in all_ticket_info.items():
                     # ANCHOR: what if unknow executor_id
                     executor_reg_info = self.executor_registration_tb.search(
-                        Query().executor_id == executor_id)[0]
+                        Query().executor_id == executor_id)
+
+                    if len(executor_reg_info) == 0:
+                        continue
+                    else:
+                        executor_reg_info = executor_reg_info[0]
 
                     executor_endpoint_url = executor_reg_info[ExecutorRegInfo.executor_endpoint_url]
                     try:
@@ -164,7 +168,12 @@ class TaskPublisher(TaskComponent):
             formated_all_ticket_info = {}
             for executor_id, ticket_infos in all_ticket_info.items():
                 executor_reg_info = self.executor_registration_tb.search(
-                    Query().executor_id == executor_id)[0]
+                    Query().executor_id == executor_id)
+
+                if len(executor_reg_info) == 0:
+                    continue
+                else:
+                    executor_reg_info = executor_reg_info[0]
 
                 formated_all_ticket_info[executor_id] = dict(
                     executor=executor_reg_info,
@@ -187,9 +196,14 @@ class TaskPublisher(TaskComponent):
 
             if find_target_task_ticket_executor_id != None and find_target_task_ticket_info != None:
                 executor_reg_info = self.executor_registration_tb.search(
-                    Query().executor_id == find_target_task_ticket_executor_id)[0]
-                if with_status:
+                    Query().executor_id == find_target_task_ticket_executor_id)
 
+                if len(executor_reg_info) == 0:
+                    return None
+                else:
+                    executor_reg_info = executor_reg_info[0]
+
+                if with_status:
                     executor_endpoint_url = executor_reg_info[ExecutorRegInfo.executor_endpoint_url]
                     response = requests.get(
                         executor_endpoint_url + '/task',
@@ -455,6 +469,13 @@ class TaskPipeline():
                 evaluation_executor_reg_info = self.task_publisher.get_executor_registration_info(
                     executor_id=task_sheet[TaskSheet.evaluation_service_executor_id])
                 task_sheet[TaskSheet.task_parameters][TaskInfo.evaluation_service_url] = evaluation_executor_reg_info[ExecutorRegInfo.executor_endpoint_url]
+
+            if task_type == TaskType.evaluation:
+                explanation_task_ticket = task_sheet[TaskSheet.task_parameters]['explanation_task_ticket']
+                xai_task_ticket_info = self.task_publisher.get_ticket_info(
+                    explanation_task_ticket, with_status=True)
+                task_sheet[TaskSheet.task_parameters]['explanation_task_parameters'] = \
+                    xai_task_ticket_info[TaskInfo.task_status][TaskSheet.task_parameters]
 
             # tell executor about the task
             resp = requests.post(

@@ -8,6 +8,7 @@ from xai_backend_central_dev.task_publisher import TaskPublisher
 from xai_backend_central_dev.constant import Pipeline
 from xai_backend_central_dev.constant import TaskInfo
 from xai_backend_central_dev.constant import TaskSheet
+from xai_backend_central_dev.constant import ExecutorRegInfo
 
 bp = Blueprint('central', __name__,
                url_prefix='/task_publisher')
@@ -37,14 +38,31 @@ def executor():
     else:
         # executor register
         form_data = request.form
-        executor_endpoint_url = form_data['executor_endpoint_url']
-        exector_info = json.loads(form_data['executor_info'])
-        # publisher_endpoint_url = form_data['publisher_endpoint_url']
-        exector_id = tp.register_executor_endpoint(
-            executor_endpoint_url, exector_info)
-        return jsonify({
-            'executor_id': exector_id
-        })
+        act = form_data['act']
+        if act == 'reg':
+            executor_endpoint_url = form_data[ExecutorRegInfo.executor_endpoint_url]
+            exector_info = json.loads(form_data[ExecutorRegInfo.executor_info])
+            # publisher_endpoint_url = form_data['publisher_endpoint_url']
+            exector_id = tp.register_executor_endpoint(
+                executor_endpoint_url, exector_info)
+            return jsonify({
+                'executor_id': exector_id
+            })
+        if act == 'update':
+            executor_id = form_data[ExecutorRegInfo.executor_id]
+            executor_endpoint_url = form_data[ExecutorRegInfo.executor_endpoint_url]
+            exector_info = json.loads(form_data[ExecutorRegInfo.executor_info])
+            # publisher_endpoint_url = form_data['publisher_endpoint_url']
+            exector_id = tp.update_executor_endpoint(
+                executor_id, executor_endpoint_url, exector_info)
+            return jsonify({
+                'executor_id': exector_id
+            })
+
+        if act == 'delete':
+            executor_id = form_data[ExecutorRegInfo.executor_id]
+            tp.delete_executor_endpoint(executor_id)
+            return ""
 
 
 @bp.route('/task', methods=['GET', 'POST'])
@@ -105,7 +123,7 @@ def pipeline():
             pipeline_id = form_data[Pipeline.pipeline_id]
             pipeline_info = tp.pipeline.duplicate_pipeline(pipeline_id)
             return jsonify(pipeline_info)
-        
+
         if act == 'stop':
             pipeline_id = form_data[Pipeline.pipeline_id]
             pipeline_info = tp.pipeline.stop_pipeline(pipeline_id)
@@ -143,4 +161,3 @@ def task_sheet():
             return jsonify({
                 'task_ticket': tp.pipeline.run_task_sheet_directly(task_sheet_id, task_name)
             })
-            

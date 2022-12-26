@@ -271,6 +271,35 @@ class TaskPublisher(TaskComponent):
     def if_executor_registered(self, executor_id: str):
         return len(self.executor_registration_tb.search(Query().executor_id == executor_id)) > 0
 
+    def update_executor_endpoint(self, executor_id,
+                                 executor_endpoint_url: str,
+                                 executor_info: dict):
+        executor_reg_info = self.get_executor_registration_info(executor_id)
+        if executor_info != None:
+            resp = requests.post(
+                executor_endpoint_url + '/executor',
+                data={
+                    'act': 'update',
+                    ExecutorRegInfo.executor_id: executor_id,
+                    ExecutorRegInfo.executor_endpoint_url: executor_endpoint_url,
+                    ExecutorRegInfo.executor_info: json.dumps(executor_info),
+                    ExecutorRegInfo.publisher_endpoint_url: self.publisher_endpoint_url
+                }
+            )
+
+            if resp.status_code == 200:
+                executor_reg_info[ExecutorRegInfo.executor_info] = executor_info
+                executor_reg_info[ExecutorRegInfo.executor_endpoint_url] = executor_endpoint_url
+                self.executor_registration_tb.update(
+                    executor_reg_info, Query().executor_id == executor_id)
+                return executor_id
+            else:
+                return None
+
+    def delete_executor_endpoint(self, executor_id):
+        self.executor_registration_tb.remove(
+            Query().executor_id == executor_id)
+
 
 class TaskPipeline():
 

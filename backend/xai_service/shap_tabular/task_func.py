@@ -103,5 +103,5 @@ def cf(task_ticket):
     e_save_dir = os.path.join(os.environ.get('COMPONENT_TMP_DIR'), task_ticket)
     shutil.rmtree(e_save_dir)
 
-
-shap_task('task_ticket', 'http://127.0.0.1:5008/xgb', 27)
+#example of how to call the task function
+#shap_task('task_ticket', 'http://127.0.0.1:5008/xgb', 27)

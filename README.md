@@ -16,7 +16,6 @@ flask --app model_service/resnet50 --debug run -p 5001
 flask --app db_service --debug run -p 5002
 flask --app xai_service/pytorch_cam --debug run -p 5003
 flask --app evaluation_service --debug run -p 5004
-<<<<<<< HEAD
 flask --app xgb --debug run -p 5008
 flask --app shap_tabular --debug run -p 5009
 ```
@@ -30,8 +29,7 @@ flask --app model_service/resnet50 run -p 5001
 flask --app model_service/azure_cog run -p 5007
 flask --app xai_service/pytorch_cam run -p 5003
 flask --app evaluation_service run -p 5004
-=======
->>>>>>> origin/main
+
 ```
 
 # XAI Service Frontend

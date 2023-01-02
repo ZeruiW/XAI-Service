@@ -26,11 +26,11 @@
     xai_instance: {xai_instance_id: "xai_instance_id",
                    xai_parameter: "xai_parameter",
                    },
-    evaluate_instance: {evaluate_instance_id: "evaluate_instance_id",
-                        evaluate_parameter: "evaluate_parameter",
+    evaluation_instance: {evaluation_instance_id: "evaluate_instance_id",
+                    evaluation_parameter: "evaluate_parameter",
                         }
     task_result: "task_result_file"
-                  
+
 }}
 
 // metadata for pipelines
@@ -39,9 +39,11 @@
     pipeline_id: "pipeline_id",
     pipeline_name: "pipeline_name",
     pipeline_owner: "pipeline_owner",
+    pipeline_create_time: "2019-01-01 00:00:00",
     pipeline_start_time: "2019-01-01 00:00:00",
-    pipeline_end_time: "2019-01-01 00:00:00",
+    pipeline_stop_time: "2019-01-01 00:00:00",
     pipeline_tasks: ["task_sheet_id_1", "task_sheet_id_2", "task_sheet_id_3"],
-    pipeline_result: "pipeline_result_file"
+    pipeline_result?: "pipeline_result_file"
+    pipeline_info?
 }}
 

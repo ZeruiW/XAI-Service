@@ -110,7 +110,7 @@ class ExecutorBluePrint(Blueprint):
                 # register executor
                 form_data = request.form
                 act = form_data['act']
-                if act == 'reg':
+                if act == 'reg' or act == 'update':
                     executor_id = form_data[ExecutorRegInfo.executor_id]
                     endpoint_url = form_data[ExecutorRegInfo.executor_endpoint_url]
                     executor_info = form_data[ExecutorRegInfo.executor_info]
@@ -120,6 +120,7 @@ class ExecutorBluePrint(Blueprint):
                     return jsonify({
                         ExecutorRegInfo.executor_id: executor_id
                     })
+
             return ""
 
     def get_task_executor(self):

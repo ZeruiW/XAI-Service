@@ -159,8 +159,9 @@ class TaskPublisher(TaskComponent):
                             executor_tasks_status = []
 
                     for executor_task_status in executor_tasks_status:
-                        current_task_ticket = executor_task_status[TaskInfo.task_ticket]
-                        if all_ticket_info[executor_id].get(current_task_ticket) != None:
+                        current_task_ticket = executor_task_status.get(
+                            TaskInfo.task_ticket)
+                        if current_task_ticket != None and all_ticket_info[executor_id].get(current_task_ticket) != None:
                             executor_task_status.pop(
                                 TaskInfo.task_ticket, None)
                             all_ticket_info[executor_id][current_task_ticket]['task_status'] = executor_task_status
@@ -271,6 +272,35 @@ class TaskPublisher(TaskComponent):
     def if_executor_registered(self, executor_id: str):
         return len(self.executor_registration_tb.search(Query().executor_id == executor_id)) > 0
 
+    def update_executor_endpoint(self, executor_id,
+                                 executor_endpoint_url: str,
+                                 executor_info: dict):
+        executor_reg_info = self.get_executor_registration_info(executor_id)
+        if executor_info != None:
+            resp = requests.post(
+                executor_endpoint_url + '/executor',
+                data={
+                    'act': 'update',
+                    ExecutorRegInfo.executor_id: executor_id,
+                    ExecutorRegInfo.executor_endpoint_url: executor_endpoint_url,
+                    ExecutorRegInfo.executor_info: json.dumps(executor_info),
+                    ExecutorRegInfo.publisher_endpoint_url: self.publisher_endpoint_url
+                }
+            )
+
+            if resp.status_code == 200:
+                executor_reg_info[ExecutorRegInfo.executor_info] = executor_info
+                executor_reg_info[ExecutorRegInfo.executor_endpoint_url] = executor_endpoint_url
+                self.executor_registration_tb.update(
+                    executor_reg_info, Query().executor_id == executor_id)
+                return executor_id
+            else:
+                return None
+
+    def delete_executor_endpoint(self, executor_id):
+        self.executor_registration_tb.remove(
+            Query().executor_id == executor_id)
+
 
 class TaskPipeline():
 
@@ -308,7 +338,6 @@ class TaskPipeline():
             Pipeline.pipeline_id: pipeline_id,
             Pipeline.created_time: time.time(),
             Pipeline.pipeline_name: pipeline_name,
-            Pipeline.pipeline_task_ticket: TaskSheet.empty,
             Pipeline.xai_task_sheet_id: TaskSheet.empty,
             Pipeline.xai_task_sheet_status: TaskStatus.undefined,
             Pipeline.xai_task_ticket: TaskSheet.empty,

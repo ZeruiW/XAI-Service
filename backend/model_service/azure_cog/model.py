@@ -15,12 +15,12 @@ import numpy as np
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 # Download this file <https://s3.amazonaws.com/deep-learning-models/image-models/imagenet_class_index.json>_ as imagenet_class_index.json
-imagenet_class_index = json.load(
-    open(os.path.join(basedir, "static", 'imagenet_class_index.json')))
+# imagenet_class_index = json.load(
+#     open(os.path.join(basedir, "static", 'imagenet_class_index.json')))
 
-# model
-model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
-model.eval()
+# # model
+# model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
+# model.eval()
 
 
 def transform_image(image_bytes):
@@ -38,13 +38,13 @@ ebp = ExecutorBluePrint(
     'azure_cog', __name__, component_path=__file__, url_prefix='/azure_cog')
 
 
-def get_prediction(imgs):
-    tensor = torch.tensor(np.array([
-        transform_image(x).numpy()
-        for x in imgs
-    ]))
-    outputs = model(tensor).detach().numpy()
-    return outputs
+# def get_prediction(imgs):
+#     tensor = torch.tensor(np.array([
+#         transform_image(x).numpy()
+#         for x in imgs
+#     ]))
+#     outputs = model(tensor).detach().numpy()
+#     return outputs
 
 
 class_names = [
@@ -80,6 +80,15 @@ def sendRequestCV(img):
     return json.loads(response.text)
 
 
+def get_pred_score(service_response):
+    for class_p in service_response['predictions']:
+        class_p['class_idx'] = class_names.index(class_p['tagName'])
+
+    service_response['predictions'] = sorted(
+        service_response['predictions'], key=lambda a: a['class_idx'])
+    return [x['probability'] for x in service_response['predictions']]
+
+
 @ebp.route('/', methods=['GET', 'POST'])
 def pred():
     if request.method == 'POST':
@@ -93,12 +102,8 @@ def pred():
 
         for img in imgs:
             p = sendRequestCV(img)
-            for class_p in p['predictions']:
-                class_p['class_idx'] = class_names.index(class_p['tagName'])
-
-            p['predictions'] = sorted(
-                p['predictions'], key=lambda a: a['class_idx'])
-            scores = [x['probability'] for x in p['predictions']]
+            # print(p)
+            scores = get_pred_score(p)
             prediction.append(scores)
 
         print(prediction)

@@ -159,8 +159,9 @@ class TaskPublisher(TaskComponent):
                             executor_tasks_status = []
 
                     for executor_task_status in executor_tasks_status:
-                        current_task_ticket = executor_task_status[TaskInfo.task_ticket]
-                        if all_ticket_info[executor_id].get(current_task_ticket) != None:
+                        current_task_ticket = executor_task_status.get(
+                            TaskInfo.task_ticket)
+                        if current_task_ticket != None and all_ticket_info[executor_id].get(current_task_ticket) != None:
                             executor_task_status.pop(
                                 TaskInfo.task_ticket, None)
                             all_ticket_info[executor_id][current_task_ticket]['task_status'] = executor_task_status
@@ -337,7 +338,6 @@ class TaskPipeline():
             Pipeline.pipeline_id: pipeline_id,
             Pipeline.created_time: time.time(),
             Pipeline.pipeline_name: pipeline_name,
-            Pipeline.pipeline_task_ticket: TaskSheet.empty,
             Pipeline.xai_task_sheet_id: TaskSheet.empty,
             Pipeline.xai_task_sheet_status: TaskStatus.undefined,
             Pipeline.xai_task_ticket: TaskSheet.empty,

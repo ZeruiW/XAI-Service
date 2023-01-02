@@ -147,7 +147,7 @@ def pipeline():
                         'pipeline_name': pipeline_name,
                         'pipeline_create_time': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                         'pipeline_owner': pipeline_owner,
-                        'pipeline_id': 'test'
+                        'pipeline_id': pipeline_info[Pipeline.pipeline_id]
                     }}
             pipeline_json_string = json.dumps(pipeline_doc)
             collection.insert_one(json.loads(pipeline_json_string))       
@@ -271,18 +271,26 @@ def provenance_data():
                 "Instance_metadata.instance_owner": owner_name
             })
             return jsonify(data['Instance_metadata'])
-        elif metadata_type == "'Pipeline_metadata'":
-            data = collection.find_one({
-                "Pipeline_metadata.pipeline_id": metadata_id,
-                "Pipeline_metadata.pipeline_owner": owner_name
-            })
-            return jsonify(data['Pipeline_metadata'])
         elif metadata_type == "'Task_metadata'":
             data = collection.find_one({
                 "Task_metadata.task_sheet_id": metadata_id,
                 "Task_metadata.task_owner": owner_name
             })
             return jsonify(data['Task_metadata'])
+        elif metadata_type == "'Pipeline_metadata'":
+            data = collection.find_one({
+                "Pipeline_metadata.pipeline_id": metadata_id,
+                "Pipeline_metadata.pipeline_owner": owner_name
+            })
+            related_task_data = {}
+            for i in range(len(data['Pipeline_metadata']['task_sheet_id'])):
+                one_task_data = collection.find_one({
+                    "Task_metadata.task_sheet_id": data['Pipeline_metadata']['task_sheet_id'][i]
+                })
+                related_task_data[f'Task{i}'] = one_task_data['Task_metadata']
+            
+            return jsonify(data['Pipeline_metadata'], related_task_data)
+
         else:
             return "metadata_type is not correct, please check again"
         

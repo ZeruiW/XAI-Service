@@ -255,6 +255,45 @@ def task_sheet():
                 'task_ticket': tp.pipeline.run_task_sheet_directly(task_sheet_id, task_name)
             })
 
+#get provenance 
+def find_instance(id,owner):
+    findinstance = collection.find_one({
+                "Instance_metadata.instance_id": id,
+                "Instance_metadata.instance_owner": owner
+            })
+    return jsonify(findinstance['Instance_metadata'])
+
+def find_task(id,owner):
+    findtask = collection.find_one({
+                "Task_metadata.task_sheet_id": id,
+                "Task_metadata.task_owner": owner
+            })
+    return jsonify(findtask['Task_metadata'])
+
+def find_pipeline(id,owner):
+    findpipeline = collection.find_one({
+                "Pipeline_metadata.pipeline_id": id,
+                "Pipeline_metadata.pipeline_owner": owner
+            })
+    return jsonify(findpipeline['Pipeline_metadata'])
+
+def find_task_by_pipeline(id,owner):
+    data = collection.find_one({
+                "Pipeline_metadata.pipeline_id": id,
+                "Pipeline_metadata.pipeline_owner": owner
+            })
+
+    related_task_data = {}
+    for i in range(len(data['Pipeline_metadata']['task_sheet_id'])):
+        one_task_data = collection.find_one({
+            "Task_metadata.task_sheet_id": data['Pipeline_metadata']['task_sheet_id'][i]
+            })
+        related_task_data[f'Task{i}'] = one_task_data['Task_metadata']
+    return jsonify(data['Pipeline_metadata'], related_task_data)
+
+
+
+
 @bp.route('/provenance_data', methods=['GET', 'POST'])
 def provenance_data():
     if request.method == 'GET':
@@ -266,17 +305,19 @@ def provenance_data():
         owner_name = form_data['owner_name'].strip('\'')
         
         if metadata_type == "'Instance_metadata'":
-            data = collection.find_one({
-                "Instance_metadata.instance_id": metadata_id,
-                "Instance_metadata.instance_owner": owner_name
-            })
-            return jsonify(data['Instance_metadata'])
+            return(find_instance(metadata_id,owner_name))
+            # data = collection.find_one({
+            #     "Instance_metadata.instance_id": metadata_id,
+            #     "Instance_metadata.instance_owner": owner_name
+            # })
+            # return jsonify(data['Instance_metadata'])
         elif metadata_type == "'Task_metadata'":
-            data = collection.find_one({
-                "Task_metadata.task_sheet_id": metadata_id,
-                "Task_metadata.task_owner": owner_name
-            })
-            return jsonify(data['Task_metadata'])
+            return(find_task(metadata_id,owner_name))
+            # data = collection.find_one({
+            #     "Task_metadata.task_sheet_id": metadata_id,
+            #     "Task_metadata.task_owner": owner_name
+            # })
+            # return jsonify(data['Task_metadata'])
         elif metadata_type == "'Pipeline_metadata'":
             data = collection.find_one({
                 "Pipeline_metadata.pipeline_id": metadata_id,

@@ -449,22 +449,26 @@ class TaskPipeline():
         if task_sheet[TaskSheet.db_service_executor_id] != TaskSheet.empty:
             db_executor_reg_info = self.task_publisher.get_executor_registration_info(
                 executor_id=task_sheet[TaskSheet.db_service_executor_id])
-            task_sheet[TaskSheet.task_parameters][TaskInfo.db_service_url] = db_executor_reg_info[ExecutorRegInfo.executor_endpoint_url]
+            if type(db_executor_reg_info) is not list:
+                task_sheet[TaskSheet.task_parameters][TaskInfo.db_service_url] = db_executor_reg_info[ExecutorRegInfo.executor_endpoint_url]
 
         if task_sheet[TaskSheet.model_service_executor_id] != TaskSheet.empty:
             model_executor_reg_info = self.task_publisher.get_executor_registration_info(
                 executor_id=task_sheet[TaskSheet.model_service_executor_id])
-            task_sheet[TaskSheet.task_parameters][TaskInfo.model_service_url] = model_executor_reg_info[ExecutorRegInfo.executor_endpoint_url]
+            if type(model_executor_reg_info) is not list:
+                task_sheet[TaskSheet.task_parameters][TaskInfo.model_service_url] = model_executor_reg_info[ExecutorRegInfo.executor_endpoint_url]
 
         if task_sheet[TaskSheet.xai_service_executor_id] != TaskSheet.empty:
             xai_executor_reg_info = self.task_publisher.get_executor_registration_info(
                 executor_id=task_sheet[TaskSheet.xai_service_executor_id])
-            task_sheet[TaskSheet.task_parameters][TaskInfo.xai_service_url] = xai_executor_reg_info[ExecutorRegInfo.executor_endpoint_url]
+            if type(xai_executor_reg_info) is not list:
+                task_sheet[TaskSheet.task_parameters][TaskInfo.xai_service_url] = xai_executor_reg_info[ExecutorRegInfo.executor_endpoint_url]
 
         if task_sheet[TaskSheet.evaluation_service_executor_id] != TaskSheet.empty:
             evaluation_executor_reg_info = self.task_publisher.get_executor_registration_info(
                 executor_id=task_sheet[TaskSheet.evaluation_service_executor_id])
-            task_sheet[TaskSheet.task_parameters][TaskInfo.evaluation_service_url] = evaluation_executor_reg_info[ExecutorRegInfo.executor_endpoint_url]
+            if type(evaluation_executor_reg_info) is not list:
+                task_sheet[TaskSheet.task_parameters][TaskInfo.evaluation_service_url] = evaluation_executor_reg_info[ExecutorRegInfo.executor_endpoint_url]
 
         if task_sheet[TaskSheet.task_type] == TaskType.evaluation:
             explanation_task_ticket = task_sheet[TaskSheet.task_parameters]['explanation_task_ticket']

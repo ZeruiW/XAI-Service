@@ -301,7 +301,7 @@ def find_heatmap_with_task_ticket(task_ticket, index):
         })
     image_data = cam_data['image']
     #save the image
-    # with open('image2.png', 'wb') as f:
+    # with open('image.png', 'wb') as f:
     #     f.write(image_data)
     encoded_image = base64.b64encode(image_data).decode('utf-8')
     return encoded_image

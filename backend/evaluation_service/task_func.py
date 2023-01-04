@@ -15,6 +15,44 @@ import cv2
 
 from xai_backend_central_dev.constant import TaskStatus
 
+#connect to mongoDB for save result
+import bson
+import numpy as np
+from bson.binary import Binary
+from dotenv import load_dotenv
+load_dotenv()
+from pymongo import MongoClient
+from bson.objectid import ObjectId
+# Connect to the MongoDB instance
+connection_string = os.getenv("MONGO_CONNECTION_STRING")
+client = MongoClient(connection_string)
+
+# Select the database and collection
+databasestr = os.getenv("MONGO_DATABASE")
+collectionstr = os.getenv("MONGO_EVA_COLLECTION")
+database = client[databasestr]
+collection = database[collectionstr]
+
+def img_to_binary(img):
+    # Convert the image to a binary format
+    binary_img = bson.binary.Binary(img)
+    return binary_img
+
+def save_eva_result(task_ticket, index, filename, org_img, mask_img, heat_img, concat_img):
+    # Save the result to MongoDB
+    # Create a document
+    cam_document = {
+        "task_ticket": task_ticket,
+        "index": index,
+        "filename": filename,
+        "org_img": img_to_binary(org_img),
+        "mask_img": img_to_binary(mask_img),
+        "heat_img": img_to_binary(heat_img),
+        "concat_img": img_to_binary(concat_img)
+        }
+    # Insert the document into the collection
+    collection.insert_one(cam_document)
+
 #device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # print(device)

@@ -15,8 +15,8 @@ from xai_backend_central_dev.task_manager import TaskComponent
 class TaskExecutor(TaskComponent):
 
     # TODO: executor process db
-    def __init__(self, executor_name: str, component_path: str) -> None:
-        super().__init__(executor_name, component_path)
+    def __init__(self, executor_name: str, component_path: str, context_path: str) -> None:
+        super().__init__(executor_name, component_path, context_path)
 
         self.process_holder = {}
 
@@ -105,6 +105,31 @@ class TaskExecutor(TaskComponent):
         self.update_task_info_locally(task_info)
         self.update_task_status_to_central(task_ticket, task_status)
 
+        # TODO: a callback to send task result to central db
+
+    def get_result_presentation(self, task_ticket):
+        rs_path = os.path.join(self.static_path, 'rs', task_ticket)
+        pre = []
+        if os.path.exists(rs_path):
+            rs_files = os.listdir(rs_path)
+
+            for rs_file in rs_files:
+                ext = rs_file.split('.')[-1].lower()
+                if ext in ['png', 'jpeg']:
+                    pre.append({
+                        'file_name': rs_file,
+                        'address': f'/static/rs/{task_ticket}/{rs_file}',
+                        'file_type': 'img'
+                    })
+                elif ext in ['npy']:
+                    pre.append({
+                        'file_name': rs_file,
+                        'address': f'/static/rs/{task_ticket}/{rs_file}',
+                        'file_type': 'text',
+                        'content': 'todo'
+                    })
+        return pre
+
     def start_a_task(self, task_ticket, function, task_paramenters):
         process = multiprocessing.Pool()
 
@@ -132,6 +157,7 @@ class TaskExecutor(TaskComponent):
 
         return task_ticket
 
+    # set cleaning function when terminating a task
     def set_clean_task_function(self, cf):
         self.cf = cf
 

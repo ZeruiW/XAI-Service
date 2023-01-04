@@ -15,7 +15,7 @@ bp = Blueprint('central', __name__,
 
 task_publisher_name = 'central'
 tp = TaskPublisher(task_publisher_name,
-                   component_path=__file__, import_name=__name__)
+                   component_path=__file__, import_name=__name__, context_path='/task_publisher')
 
 
 @bp.route('/publisher', methods=['GET', 'POST'])
@@ -74,6 +74,15 @@ def task():
             False if request.args.get('with_status') != '1' else True)
         # print(with_status)
         return jsonify(tp.get_ticket_info(task_ticket, with_status))
+    else:
+        return ""
+
+
+@bp.route('/task_result', methods=['GET', 'POST'])
+def task_result():
+    if request.method == 'GET':
+        task_ticket = request.args.get('task_ticket')
+        return jsonify(tp.pipeline.get_task_presentation(task_ticket))
     else:
         return ""
 

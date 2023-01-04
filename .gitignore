@@ -20,3 +20,5 @@ build
 *_db.json
 
 .vscode/
+
+**/static/rs/

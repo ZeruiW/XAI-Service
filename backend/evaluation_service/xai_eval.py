@@ -23,14 +23,15 @@ te.define_task_func_map('default', task_func.eval_task)
 @ebp.route('/stability', methods=['GET'])
 def stability():
     if request.method == 'GET':
-        explanation_task_ticket = request.args['explanation_task_ticket']
+        task_ticket = request.args['task_ticket']
+        staticdir = os.environ.get('COMPONENT_STATIC_DIR')
         # prediction change difference
         pcd_save_path = os.path.join(
-            ebp.tmp_path, explanation_task_ticket, f'prediction_change_distance.npy')
+            staticdir, 'rs', task_ticket, f'prediction_change_distance.npy')
         pc_save_path = os.path.join(
-            ebp.tmp_path, explanation_task_ticket, f'prediction_change.npy')
+            staticdir, 'rs', task_ticket, f'prediction_change.npy')
         sm_save_path = os.path.join(
-            ebp.tmp_path, explanation_task_ticket, f'score_map.npy')
+            staticdir, 'rs', task_ticket, f'score_map.npy')
 
         with open(pcd_save_path, 'rb') as f:
             pcd_rs = list(np.load(f))

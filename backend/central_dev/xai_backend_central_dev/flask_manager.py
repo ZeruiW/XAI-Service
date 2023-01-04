@@ -3,7 +3,7 @@ import glob
 import os
 import json
 from flask import (
-    Blueprint, request, jsonify, Response, send_file
+    Blueprint, request, jsonify, Response, send_file, Flask
 )
 from xai_backend_central_dev.task_executor import TaskExecutor
 import xai_backend_central_dev.constant.ExecutorRegInfo as ExecutorRegInfo
@@ -18,7 +18,8 @@ def create_tmp_dir(service_init_path):
         os.mkdir(tmpdir)
 
 
-def load_env(app):
+def load_env(app: Flask):
+
     print('App Mode: ' + 'dev' if app.debug else 'prod')
 
     env_file = f".env.{'dev' if app.debug else 'prod'}"
@@ -38,8 +39,10 @@ class ExecutorBluePrint(Blueprint):
 
     def __init__(self, name, import_name, component_path, *args, **kwargs) -> None:
 
+        self.context_path = kwargs['url_prefix']
+
         self.te = TaskExecutor(
-            executor_name=name, component_path=component_path)
+            executor_name=name, component_path=component_path, context_path=self.context_path)
 
         super().__init__(name, import_name, *args, **kwargs)
 
@@ -55,6 +58,14 @@ class ExecutorBluePrint(Blueprint):
                 else:
                     # TODO: should follow the restful specification
                     return "no such task"
+
+        @self.route('/task_result_present', methods=['GET'])
+        def task_result_present():
+            if request.method == 'GET':
+                task_ticket = request.args['task_ticket']
+                pre = self.te.get_result_presentation(task_ticket)
+                return jsonify(pre)
+            return ""
 
         @self.route('/task', methods=['GET', 'POST'])
         def task():

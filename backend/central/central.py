@@ -16,7 +16,7 @@ bp = Blueprint('central', __name__,
 
 task_publisher_name = 'central'
 tp = TaskPublisher(task_publisher_name,
-                   component_path=__file__, import_name=__name__)
+                   component_path=__file__, import_name=__name__, context_path='/task_publisher')
 
 # time related
 import datetime
@@ -112,7 +112,16 @@ def task():
     else:
         return ""
 
-#request task ticket
+
+@bp.route('/task_result', methods=['GET', 'POST'])
+def task_result():
+    if request.method == 'GET':
+        task_ticket = request.args.get('task_ticket')
+        return jsonify(tp.pipeline.get_task_presentation(task_ticket))
+    else:
+        return ""
+
+
 @bp.route('/ticket', methods=['GET', 'POST'])
 def ticket():
     if request.method == 'GET':

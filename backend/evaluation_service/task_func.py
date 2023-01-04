@@ -64,8 +64,6 @@ if torch.backends.mps.is_built() and torch.backends.mps.is_available():
 print("Pytorch device: ")
 print(device)
 
-tmpdir = os.environ.get('COMPONENT_TMP_DIR')
-
 
 def image_to_byte_array(image: Image) -> bytes:
     # BytesIO is a fake file stored in memory
@@ -100,6 +98,14 @@ def resnet50_prediction(model, img):
 
 def eval_task(task_ticket, publisher_endpoint_url, task_parameters):
 
+    tmpdir = os.environ.get('COMPONENT_TMP_DIR')
+    staticdir = os.environ.get('COMPONENT_STATIC_DIR')
+
+    eval_keep_path = os.path.join(staticdir, 'rs', task_ticket)
+
+    if not os.path.exists(eval_keep_path):
+        os.makedirs(eval_keep_path, exist_ok=True)
+
     # print(explanation_ticket_info)
     explanation_task_ticket = task_parameters['explanation_task_ticket']
 
@@ -119,18 +125,29 @@ def eval_task(task_ticket, publisher_endpoint_url, task_parameters):
     print('# get exp from cam')
     exp_zip_path = os.path.join(
         tmpdir, f"{explanation_task_ticket}_for_eval.zip")
-    response = requests.get(
-        xai_service_url + '/task_result',
-        params={
-            'task_ticket': explanation_task_ticket
-        })
-    with open(exp_zip_path, "wb") as f:
-        f.write(response.content)
 
-    with zipfile.ZipFile(exp_zip_path, 'r') as zip_ref:
-        zip_ref.extractall(os.path.join(tmpdir, explanation_task_ticket))
+    explanation_keep_path = os.path.join(tmpdir, explanation_task_ticket)
 
-    os.remove(exp_zip_path)
+    if not os.path.exists(explanation_keep_path):
+        print('# exp not exist, fetch from xai service')
+        response = requests.get(
+            xai_service_url + '/task_result',
+            params={
+                'task_ticket': explanation_task_ticket
+            })
+        with open(exp_zip_path, "wb") as f:
+            f.write(response.content)
+
+        with zipfile.ZipFile(exp_zip_path, 'r') as zip_ref:
+            zip_ref.extractall(explanation_keep_path)
+        os.remove(exp_zip_path)
+
+    def get_cam_data(img_name):
+        # print(os.path.join(tmpdir, task_name, f'{img_name}.npy'))
+        with open(os.path.join(explanation_keep_path, f'{img_name}.npy'), 'rb') as f:
+            d = np.load(f)
+            # print(d.shape)
+            return d
 
     print('# get image data')
     response = requests.get(
@@ -170,20 +187,13 @@ def eval_task(task_ticket, publisher_endpoint_url, task_parameters):
         imgg = Image.open(io.BytesIO(base64.b64decode(img[2]))).convert('RGB')
         # imgg.show()
         imgg.save(os.path.join(
-            tmpdir, explanation_task_ticket, f'{img_name}_original.png'))
+            eval_keep_path, f'{img_name}_original.png'))
         rs = predict_one_img(imgg)
 
         original_pred[img[1]] = rs
         i += 1
 
     print('\r\n# mask pred')
-
-    def get_cam_data(img_name):
-        # print(os.path.join(tmpdir, task_name, f'{img_name}.npy'))
-        with open(os.path.join(tmpdir, explanation_task_ticket, f'{img_name}.npy'), 'rb') as f:
-            d = np.load(f)
-            # print(d.shape)
-            return d
 
     pred_data = {}
 
@@ -225,7 +235,7 @@ def eval_task(task_ticket, publisher_endpoint_url, task_parameters):
 
             new_img = Image.fromarray(img_data_array_copy)
             new_img.save(os.path.join(
-                tmpdir, explanation_task_ticket, f'{img_name}_masked.png'))
+                eval_keep_path, f'{img_name}_masked.png'))
             # new_img.show()
 
             rs2 = predict_one_img(new_img)
@@ -251,7 +261,7 @@ def eval_task(task_ticket, publisher_endpoint_url, task_parameters):
 
     print('# save score')
     for cam_method in cam_method_name:
-        score_save_path = os.path.join(tmpdir, explanation_task_ticket,
+        score_save_path = os.path.join(eval_keep_path,
                                        f'rs.npy')
         np.save(score_save_path, pred_data[cam_method])
 
@@ -260,14 +270,14 @@ def eval_task(task_ticket, publisher_endpoint_url, task_parameters):
     score_map = {}
 
     for cam_method in cam_method_name:
-        score_save_path = os.path.join(tmpdir, explanation_task_ticket,
+        score_save_path = os.path.join(eval_keep_path,
                                        f'rs.npy')
-        pc_save_path = os.path.join(tmpdir, explanation_task_ticket,
+        pc_save_path = os.path.join(eval_keep_path,
                                     f'prediction_change.npy')
-        pcd_save_path = os.path.join(tmpdir, explanation_task_ticket,
+        pcd_save_path = os.path.join(eval_keep_path,
                                      f'prediction_change_distance.npy')
 
-        score_map_path = os.path.join(tmpdir, explanation_task_ticket,
+        score_map_path = os.path.join(eval_keep_path,
                                       f'score_map.npy')
         prediction_change[cam_method] = []
         prediction_change_distance[cam_method] = []
@@ -315,14 +325,14 @@ def eval_task(task_ticket, publisher_endpoint_url, task_parameters):
         img_name = img[1]
 
         heatmap = cv2.imread(os.path.join(
-            tmpdir, explanation_task_ticket, f'{img_name}.png'))
+            explanation_keep_path, f'{img_name}.png'))
         original = cv2.imread(os.path.join(
-            tmpdir, explanation_task_ticket, f'{img_name}_original.png'))
+            eval_keep_path, f'{img_name}_original.png'))
         masked = cv2.imread(os.path.join(
-            tmpdir, explanation_task_ticket, f'{img_name}_masked.png'))
+            eval_keep_path, f'{img_name}_masked.png'))
 
         im_concat = cv2.vconcat([original, heatmap, masked])
         cv2.imwrite(os.path.join(
-            tmpdir, explanation_task_ticket, f'{img_name}_concat.png'), im_concat)
+            eval_keep_path, f'{img_name}_concat.png'), im_concat)
 
     return TaskStatus.finished

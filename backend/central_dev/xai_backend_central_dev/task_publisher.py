@@ -21,9 +21,9 @@ from xai_backend_central_dev.pipeline_task_func import run_pipeline_tasks
 
 class TaskPublisher(TaskComponent):
 
-    def __init__(self, publisher_name: str, component_path: str, import_name: str) -> None:
+    def __init__(self, publisher_name: str, component_path: str, import_name: str, context_path: str) -> None:
 
-        super().__init__(publisher_name, component_path)
+        super().__init__(publisher_name, component_path, context_path=context_path)
         self.publisher_name = publisher_name
         self.import_name = import_name
 
@@ -731,6 +731,25 @@ class TaskPipeline():
             )
 
         return self.get_pipeline(pipeline_id)[0]
+
+    def get_task_presentation(self, task_ticket):
+        ticket_info = self.task_publisher.get_ticket_info(task_ticket)
+        # print(ticket_info)
+        executor_reg_info = ticket_info['executor_registeration_info']
+        response = requests.get(
+            executor_reg_info[ExecutorRegInfo.executor_endpoint_url] +
+            '/task_result_present',
+            params={
+                TaskInfo.task_ticket: task_ticket,
+            }
+        )
+
+        pre = json.loads(response.content.decode('utf-8'))
+
+        for f in pre:
+            f['address'] = executor_reg_info[ExecutorRegInfo.executor_endpoint_url] + f['address']
+
+        return pre
 
     def check_task_sheet_status(self, task_sheet_id):
         pass

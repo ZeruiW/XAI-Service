@@ -1,9 +1,10 @@
 import os
+import io
 import json
 from flask import (
-    Blueprint, request, jsonify, send_file
+    Blueprint, request, jsonify, send_file, Response
 )
-
+import base64
 from xai_backend_central_dev.task_publisher import TaskPublisher
 from xai_backend_central_dev.constant import Pipeline
 from xai_backend_central_dev.constant import TaskInfo
@@ -20,7 +21,7 @@ tp = TaskPublisher(task_publisher_name,
 # time related
 import datetime
 #timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
+import numpy as np
 from dotenv import load_dotenv
 load_dotenv()
 from pymongo import MongoClient
@@ -32,9 +33,10 @@ client = MongoClient(connection_string)
 # Select the database and collection
 databasestr = os.getenv("MONGO_DATABASE")
 collectionstr = os.getenv("MONGO_COLLECTION")
+collectionstr_XAI = os.getenv("MONGO_XAI_COLLECTION")
 database = client[databasestr]
 collection = database[collectionstr]
-
+collection_XAI = database[collectionstr_XAI]
 
 #active central publisher itself
 @bp.route('/publisher', methods=['GET', 'POST'])
@@ -225,6 +227,7 @@ def task_sheet():
                 'task_type': payload['task_type'],
                 'task_owner': payload['owner'],
                 'task_start_time': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                #'task_ticket': tp.pipeline.run_task_sheet_directly(task_sheet_id, payload['task_sheet_name']),
                 'db_instance': {'db_instance_id': payload['db_service_executor_id']
                             #'db_parameter': "data_group_label",
                             },
@@ -291,7 +294,17 @@ def find_task_by_pipeline(id,owner):
         related_task_data[f'Task{i}'] = one_task_data['Task_metadata']
     return jsonify(data['Pipeline_metadata'], related_task_data)
 
-
+def find_heatmap_with_task_ticket(task_ticket, index):
+    cam_data = collection_XAI.find_one({
+            "task_ticket": task_ticket,
+            "index" : index            
+        })
+    image_data = cam_data['image']
+    #show the image
+    with open('image2.png', 'wb') as f:
+        f.write(image_data)
+    encoded_image = base64.b64encode(image_data).decode('utf-8')
+    return encoded_image
 
 
 @bp.route('/provenance_data', methods=['GET', 'POST'])
@@ -301,10 +314,11 @@ def provenance_data():
     else:
         form_data = request.form
         metadata_type = form_data['metadata_type']
-        metadata_id = form_data['metadata_id'].strip('\'')
-        owner_name = form_data['owner_name'].strip('\'')
+        
         
         if metadata_type == "'Instance_metadata'":
+            metadata_id = form_data['metadata_id'].strip('\'')
+            owner_name = form_data['owner_name'].strip('\'')
             return(find_instance(metadata_id,owner_name))
             # data = collection.find_one({
             #     "Instance_metadata.instance_id": metadata_id,
@@ -312,6 +326,8 @@ def provenance_data():
             # })
             # return jsonify(data['Instance_metadata'])
         elif metadata_type == "'Task_metadata'":
+            metadata_id = form_data['metadata_id'].strip('\'')
+            owner_name = form_data['owner_name'].strip('\'')
             return(find_task(metadata_id,owner_name))
             # data = collection.find_one({
             #     "Task_metadata.task_sheet_id": metadata_id,
@@ -319,6 +335,8 @@ def provenance_data():
             # })
             # return jsonify(data['Task_metadata'])
         elif metadata_type == "'Pipeline_metadata'":
+            metadata_id = form_data['metadata_id'].strip('\'')
+            owner_name = form_data['owner_name'].strip('\'')
             data = collection.find_one({
                 "Pipeline_metadata.pipeline_id": metadata_id,
                 "Pipeline_metadata.pipeline_owner": owner_name
@@ -332,10 +350,15 @@ def provenance_data():
             
             return jsonify(data['Pipeline_metadata'], related_task_data)
 
+        elif metadata_type == "'Task_ticket'":
+            task_ticket = form_data['task_ticket']
+            index = form_data['index']
+            
+            return find_heatmap_with_task_ticket(task_ticket, index)
+
         else:
             return "metadata_type is not correct, please check again"
-        
-        
+
 
 
 # client.close()

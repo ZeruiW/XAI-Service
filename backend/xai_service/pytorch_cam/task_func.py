@@ -43,17 +43,17 @@ collectionstr = os.getenv("MONGO_XAI_COLLECTION")
 database = client[databasestr]
 collection = database[collectionstr]
 
-def save_cam_result(task_ticket, index, filename, npy):
+def save_cam_result(task_ticket, index, filename, binary_data_img):
     # Save the result to MongoDB
     # Convert the numpy array to a binary object
-    binary_npy = Binary(npy)
+    
     #binary_img = bson.binary.Binary(img)
     # Create a document
     cam_document = {
         "task_ticket": task_ticket,
         "index": index,
         "filename": filename,
-        "npy": binary_npy,
+        "image": binary_data_img
         #"img": binary_img
     }
     # Insert the document into the collection
@@ -139,7 +139,12 @@ def cam_task(task_ticket, publisher_endpoint_url, task_parameters):
 
         np.save(os.path.join(e_save_dir, f'{imgd[1]}.npy'), grayscale_cam)
         plt.imsave(os.path.join(e_save_dir, f'{imgd[1]}.png'), grayscale_cam)
-        save_cam_result(task_ticket, i, imgd[1], grayscale_cam)
+        with open(os.path.join(e_save_dir, f'{imgd[1]}.png'), "rb") as f:
+            imgmap = f.read()
+        #get saved plot
+        binary_data_img = bson.binary.Binary(imgmap)
+        
+        save_cam_result(task_ticket, i, imgd[1], binary_data_img)
     shutil.make_archive(os.path.join(tmpdir, task_ticket), 'zip', e_save_dir)
     shutil.rmtree(e_save_dir)
 

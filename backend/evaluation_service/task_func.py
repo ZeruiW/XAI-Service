@@ -14,7 +14,7 @@ import numpy as np
 import cv2
 
 from xai_backend_central_dev.constant import TaskStatus
-
+import pymongo
 #connect to mongoDB for save result
 import bson
 import numpy as np
@@ -33,25 +33,20 @@ collectionstr = os.getenv("MONGO_EVA_COLLECTION")
 database = client[databasestr]
 collection = database[collectionstr]
 
-def img_to_binary(img):
-    # Convert the image to a binary format
-    binary_img = bson.binary.Binary(img)
-    return binary_img
+# def img_to_binary(img):
+#     # Convert the image to a binary format
+#     binary_img = bson.binary.Binary(img)
+#     return binary_img
 
-def save_eva_result(task_ticket, index, filename, org_img, mask_img, heat_img, concat_img):
-    # Save the result to MongoDB
-    # Create a document
-    cam_document = {
-        "task_ticket": task_ticket,
+def save_eva_result(task_ticket, index, filename, org_img, heat_img, mask_img):
+    content = {
         "index": index,
         "filename": filename,
-        "org_img": img_to_binary(org_img),
-        "mask_img": img_to_binary(mask_img),
-        "heat_img": img_to_binary(heat_img),
-        "concat_img": img_to_binary(concat_img)
+        "org_img": org_img,
+        "mask_img": mask_img,
+        "heat_img": heat_img
         }
-    # Insert the document into the collection
-    collection.insert_one(cam_document)
+    collection.update_one({"task_ticket": task_ticket}, {"$push": {"cam_documents": content}}, upsert=True)
 
 #device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -321,9 +316,10 @@ def eval_task(task_ticket, publisher_endpoint_url, task_parameters):
     # print(prediction_change_distance)
 
     # Image save
+    index = 0
     for img in img_data:
         img_name = img[1]
-
+        index += 1
         heatmap = cv2.imread(os.path.join(
             explanation_keep_path, f'{img_name}.png'))
         original = cv2.imread(os.path.join(
@@ -334,5 +330,13 @@ def eval_task(task_ticket, publisher_endpoint_url, task_parameters):
         im_concat = cv2.vconcat([original, heatmap, masked])
         cv2.imwrite(os.path.join(
             eval_keep_path, f'{img_name}_concat.png'), im_concat)
-
+        #show these images
+        heatmap_str = pymongo.binary.Binary(heatmap.tobytes())
+        original_str = pymongo.binary.Binary(original.tobytes())
+        masked_str = pymongo.binary.Binary(masked.tobytes())
+        # original_str = base64.b64encode(original)
+        # masked_str = base64.b64encode(masked)
+        save_eva_result(task_ticket, index, img_name, original_str, heatmap_str, masked_str)
+    
+    print('# finished')
     return TaskStatus.finished

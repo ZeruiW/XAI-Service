@@ -331,12 +331,12 @@ def eval_task(task_ticket, publisher_endpoint_url, task_parameters):
         cv2.imwrite(os.path.join(
             eval_keep_path, f'{img_name}_concat.png'), im_concat)
         #show these images
-        heatmap_str = pymongo.binary.Binary(heatmap.tobytes())
-        original_str = pymongo.binary.Binary(original.tobytes())
-        masked_str = pymongo.binary.Binary(masked.tobytes())
+        # heatmap_str = pymongo.binary.Binary(heatmap.tobytes())
+        # original_str = pymongo.binary.Binary(original.tobytes())
+        # masked_str = pymongo.binary.Binary(masked.tobytes())
         # original_str = base64.b64encode(original)
         # masked_str = base64.b64encode(masked)
-        save_eva_result(task_ticket, index, img_name, original_str, heatmap_str, masked_str)
+        #save_eva_result(task_ticket, index, img_name, original_str, heatmap_str, masked_str)
     
     print('# finished')
     return TaskStatus.finished

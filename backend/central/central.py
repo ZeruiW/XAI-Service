@@ -262,9 +262,10 @@ def task_sheet():
         if act == 'run':
             task_sheet_id = form_data[TaskSheet.task_sheet_id]
             task_name = form_data[TaskInfo.task_name]
-
+            run_task_ticket = tp.pipeline.run_task_sheet_directly(task_sheet_id, task_name)
+            collection.update_one({"Task_metadata.task_sheet_id": task_sheet_id}, {"$addToSet": {"Task_metadata.task_ticket": run_task_ticket}})
             return jsonify({
-                'task_ticket': tp.pipeline.run_task_sheet_directly(task_sheet_id, task_name)
+                'task_ticket': run_task_ticket
             })
 
 #get provenance 
@@ -280,7 +281,12 @@ def find_task(id,owner):
                 "Task_metadata.task_sheet_id": id,
                 "Task_metadata.task_owner": owner
             })
-    return jsonify(findtask['Task_metadata'])
+    task_ticket_rs = {}    
+    for j in range(len(findtask['Task_metadata']['task_ticket'])):
+        ticketj = findtask['Task_metadata']['task_ticket'][j]
+        task_ticket_rs[f'task_ticket: {ticketj}'] = tp.pipeline.get_task_presentation(findtask['Task_metadata']['task_ticket'][j])
+        
+    return jsonify(findtask['Task_metadata'], task_ticket_rs)
 
 def find_pipeline(id,owner):
     findpipeline = collection.find_one({
@@ -355,19 +361,22 @@ def provenance_data():
                 one_task_data = collection.find_one({
                     "Task_metadata.task_sheet_id": data['Pipeline_metadata']['task_sheet_id'][i]
                 })
-                related_task_data[f'Task{i}'] = one_task_data['Task_metadata']
-            
+                one_task_ticket_rs = {}
+                for j in range(len(one_task_data['Task_metadata']['task_ticket'])):
+                    ticketj = one_task_data['Task_metadata']['task_ticket'][j]
+                    one_task_ticket_rs[f'task_ticket: {ticketj}'] = tp.pipeline.get_task_presentation(one_task_data['Task_metadata']['task_ticket'][j])
+
+                related_task_data[f'Task{i}'] = one_task_data['Task_metadata'], one_task_ticket_rs
             return jsonify(data['Pipeline_metadata'], related_task_data)
 
         elif metadata_type == "'Task_ticket'":
             task_ticket = form_data['task_ticket']
-            index = form_data['index']
-            
-            return str(find_heatmap_with_task_ticket(task_ticket, index))
+            #index = form_data['index']
+            return tp.pipeline.get_task_presentation(task_ticket)
 
         else:
             return "metadata_type is not correct, please check again"
 
 
-
+#print(tp.pipeline.get_task_presentation('gMC79EdVnwOEnjD.914595.J47PX0K8G0'))
 # client.close()

@@ -300,9 +300,9 @@ def find_heatmap_with_task_ticket(task_ticket, index):
             "index" : index            
         })
     image_data = cam_data['image']
-    #show the image
-    with open('image2.png', 'wb') as f:
-        f.write(image_data)
+    #save the image
+    # with open('image2.png', 'wb') as f:
+    #     f.write(image_data)
     encoded_image = base64.b64encode(image_data).decode('utf-8')
     return encoded_image
 
@@ -354,7 +354,7 @@ def provenance_data():
             task_ticket = form_data['task_ticket']
             index = form_data['index']
             
-            return find_heatmap_with_task_ticket(task_ticket, index)
+            return str(find_heatmap_with_task_ticket(task_ticket, index))
 
         else:
             return "metadata_type is not correct, please check again"

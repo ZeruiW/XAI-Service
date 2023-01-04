@@ -40,6 +40,5 @@ def find_heatmap_with_task_ticket(task_ticket, index):
     encoded_image = base64.b64encode(image_data).decode('utf-8')
     return encoded_image
 
-print(find_heatmap_with_task_ticket("j8qJCqyM2lW2cFa.0814936.J47PX0K8G0", 4))
 
 # show the image

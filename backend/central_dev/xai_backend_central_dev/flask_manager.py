@@ -67,7 +67,7 @@ class ExecutorBluePrint(Blueprint):
         def task_result_present():
             if request.method == 'GET':
                 task_ticket = request.args['task_ticket']
-                pre = self.te.get_result_presentation(task_ticket)
+                pre = self.te.get_task_rs_presentation(task_ticket)
                 return jsonify(pre)
             return ""
 

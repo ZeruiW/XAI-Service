@@ -746,7 +746,10 @@ class TaskPipeline():
 
         pre = json.loads(response.content.decode('utf-8'))
 
-        for f in pre:
+        for f in pre['local']:
+            f['address'] = executor_reg_info[ExecutorRegInfo.executor_endpoint_url] + f['address']
+
+        for f in pre['global']:
             f['address'] = executor_reg_info[ExecutorRegInfo.executor_endpoint_url] + f['address']
 
         return pre

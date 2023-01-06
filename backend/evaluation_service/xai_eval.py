@@ -27,11 +27,11 @@ def stability():
         staticdir = os.environ.get('COMPONENT_STATIC_DIR')
         # prediction change difference
         pcd_save_path = os.path.join(
-            staticdir, 'rs', task_ticket, f'prediction_change_distance.npy')
+            staticdir, 'rs', task_ticket, 'global', f'prediction_change_distance.npy')
         pc_save_path = os.path.join(
-            staticdir, 'rs', task_ticket, f'prediction_change.npy')
+            staticdir, 'rs', task_ticket, 'global', f'prediction_change.npy')
         sm_save_path = os.path.join(
-            staticdir, 'rs', task_ticket, f'score_map.npy')
+            staticdir, 'rs', task_ticket, 'global', f'score_map.npy')
 
         with open(pcd_save_path, 'rb') as f:
             pcd_rs = list(np.load(f))

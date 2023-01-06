@@ -107,28 +107,47 @@ class TaskExecutor(TaskComponent):
 
         # TODO: a callback to send task result to central db
 
-    def get_result_presentation(self, task_ticket):
-        rs_path = os.path.join(self.static_path, 'rs', task_ticket)
+    def __file_present__(self, rs_files, task_ticket):
         pre = []
-        if os.path.exists(rs_path):
-            rs_files = os.listdir(rs_path)
-
-            for rs_file in rs_files:
-                ext = rs_file.split('.')[-1].lower()
-                if ext in ['png', 'jpeg']:
-                    pre.append({
-                        'file_name': rs_file,
-                        'address': f'/static/rs/{task_ticket}/{rs_file}',
-                        'file_type': 'img'
-                    })
-                elif ext in ['npy']:
-                    pre.append({
-                        'file_name': rs_file,
-                        'address': f'/static/rs/{task_ticket}/{rs_file}',
-                        'file_type': 'text',
-                        'content': 'todo'
-                    })
+        for rs_file in rs_files:
+            ext = rs_file.split('.')[-1].lower()
+            if ext in ['png', 'jpeg']:
+                pre.append({
+                    'file_name': rs_file,
+                    'address': f'/static/rs/{task_ticket}/{rs_file}',
+                    'file_type': 'img'
+                })
+            elif ext in ['npy']:
+                pre.append({
+                    'file_name': rs_file,
+                    'address': f'/static/rs/{task_ticket}/{rs_file}',
+                    'file_type': 'text',
+                    'content': 'todo'
+                })
         return pre
+
+    def get_task_rs_presentation(self, task_ticket):
+        local_task_rs_save_dir = os.path.join(
+            self.static_path, 'rs', task_ticket, 'local')
+        local_task_rs_pre = []
+        if os.path.exists(local_task_rs_save_dir):
+            rs_files = os.listdir(local_task_rs_save_dir)
+            local_task_rs_pre.extend(
+                self.__file_present__(rs_files, task_ticket))
+
+        global_task_rs_save_dir = os.path.join(
+            self.static_path, 'rs', task_ticket, 'global')
+        global_task_rs_pre = []
+
+        if os.path.exists(global_task_rs_save_dir):
+            rs_files = os.listdir(global_task_rs_save_dir)
+            global_task_rs_pre.extend(
+                self.__file_present__(rs_files, task_ticket))
+
+        return {
+            'local': local_task_rs_pre,
+            'global': global_task_rs_pre,
+        }
 
     def start_a_task(self, task_ticket, function, task_paramenters):
         process = multiprocessing.Pool()

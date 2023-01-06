@@ -76,10 +76,10 @@ def cam_task(task_ticket, publisher_endpoint_url, task_parameters):
     i = 0
 
     # explanation save dir
-    e_save_dir = os.path.join(staticdir, 'rs', task_ticket)
+    local_exp_save_dir = os.path.join(staticdir, 'rs', task_ticket, 'local')
 
-    if not os.path.isdir(e_save_dir):
-        os.makedirs(e_save_dir, exist_ok=True)
+    if not os.path.isdir(local_exp_save_dir):
+        os.makedirs(local_exp_save_dir, exist_ok=True)
 
     for imgd in img_data:
         print(i, imgd[1])
@@ -105,12 +105,16 @@ def cam_task(task_ticket, publisher_endpoint_url, task_parameters):
                             aug_smooth=True,
                             eigen_smooth=False)[0]
 
-        np.save(os.path.join(e_save_dir, f'{imgd[1]}.npy'), grayscale_cam)
-        plt.imsave(os.path.join(e_save_dir, f'{imgd[1]}.png'), grayscale_cam)
-    shutil.make_archive(os.path.join(tmpdir, task_ticket), 'zip', e_save_dir)
+        np.save(os.path.join(local_exp_save_dir,
+                f'{imgd[1]}.npy'), grayscale_cam)
+        plt.imsave(os.path.join(local_exp_save_dir,
+                   f'{imgd[1]}.png'), grayscale_cam)
+
+    shutil.make_archive(os.path.join(tmpdir, task_ticket),
+                        'zip', local_exp_save_dir)
 
     # TODO: keep this at static for now
-    # shutil.rmtree(e_save_dir)
+    # shutil.rmtree(local_exp_save_dir)
 
     return TaskStatus.finished
 
@@ -121,7 +125,7 @@ def bytes_to_pil_image(b):
 
 
 def cf(task_ticket):
-    e_save_dir = os.path.join(os.environ.get(
+    local_exp_save_dir = os.path.join(os.environ.get(
         'COMPONENT_STATIC_DIR'), task_ticket)
-    if os.path.exists(e_save_dir):
-        shutil.rmtree(e_save_dir)
+    if os.path.exists(local_exp_save_dir):
+        shutil.rmtree(local_exp_save_dir)

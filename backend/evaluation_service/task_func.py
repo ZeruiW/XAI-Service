@@ -12,6 +12,7 @@ from torchvision import models
 import torch
 import numpy as np
 import cv2
+import matplotlib.pyplot as plt
 
 from xai_backend_central_dev.constant import TaskStatus
 
@@ -58,15 +59,70 @@ def resnet50_prediction(model, img):
     return model(batch)
 
 
+def plot(all_data, save_fig_name, xl='', yl='', xa=['Grad-CAM']):
+    fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(2, 5), dpi=200)
+
+    # plot box plot
+    # ax.boxplot(all_data,
+    #             showfliers=True,
+    #             showmeans=True)
+
+    parts = ax.violinplot(all_data, showmeans=False, showmedians=False,
+                          showextrema=False,)
+
+    for pc in parts['bodies']:
+        # pc.set_facecolor('#029386')
+        # pc.set_edgecolor('black')
+        pc.set_alpha(0.4)
+
+    quartile1, medians, quartile3 = np.percentile(
+        all_data, [25, 50, 75], axis=1)
+    # ax.set_title(f'Box Plot of {fi}')
+
+    inds = np.arange(1, len(medians) + 1)
+    average = np.mean(all_data, axis=1)
+    stdd = np.std(all_data, ddof=1, axis=1)
+
+    # ax.scatter(inds, medians, marker='_', color='#f97306', s=1500, zorder=3, alpha=1)
+    ax.scatter(inds, average, marker='_',
+               color='green', s=2000, zorder=3, alpha=1)
+    for i, txt in enumerate(average):
+        ax.annotate(round(average[i], 4), (inds[i],
+                    average[i] + (max(average) * 0.03)))
+    # ax.scatter(inds, stdd, marker='_', color='blue', s=2000, zorder=3, alpha=1)
+    ax.vlines(inds, quartile1, quartile3, color='#f79fef',
+              linestyle='-', lw=10, zorder=1)
+
+    plt.yticks(fontsize=12)
+    # plt.ylim([-5, 100])
+    ax.yaxis.grid(True)
+
+    plt.xticks([y + 1 for y in range(len(all_data))],
+               xa,
+               fontsize=12,
+               #    rotation=-20,
+               # weight='560'
+               )
+    ax.set_ylabel(yl, fontsize=14)
+
+    plt.savefig(save_fig_name, bbox_inches='tight')
+
+
 def eval_task(task_ticket, publisher_endpoint_url, task_parameters):
 
     tmpdir = os.environ.get('COMPONENT_TMP_DIR')
     staticdir = os.environ.get('COMPONENT_STATIC_DIR')
 
-    eval_keep_path = os.path.join(staticdir, 'rs', task_ticket)
+    local_eval_keep_path = os.path.join(staticdir, 'rs', task_ticket, 'local')
 
-    if not os.path.exists(eval_keep_path):
-        os.makedirs(eval_keep_path, exist_ok=True)
+    if not os.path.exists(local_eval_keep_path):
+        os.makedirs(local_eval_keep_path, exist_ok=True)
+
+    global_eval_keep_path = os.path.join(
+        staticdir, 'rs', task_ticket, 'global')
+
+    if not os.path.exists(global_eval_keep_path):
+        os.makedirs(global_eval_keep_path, exist_ok=True)
 
     # print(explanation_ticket_info)
     explanation_task_ticket = task_parameters['explanation_task_ticket']
@@ -140,7 +196,7 @@ def eval_task(task_ticket, publisher_endpoint_url, task_parameters):
             "POST", model_service_url, headers=headers, data=payload, files=files)
         return json.loads(response.text)['dummy.JPEG']
 
-    print('# get original pred')
+    print('# get original pred for each img')
     original_pred = {}
     i = 0
     for img in img_data:
@@ -149,13 +205,13 @@ def eval_task(task_ticket, publisher_endpoint_url, task_parameters):
         imgg = Image.open(io.BytesIO(base64.b64decode(img[2]))).convert('RGB')
         # imgg.show()
         imgg.save(os.path.join(
-            eval_keep_path, f'{img_name}_original.png'))
+            local_eval_keep_path, f'{img_name}_original.png'))
         rs = predict_one_img(imgg)
 
         original_pred[img[1]] = rs
         i += 1
 
-    print('\r\n# mask pred')
+    print('\r\n# do mask pred for each img')
 
     pred_data = {}
 
@@ -197,7 +253,7 @@ def eval_task(task_ticket, publisher_endpoint_url, task_parameters):
 
             new_img = Image.fromarray(img_data_array_copy)
             new_img.save(os.path.join(
-                eval_keep_path, f'{img_name}_masked.png'))
+                local_eval_keep_path, f'{img_name}_masked.png'))
             # new_img.show()
 
             rs2 = predict_one_img(new_img)
@@ -221,9 +277,9 @@ def eval_task(task_ticket, publisher_endpoint_url, task_parameters):
 
         # break
 
-    print('# save score')
+    print('# save global score')
     for cam_method in cam_method_name:
-        score_save_path = os.path.join(eval_keep_path,
+        score_save_path = os.path.join(global_eval_keep_path,
                                        f'rs.npy')
         np.save(score_save_path, pred_data[cam_method])
 
@@ -232,14 +288,14 @@ def eval_task(task_ticket, publisher_endpoint_url, task_parameters):
     score_map = {}
 
     for cam_method in cam_method_name:
-        score_save_path = os.path.join(eval_keep_path,
+        score_save_path = os.path.join(global_eval_keep_path,
                                        f'rs.npy')
-        pc_save_path = os.path.join(eval_keep_path,
+        pc_save_path = os.path.join(global_eval_keep_path,
                                     f'prediction_change.npy')
-        pcd_save_path = os.path.join(eval_keep_path,
+        pcd_save_path = os.path.join(global_eval_keep_path,
                                      f'prediction_change_distance.npy')
 
-        score_map_path = os.path.join(eval_keep_path,
+        score_map_path = os.path.join(global_eval_keep_path,
                                       f'score_map.npy')
         prediction_change[cam_method] = []
         prediction_change_distance[cam_method] = []
@@ -273,8 +329,15 @@ def eval_task(task_ticket, publisher_endpoint_url, task_parameters):
                 prediction_change_distance[cam_method].append(dis)
 
         np.save(pc_save_path, prediction_change[cam_method])
+
+        plot([prediction_change[cam_method]], os.path.join(
+            f'{pc_save_path}.png'), yl='Prediction Change')
+
         np.save(pcd_save_path,
                 prediction_change_distance[cam_method])
+
+        plot([prediction_change_distance[cam_method]], os.path.join(
+            f'{pcd_save_path}.png'), yl='Prediction Chang Distance (Stability)')
 
         np.save(score_map_path, score_map[cam_method])
 
@@ -289,12 +352,12 @@ def eval_task(task_ticket, publisher_endpoint_url, task_parameters):
         heatmap = cv2.imread(os.path.join(
             explanation_keep_path, f'{img_name}.png'))
         original = cv2.imread(os.path.join(
-            eval_keep_path, f'{img_name}_original.png'))
+            local_eval_keep_path, f'{img_name}_original.png'))
         masked = cv2.imread(os.path.join(
-            eval_keep_path, f'{img_name}_masked.png'))
+            local_eval_keep_path, f'{img_name}_masked.png'))
 
         im_concat = cv2.vconcat([original, heatmap, masked])
         cv2.imwrite(os.path.join(
-            eval_keep_path, f'{img_name}_concat.png'), im_concat)
+            local_eval_keep_path, f'{img_name}_concat.png'), im_concat)
 
     return TaskStatus.finished

@@ -2,3 +2,4 @@ Flask >= 2.2
 tinydb
 python-dotenv
 tinydb
+flask-cors

@@ -10,6 +10,8 @@ import xai_backend_central_dev.constant.ExecutorRegInfo as ExecutorRegInfo
 import xai_backend_central_dev.constant.TaskInfo as TaskInfo
 import xai_backend_central_dev.constant.TaskSheet as TaskSheet
 
+from flask_cors import CORS
+
 
 def create_tmp_dir(service_init_path):
     basedir = os.path.abspath(os.path.dirname(service_init_path))
@@ -19,6 +21,8 @@ def create_tmp_dir(service_init_path):
 
 
 def load_env(app: Flask):
+    # cors
+    CORS(app, resources={r"/*": {"origins": "*"}})
 
     print('App Mode: ' + 'dev' if app.debug else 'prod')
 

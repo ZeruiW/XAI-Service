@@ -1,9 +1,12 @@
+import shutil
 import time
 import multiprocessing
 import json
 import requests
 import os
 from tinydb import TinyDB, Query
+import glob
+
 
 from xai_backend_central_dev.constant import ExecutorRegInfo
 from xai_backend_central_dev.constant import TaskInfo
@@ -20,7 +23,7 @@ class TaskExecutor(TaskComponent):
 
         self.process_holder = {}
 
-        self.db = TinyDB(self.executor_db_path)
+        self.db = TinyDB(self.executor_db_file_path)
         # print(executor_name, c_db_path)
         self.executor_reg_info_tb = self.db.table('executor_info')
 
@@ -64,7 +67,7 @@ class TaskExecutor(TaskComponent):
             return json.loads(response.content)[TaskInfo.task_ticket]
 
     # should register executor to publisher
-    def keep_reg_info(self, executor_id,  executor_endpoint_url: str, executor_info, publisher_endpoint_url: str):
+    def keep_reg_info(self, executor_id,  executor_type: str, executor_endpoint_url: str, executor_info, publisher_endpoint_url: str):
         executor_reg_info = self.executor_reg_info_tb.all()
         if len(executor_reg_info) > 0:
             # remove exicting reg info
@@ -73,6 +76,7 @@ class TaskExecutor(TaskComponent):
 
         self.executor_reg_info_tb.insert({
             ExecutorRegInfo.executor_id: executor_id,
+            ExecutorRegInfo.executor_type: executor_type,
             ExecutorRegInfo.executor_endpoint_url: executor_endpoint_url,
             ExecutorRegInfo.executor_info: json.loads(executor_info),
             ExecutorRegInfo.publisher_endpoint_url: publisher_endpoint_url,
@@ -270,3 +274,15 @@ class TaskExecutor(TaskComponent):
             # WARNNING: executor and task_ticket will be the first two arguments of the func
             self.run_the_task(task_ticket)
             return task_ticket
+
+    def reset(self):
+        self.executor_reg_info_tb.truncate()
+        self.executor_task_info_tb.truncate()
+
+        # remove all files in tmp
+        shutil.rmtree(self.tmp_path)
+        # remove all files in static/rs
+        shutil.rmtree(os.path.join(self.static_path, 'rs'))
+
+        os.mkdir(self.tmp_path)
+        os.mkdir(os.path.join(self.static_path, 'rs'))

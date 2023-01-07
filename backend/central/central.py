@@ -41,10 +41,13 @@ def executor():
         act = form_data['act']
         if act == 'reg':
             executor_endpoint_url = form_data[ExecutorRegInfo.executor_endpoint_url]
+            executor_type = form_data[ExecutorRegInfo.executor_type]
             exector_info = json.loads(form_data[ExecutorRegInfo.executor_info])
             # publisher_endpoint_url = form_data['publisher_endpoint_url']
             exector_id = tp.register_executor_endpoint(
-                executor_endpoint_url, exector_info)
+                executor_type,
+                executor_endpoint_url,
+                exector_info)
             return jsonify({
                 'executor_id': exector_id
             })
@@ -170,3 +173,8 @@ def task_sheet():
             return jsonify({
                 'task_ticket': tp.pipeline.run_task_sheet_directly(task_sheet_id, task_name)
             })
+
+@bp.route('/reset', methods=['GET'])
+def reset():
+    tp.reset_all_data()
+    return ""

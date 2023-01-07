@@ -224,13 +224,15 @@ class TaskPublisher(TaskComponent):
             else:
                 return
 
-    def register_executor_endpoint(self, executor_endpoint_url: str,
+    def register_executor_endpoint(self,
+                                   executor_type: str,
+                                   executor_endpoint_url: str,
                                    executor_info: dict):
         existed_executor_id = None
         all_executor_registration_info = self.executor_registration_tb.all()
         # print(all_executor_registration_info)
         for e_rg_info in all_executor_registration_info:
-            if e_rg_info[ExecutorRegInfo.executor_info] == executor_info:
+            if e_rg_info[ExecutorRegInfo.executor_info] == executor_info and e_rg_info[ExecutorRegInfo.executor_type] == executor_type:
                 existed_executor_id = e_rg_info[ExecutorRegInfo.executor_id]
                 break
 
@@ -246,6 +248,7 @@ class TaskPublisher(TaskComponent):
             data={
                 'act': 'reg',
                 ExecutorRegInfo.executor_id: _id,
+                ExecutorRegInfo.executor_type: executor_type,
                 ExecutorRegInfo.executor_endpoint_url: executor_endpoint_url,
                 ExecutorRegInfo.executor_info: json.dumps(executor_info),
                 ExecutorRegInfo.publisher_endpoint_url: self.publisher_endpoint_url
@@ -262,12 +265,31 @@ class TaskPublisher(TaskComponent):
             else:
                 self.executor_registration_tb.insert({
                     ExecutorRegInfo.executor_id: _id,
+                    ExecutorRegInfo.executor_type: executor_type,
                     ExecutorRegInfo.executor_info: executor_info,
                     ExecutorRegInfo.executor_endpoint_url: executor_endpoint_url,
                 })
             return _id
         else:
             return None
+
+    def reset_all_data(self):
+        self.ticket_info_map_tb.truncate()
+        self.pipeline.pipeline_tb.truncate()
+        self.pipeline.xai_task_sheet_tb.truncate()
+        self.pipeline.evaluation_task_sheet_tb.truncate()
+        self.pipeline.prediction_task_sheet_tb.truncate()
+
+        exe_reg_infos = self.get_executor_registration_info()
+        for exe_reg_info in exe_reg_infos:
+            try:
+                requests.get(
+                    exe_reg_info[ExecutorRegInfo.executor_endpoint_url] + '/reset'
+                )
+            except Exception:
+                pass
+
+        self.executor_registration_tb.truncate()
 
     def if_executor_registered(self, executor_id: str):
         return len(self.executor_registration_tb.search(Query().executor_id == executor_id)) > 0

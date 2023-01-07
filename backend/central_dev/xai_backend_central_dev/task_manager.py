@@ -41,10 +41,10 @@ class TaskComponent():
         if not os.path.exists(self.db_path):
             os.makedirs(self.db_path, exist_ok=True)
 
-        self.executor_db_path = os.path.join(
+        self.executor_db_file_path = os.path.join(
             self.db_path, f'executor_{component_name}_db.json')
 
-        os.environ['EXECUTOR_DB_PATH'] = self.executor_db_path
+        os.environ['EXECUTOR_DB_FILE_PATH'] = self.executor_db_file_path
         os.environ['COMPONENT_STORAGE_DIR'] = self.storage_path
         os.environ['COMPONENT_DB_DIR'] = self.db_path
         os.environ['COMPONENT_TMP_DIR'] = self.tmp_path

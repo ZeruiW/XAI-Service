@@ -48,23 +48,36 @@ ebp = ExecutorBluePrint(
 
 
 class_names = [
-    'n01443537',    # goldfish
-    'n01608432',    # kite (kind of bird)
-    'n01882714',    # koala
-    'n02091635',    # otterhound (ko dog)
-    'n02123159'     # tiger_cat
+    # 'n01443537',    # goldfish
+    # 'n01608432',    # kite (kind of bird)
+    # 'n01882714',    # koala
+    # 'n02091635',    # otterhound (ko dog)
+    # 'n02123159'     # tiger_cat
 ]
+
+staticdir = os.environ.get('COMPONENT_STATIC_DIR')
+class_map_path = os.path.join(staticdir, 'imagenet_class_index.json')
+with open(class_map_path, 'r') as f:
+    mapp = json.load(f)
+    pair = []
+    for k, v in mapp.items():
+        pair.append((int(k), v[0]))
+
+    pair = sorted(pair, key=lambda a: a[0])
+    for p in pair:
+        class_names.append(p[1])
 
 
 def sendRequestCV(img):
     # api_url = 'https://eastus.api.cognitive.microsoft.com/customvision/v3.0/Prediction/95d4b387-c987-498e-8db1-4b3208c67132/classify/iterations/Iteration1/image'
-    api_url = 'https://eastus.api.cognitive.microsoft.com/customvision/v3.0/Prediction/d4a22cfc-8f99-4172-8409-9b9c780bfbb3/classify/iterations/Iteration1/image'
+    # api_url = 'https://eastus.api.cognitive.microsoft.com/customvision/v3.0/Prediction/d4a22cfc-8f99-4172-8409-9b9c780bfbb3/classify/iterations/Iteration1/image'
+    api_url = 'https://eastus.api.cognitive.microsoft.com/customvision/v3.0/Prediction/cfee6c8a-e2d1-467a-b559-3fe0a9db4ae5/classify/iterations/Iteration1/image'
     headers = {
         # requests won't add a boundary if this header is set when you pass files=
         # 'Content-Type': 'multipart/form-data',
         'Prediction-Key': '528135dfdd2a4ef4b883eea5952998ca',
         # requests won't add a boundary if this header is set when you pass files=
-        # 'content-type': 'multipart/form-data',
+        # 'Content-type': 'application/octet-stream',
     }
 
     files = {
@@ -106,7 +119,7 @@ def pred():
             scores = get_pred_score(p)
             prediction.append(scores)
 
-        print(prediction)
+        # print(prediction)
 
         rs = {}
         for i in range(len(file_name)):

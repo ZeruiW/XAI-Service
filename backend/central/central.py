@@ -62,10 +62,13 @@ def executor():
         act = form_data['act']
         if act == 'reg':
             executor_endpoint_url = form_data[ExecutorRegInfo.executor_endpoint_url]
+            executor_type = form_data[ExecutorRegInfo.executor_type]
             exector_info = json.loads(form_data[ExecutorRegInfo.executor_info])
             # publisher_endpoint_url = form_data['publisher_endpoint_url']
             exector_id = tp.register_executor_endpoint(
-                executor_endpoint_url, exector_info)
+                executor_type,
+                executor_endpoint_url,
+                exector_info)
             instance_owner = form_data['instance_owner']
 
             #Instance_metadata
@@ -265,7 +268,7 @@ def task_sheet():
             run_task_ticket = tp.pipeline.run_task_sheet_directly(task_sheet_id, task_name)
             collection.update_one({"Task_metadata.task_sheet_id": task_sheet_id}, {"$addToSet": {"Task_metadata.task_ticket": run_task_ticket}})
             return jsonify({
-                'task_ticket': run_task_ticket
+                'task_ticket': tp.pipeline.run_task_sheet_directly(task_sheet_id, task_name)
             })
 
 #get provenance 
@@ -378,5 +381,7 @@ def provenance_data():
             return "metadata_type is not correct, please check again"
 
 
-#print(tp.pipeline.get_task_presentation('gMC79EdVnwOEnjD.914595.J47PX0K8G0'))
-# client.close()
+@bp.route('/reset', methods=['GET'])
+def reset():
+    tp.reset_all_data()
+    return ""

@@ -10,6 +10,8 @@ import xai_backend_central_dev.constant.ExecutorRegInfo as ExecutorRegInfo
 import xai_backend_central_dev.constant.TaskInfo as TaskInfo
 import xai_backend_central_dev.constant.TaskSheet as TaskSheet
 
+from flask_cors import CORS
+
 
 def create_tmp_dir(service_init_path):
     basedir = os.path.abspath(os.path.dirname(service_init_path))
@@ -19,6 +21,8 @@ def create_tmp_dir(service_init_path):
 
 
 def load_env(app: Flask):
+    # cors
+    CORS(app, resources={r"/*": {"origins": "*"}})
 
     print('App Mode: ' + 'dev' if app.debug else 'prod')
 
@@ -48,6 +52,11 @@ class ExecutorBluePrint(Blueprint):
 
         self.tmp_path = self.te.tmp_path
 
+        @self.route('/reset', methods=['GET'])
+        def reset():
+            self.te.reset()
+            return ""
+
         @self.route('/task_result', methods=['GET'])
         def task_result():
             if request.method == 'GET':
@@ -63,7 +72,7 @@ class ExecutorBluePrint(Blueprint):
         def task_result_present():
             if request.method == 'GET':
                 task_ticket = request.args['task_ticket']
-                pre = self.te.get_result_presentation(task_ticket)
+                pre = self.te.get_task_rs_presentation(task_ticket)
                 return jsonify(pre)
             return ""
 
@@ -123,11 +132,12 @@ class ExecutorBluePrint(Blueprint):
                 act = form_data['act']
                 if act == 'reg' or act == 'update':
                     executor_id = form_data[ExecutorRegInfo.executor_id]
+                    endpoint_type = form_data[ExecutorRegInfo.executor_type]
                     endpoint_url = form_data[ExecutorRegInfo.executor_endpoint_url]
                     executor_info = form_data[ExecutorRegInfo.executor_info]
                     publisher_endpoint_url = form_data[ExecutorRegInfo.publisher_endpoint_url]
                     executor_id = self.te.keep_reg_info(
-                        executor_id, endpoint_url, executor_info, publisher_endpoint_url)
+                        executor_id, endpoint_type, endpoint_url, executor_info, publisher_endpoint_url)
                     return jsonify({
                         ExecutorRegInfo.executor_id: executor_id
                     })

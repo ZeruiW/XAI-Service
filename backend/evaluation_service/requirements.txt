@@ -6,3 +6,4 @@ requests
 torch
 torchvision
 torchaudio
+flask-cors

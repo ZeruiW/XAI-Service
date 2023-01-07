@@ -3,3 +3,4 @@ numpy
 requests
 pandas
 python-dotenv
+flask-cors

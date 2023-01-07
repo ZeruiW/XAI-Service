@@ -78,6 +78,11 @@ def task():
         # print(with_status)
         return jsonify(tp.get_ticket_info(task_ticket, with_status))
     else:
+        form_data = request.form
+        act = form_data['act']
+        if act == 'stop':
+            task_ticket = form_data['task_ticket']
+            tp.pipeline.stop_a_task(task_ticket)
         return ""
 
 
@@ -173,6 +178,7 @@ def task_sheet():
             return jsonify({
                 'task_ticket': tp.pipeline.run_task_sheet_directly(task_sheet_id, task_name)
             })
+
 
 @bp.route('/reset', methods=['GET'])
 def reset():

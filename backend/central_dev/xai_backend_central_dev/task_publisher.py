@@ -83,13 +83,13 @@ class TaskPublisher(TaskComponent):
             self.ticket_info_map_tb.update(
                 executor_ticket_info[0], Query().executor_id == executor_id)
 
-    def gen_task_ticket(self, executor_id, task_name):
+    def gen_task_ticket(self, executor_id, task_name, task_sheet_id):
         if not self.is_activated():
             return "central not activated"
         if self.if_executor_registered(executor_id):
             task_ticket_gen_info = {
                 'executor_id': executor_id,
-                # 'task_sheet_id': task_sheet_id,
+                'task_sheet_id': task_sheet_id,
                 'task_name': task_name,
             }
             task_ticket_gen_info = self.__feed_info__(task_ticket_gen_info)
@@ -462,7 +462,7 @@ class TaskPipeline():
     def tell_executor_about_the_task(self, task_executor_id, task_name, task_sheet):
         # request a ticket from central here
         task_ticket = self.task_publisher.gen_task_ticket(
-            executor_id=task_executor_id, task_name=task_name)
+            executor_id=task_executor_id, task_name=task_name, task_sheet_id=task_sheet[TaskSheet.task_sheet_id])
 
         executor_reg_info = self.task_publisher.get_executor_registration_info(
             executor_id=task_executor_id)
@@ -717,6 +717,17 @@ class TaskPipeline():
             self.pipeline_tb.update(
                 pipeline, Query().pipeline_id == pipeline[Pipeline.pipeline_id])
             return pipeline
+
+    def stop_a_task(self, task_ticket):
+        ticket_info = self.task_publisher.get_ticket_info(task_ticket)
+        executor_endpoint_url = ticket_info['executor_registeration_info'][ExecutorRegInfo.executor_endpoint_url]
+        requests.post(
+            executor_endpoint_url + '/task',
+            data={
+                'act': 'stop',
+                TaskInfo.task_ticket: task_ticket
+            }
+        )
 
     def stop_pipeline(self, pipeline_id):
         pipeline = self.get_pipeline(pipeline_id)[0]

@@ -113,6 +113,11 @@ def task():
         # print(with_status)
         return jsonify(tp.get_ticket_info(task_ticket, with_status))
     else:
+        form_data = request.form
+        act = form_data['act']
+        if act == 'stop':
+            task_ticket = form_data['task_ticket']
+            tp.pipeline.stop_a_task(task_ticket)
         return ""
 
 
@@ -379,6 +384,7 @@ def provenance_data():
 
         else:
             return "metadata_type is not correct, please check again"
+
 
 
 @bp.route('/reset', methods=['GET'])

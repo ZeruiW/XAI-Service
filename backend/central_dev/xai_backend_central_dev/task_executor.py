@@ -5,8 +5,7 @@ import json
 import requests
 import os
 from tinydb import TinyDB, Query
-import glob
-
+import torch.multiprocessing
 
 from xai_backend_central_dev.constant import ExecutorRegInfo
 from xai_backend_central_dev.constant import TaskInfo
@@ -154,12 +153,28 @@ class TaskExecutor(TaskComponent):
         }
 
     def start_a_task(self, task_ticket, function, task_paramenters):
-        process = multiprocessing.Pool()
+
+        use_pytorch_multiprocess = False
+        if task_paramenters.get('executor_config') is not None:
+            if task_paramenters.get('executor_config').get('use_pytorch_multiprocess') is not None:
+                use_pytorch_multiprocess = True
+
+        if use_pytorch_multiprocess:
+            try:
+                torch.multiprocessing.set_start_method('spawn')
+            except RuntimeError:
+                pass
+            process = torch.multiprocessing.Pool()
+        else:
+            try:
+                multiprocessing.set_start_method('spawn')
+            except RuntimeError:
+                pass
+            process = multiprocessing.Pool()
 
         as_rs = process.apply_async(function, args=[
             task_ticket, self.get_publisher_endpoint_url(), task_paramenters],
             callback=lambda status: self.execution_call_back(status, task_ticket, process))
-
         st = time.time()
 
         self.process_holder[task_ticket] = {

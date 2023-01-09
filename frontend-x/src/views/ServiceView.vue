@@ -16,18 +16,35 @@
     <v-divider></v-divider>
     <!-- <v-card-text> This is content </v-card-text> -->
     <v-table>
+      <colgroup>
+        <col span="1" style="width: 20%" />
+        <col span="1" style="width: 40%" />
+        <col span="1" style="width: 10%" />
+        <col span="1" style="width: 30%" />
+      </colgroup>
       <thead>
         <tr>
           <th class="text-left font-weight-bold">ID</th>
           <th class="text-left font-weight-bold">Url</th>
           <th class="text-left font-weight-bold">Service Type</th>
+          <th class="text-left font-weight-bold"></th>
         </tr>
       </thead>
       <tbody>
-        <tr class="trHover" v-for="item in services" :key="item.name">
-          <td>{{ item.id }}</td>
-          <td>{{ item.url }}</td>
-          <td>{{ item.type }}</td>
+        <tr class="trHover" v-for="item in services" :key="item.executor_id">
+          <td>{{ item.executor_id }}</td>
+          <td>{{ item.executor_endpoint_url }}</td>
+          <td>{{ typeMap[item.executor_type] }}</td>
+          <td style="text-align: right">
+            <v-btn
+              style="margin-left: 0.5em"
+              color="error"
+              size="x-small"
+              prepend-icon="mdi-delete"
+              @click="deleteServiceReg(item)"
+              >Delete</v-btn
+            >
+          </td>
         </tr>
       </tbody>
     </v-table>
@@ -137,6 +154,24 @@ export default {
     ],
   }),
   methods: {
+    deleteServiceReg(item) {
+      this.ax.post(
+        "http://127.0.0.1:5006/task_publisher/executor",
+        {
+          act: "delete",
+          executor_id: item.executor_id,
+        },
+        {
+          success: (response) => {
+            console.log(response.data);
+          },
+          error: () => {},
+          final: () => {
+            this.fetchExecutorList();
+          },
+        }
+      );
+    },
     openD() {
       this.dialog = true;
     },
@@ -186,17 +221,7 @@ export default {
         {},
         {
           success: (response) => {
-            // console.log(response.data);
-            const newList = [];
-            for (const item of response.data) {
-              newList.push({
-                id: item.executor_id,
-                url: item.executor_endpoint_url,
-                type: this.typeMap[item.executor_type],
-              });
-            }
-
-            this.services = newList;
+            this.services = response.data;
           },
           error: () => {},
           final: () => {},

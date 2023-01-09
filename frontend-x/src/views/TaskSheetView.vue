@@ -36,7 +36,7 @@
         <tr class="trHover" v-for="item in sheets" :key="item.name">
           <td>{{ item.task_sheet_id }}</td>
           <td>{{ item.task_sheet_name }}</td>
-          <td>{{ item.task_type }}</td>
+          <td>{{ typeMap[item.task_type] }}</td>
           <td style="text-align: right">
             <v-btn
               color="primary"
@@ -65,11 +65,14 @@
         </tr>
       </tbody>
     </v-table>
+
+    <!-- create task sheet -->
     <v-dialog
       id="task-sheet-create-dialog"
       contained
       v-model="dialog"
       max-width="600px"
+      persistent
     >
       <v-form
         id="task-sheet-create-form"
@@ -84,7 +87,7 @@
             <span v-if="!disabled" class="text-h5">New Task Sheet</span>
             <span v-if="disabled" class="text-h5">Task Sheet Detail</span>
           </v-card-title>
-          <v-card-text>
+          <v-card-text style="overflow: scroll; max-height: 700px">
             <v-container>
               <v-row>
                 <v-text-field
@@ -153,6 +156,15 @@
                   required
                 ></v-select>
               </v-row>
+              <v-row v-if="task_type === 'Evaluation'">
+                <v-text-field
+                  label="Explanation Task Ticket*"
+                  name="explanation_task_ticket"
+                  v-model="explanation_task_ticket"
+                  :rules="[(v) => !!v || 'Explanation task ticket is required']"
+                  required
+                ></v-text-field>
+              </v-row>
               <v-row>
                 <v-textarea
                   name="task_parameters"
@@ -180,6 +192,7 @@
       </v-form>
     </v-dialog>
 
+    <!-- task list -->
     <v-dialog
       id="task-list-dialog"
       style="height: 100%"
@@ -249,7 +262,14 @@
                 <td>{{ item.task_ticket }}</td>
                 <td>{{ item.task_status.formated_start_time }}</td>
                 <td>{{ item.task_status.formated_end_time }}</td>
-                <td>{{ item.task_status.task_status }}</td>
+                <td>
+                  {{
+                    item.task_status.formated_start_time !== undefined &&
+                    item.task_status.task_status === "initialized"
+                      ? "stopped"
+                      : item.task_status.task_status
+                  }}
+                </td>
                 <td style="text-align: right">
                   <v-btn
                     v-if="item.task_status.task_status === 'finished'"
@@ -277,11 +297,13 @@
       </v-card>
     </v-dialog>
 
+    <!-- task result -->
     <v-dialog
       id="task-result-dialog"
       style="height: 100%"
       contained
       v-model="trdialog"
+      persistent
     >
       <v-card style="height: 100000px">
         <v-card-title>
@@ -423,6 +445,7 @@ export default {
     evaluationSrviceList: [],
     task_sheet_name: "",
     task_type: "",
+    explanation_task_ticket: "",
     model_service_executor_id: "",
     xai_service_executor_id: "",
     db_service_executor_id: "",
@@ -546,7 +569,7 @@ export default {
               }
             }
             rs.sort((a, b) => {
-              return b.task_status.start_time - a.task_status.start_time;
+              return b.request_time - a.request_time;
             });
             this.tasks = rs;
             clearInterval(this.taskListIntv);
@@ -638,6 +661,9 @@ export default {
       // this.validate();
       e.preventDefault();
       const { valid } = await this.$refs.form.validate();
+
+      console.log(valid);
+
       const task_sheet_name = this.task_sheet_name;
       const task_type = typeMap[this.task_type];
       const model_service_executor_id = this.model_service_executor_id;
@@ -645,7 +671,14 @@ export default {
       const db_service_executor_id = this.db_service_executor_id;
       const evaluation_service_executor_id =
         this.evaluation_service_executor_id;
-      const task_parameters = this.task_parameters;
+      let task_parameters = this.task_parameters;
+      const explanation_task_ticket = this.explanation_task_ticket;
+
+      if (task_type === "evaluation") {
+        let param = JSON.parse(task_parameters);
+        param["explanation_task_ticket"] = explanation_task_ticket;
+        task_parameters = JSON.stringify(param);
+      }
 
       // console.log(task_sheet_name);
       // console.log(task_type);

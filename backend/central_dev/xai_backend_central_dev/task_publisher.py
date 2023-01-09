@@ -825,6 +825,9 @@ class TaskPipeline():
 
         return pre
 
+    def delete_pipeline(self, pipeline_id):
+        self.pipeline_tb.remove(Query().pipeline_id == pipeline_id)
+
     def delete_task_sheet(self, task_sheet_id):
         self.xai_task_sheet_tb.remove(Query().task_sheet_id == task_sheet_id)
         self.evaluation_task_sheet_tb.remove(

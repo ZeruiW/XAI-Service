@@ -19,19 +19,22 @@
     <!-- <v-card-text> This is content </v-card-text> -->
     <v-table>
       <colgroup>
+        <col span="1" style="width: 20%" />
         <col span="1" style="width: 40%" />
-        <col span="1" style="width: 30%" />
+        <col span="1" style="width: 10%" />
         <col span="1" style="width: 30%" />
       </colgroup>
       <thead>
         <tr>
-          <th class="text-left font-weight-bold">Sheet Name</th>
+          <th class="text-left font-weight-bold">ID</th>
+          <th class="text-left font-weight-bold">Name</th>
           <th class="text-left font-weight-bold">Task Type</th>
           <th class="text-left font-weight-bold"></th>
         </tr>
       </thead>
       <tbody>
         <tr class="trHover" v-for="item in sheets" :key="item.name">
+          <td>{{ item.task_sheet_id }}</td>
           <td>{{ item.task_sheet_name }}</td>
           <td>{{ item.task_type }}</td>
           <td style="text-align: right">
@@ -176,6 +179,7 @@
         </v-card>
       </v-form>
     </v-dialog>
+
     <v-dialog
       id="task-list-dialog"
       style="height: 100%"

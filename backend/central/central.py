@@ -157,6 +157,10 @@ def pipeline():
             task_status = form_data[TaskInfo.task_status]
             tp.pipeline.update_pipeline_task_status(task_ticket, task_status)
 
+        if act == 'del':
+            pipeline_id = form_data[Pipeline.pipeline_id]
+            tp.pipeline.delete_pipeline(pipeline_id)
+
         return ""
 
 
@@ -188,7 +192,6 @@ def task_sheet():
             task_sheet_id = form_data[TaskSheet.task_sheet_id]
             tp.pipeline.delete_task_sheet(task_sheet_id)
             return ""
-            
 
 
 @bp.route('/reset', methods=['GET'])

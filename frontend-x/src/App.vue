@@ -69,9 +69,19 @@ const tabList = [
 export default {
   data: () => ({
     tabList,
-    currentTab: tabList[0].title,
+    currentTab: "",
   }),
-  mounted: function () {},
+  mounted: function () {
+    let sp = window.location.href.split("/");
+    let path = "/" + sp[sp.length - 1];
+    let tab = "";
+    for (const i of tabList) {
+      if (path === i.path) {
+        tab = i.title;
+      }
+    }
+    this.clickTab(tab);
+  },
   methods: {
     findPathByTab(tab) {
       let target = undefined;
@@ -159,4 +169,11 @@ export default {
 
 <style>
 @import "../src/assets/css/index.less";
+.trHover {
+  transition: all 0.5s !important;
+  cursor: pointer;
+}
+.trHover:hover {
+  background-color: rgba(219, 219, 219, 0.627);
+}
 </style>

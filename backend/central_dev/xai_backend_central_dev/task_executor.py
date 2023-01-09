@@ -110,20 +110,20 @@ class TaskExecutor(TaskComponent):
 
         # TODO: a callback to send task result to central db
 
-    def __file_present__(self, rs_files, task_ticket):
+    def __file_present__(self, rs_files, task_ticket, scope):
         pre = []
         for rs_file in rs_files:
             ext = rs_file.split('.')[-1].lower()
             if ext in ['png', 'jpeg']:
                 pre.append({
                     'file_name': rs_file,
-                    'address': f'/static/rs/{task_ticket}/{rs_file}',
+                    'address': f'/static/rs/{task_ticket}/{scope}/{rs_file}',
                     'file_type': 'img'
                 })
             elif ext in ['npy']:
                 pre.append({
                     'file_name': rs_file,
-                    'address': f'/static/rs/{task_ticket}/{rs_file}',
+                    'address': f'/static/rs/{task_ticket}/{scope}/{rs_file}',
                     'file_type': 'text',
                     'content': 'todo'
                 })
@@ -136,7 +136,7 @@ class TaskExecutor(TaskComponent):
         if os.path.exists(local_task_rs_save_dir):
             rs_files = os.listdir(local_task_rs_save_dir)
             local_task_rs_pre.extend(
-                self.__file_present__(rs_files, task_ticket))
+                self.__file_present__(rs_files, task_ticket, 'local'))
 
         global_task_rs_save_dir = os.path.join(
             self.static_path, 'rs', task_ticket, 'global')
@@ -145,7 +145,7 @@ class TaskExecutor(TaskComponent):
         if os.path.exists(global_task_rs_save_dir):
             rs_files = os.listdir(global_task_rs_save_dir)
             global_task_rs_pre.extend(
-                self.__file_present__(rs_files, task_ticket))
+                self.__file_present__(rs_files, task_ticket, 'global'))
 
         return {
             'local': local_task_rs_pre,

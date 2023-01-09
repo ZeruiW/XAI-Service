@@ -73,10 +73,16 @@ def task():
     if request.method == 'GET':
         # request a task info
         task_ticket = request.args.get('task_ticket')
-        with_status = False if request.args.get('with_status') == None else (
-            False if request.args.get('with_status') != '1' else True)
-        # print(with_status)
-        return jsonify(tp.get_ticket_info(task_ticket, with_status))
+        if task_ticket != None:
+            with_status = False if request.args.get('with_status') == None else (
+                False if request.args.get('with_status') != '1' else True)
+            # print(with_status)
+            return jsonify(tp.get_ticket_info(task_ticket, with_status))
+
+        task_sheet_id = request.args.get('task_sheet_id')
+
+        if task_sheet_id != None:
+            return jsonify(tp.get_task_info_by_task_sheet_id(task_sheet_id, True))
     else:
         form_data = request.form
         act = form_data['act']
@@ -178,6 +184,11 @@ def task_sheet():
             return jsonify({
                 'task_ticket': tp.pipeline.run_task_sheet_directly(task_sheet_id, task_name)
             })
+        if act == 'del':
+            task_sheet_id = form_data[TaskSheet.task_sheet_id]
+            tp.pipeline.delete_task_sheet(task_sheet_id)
+            return ""
+            
 
 
 @bp.route('/reset', methods=['GET'])

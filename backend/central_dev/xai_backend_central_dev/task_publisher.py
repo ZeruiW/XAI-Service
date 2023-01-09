@@ -123,6 +123,44 @@ class TaskPublisher(TaskComponent):
         else:
             return "executor not register"
 
+    def get_task_info_by_task_sheet_id(self, task_sheet_id, with_status: bool = False):
+        all_ticket_infos = self.ticket_info_map_tb.all()
+        target_executor_id = None
+        rs = {}
+        for info in all_ticket_infos:
+            executor_id = info['executor_id']
+            ticket_infos = info['ticket_infos']
+            for ticket, task_info in ticket_infos.items():
+                if task_info[TaskSheet.task_sheet_id] == task_sheet_id:
+                    task_info['task_ticket'] = ticket
+                    rs[ticket] = task_info
+                    target_executor_id = executor_id
+
+        if target_executor_id == None:
+            return rs
+
+        if with_status:
+            executor_reg_info = self.executor_registration_tb.search(
+                Query().executor_id == target_executor_id)[0]
+
+            executor_endpoint_url = executor_reg_info[ExecutorRegInfo.executor_endpoint_url]
+
+            executor_tasks_status = None
+            try:
+                response = requests.get(
+                    executor_endpoint_url + '/task')
+                executor_tasks_status = json.loads(
+                    response.content.decode('utf-8'))
+            except:
+                if executor_tasks_status == None:
+                    executor_tasks_status = []
+
+            for executor_task_status in executor_tasks_status:
+                rs[executor_task_status['task_ticket']
+                   ]['task_status'] = executor_task_status
+
+        return rs
+
     def get_ticket_info(self, target_ticket: str, with_status: bool = False):
         all_ticket_info = self.ticket_info_map_tb.all()
 
@@ -786,6 +824,13 @@ class TaskPipeline():
             f['address'] = executor_reg_info[ExecutorRegInfo.executor_endpoint_url] + f['address']
 
         return pre
+
+    def delete_task_sheet(self, task_sheet_id):
+        self.xai_task_sheet_tb.remove(Query().task_sheet_id == task_sheet_id)
+        self.evaluation_task_sheet_tb.remove(
+            Query().task_sheet_id == task_sheet_id)
+        self.prediction_task_sheet_tb.remove(
+            Query().task_sheet_id == task_sheet_id)
 
     def check_task_sheet_status(self, task_sheet_id):
         pass

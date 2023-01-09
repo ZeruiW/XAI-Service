@@ -18,18 +18,25 @@
     <v-table>
       <thead>
         <tr>
+          <th class="text-left font-weight-bold">ID</th>
           <th class="text-left font-weight-bold">Url</th>
           <th class="text-left font-weight-bold">Service Type</th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="item in services" :key="item.name">
+        <tr class="trHover" v-for="item in services" :key="item.name">
+          <td>{{ item.id }}</td>
           <td>{{ item.url }}</td>
           <td>{{ item.type }}</td>
         </tr>
       </tbody>
     </v-table>
-    <v-dialog contained v-model="dialog" max-width="600px" persistent>
+    <v-dialog
+      id="service-reg-dialog"
+      contained
+      v-model="dialog"
+      max-width="600px"
+    >
       <v-form
         id="service-reg-form"
         ref="form"
@@ -141,8 +148,10 @@ export default {
       e.preventDefault();
       const { valid } = await this.$refs.form.validate();
       const url = e.target.elements.url.value;
-      const type = e.target.elements.type.value;
+      const type = typeMap[e.target.elements.type.value];
       const info = e.target.elements.info.value;
+
+      // console.log(url, type, info);
 
       if (valid) {
         // console.log(url);
@@ -181,6 +190,7 @@ export default {
             const newList = [];
             for (const item of response.data) {
               newList.push({
+                id: item.executor_id,
                 url: item.executor_endpoint_url,
                 type: this.typeMap[item.executor_type],
               });

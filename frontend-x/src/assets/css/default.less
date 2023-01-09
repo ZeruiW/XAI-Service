@@ -1,0 +1,47 @@
+* {
+  margin: 0;
+  padding: 0;
+}
+.unselectable,
+.unselectable > * {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+}
+body,
+html {
+  backface-visibility: hidden;
+}
+
+.my-toast-container-left {
+  z-index: 300 !important;
+  left: 1rem !important;
+  top: 3.5rem !important;
+}
+
+.my-toast-container-right {
+  z-index: 300 !important;
+  right: 1rem !important;
+  top: 3.5rem !important;
+}
+.toasted-container .toasted .action {
+  padding: 0 0 0 8px !important;
+}
+.my-toast {
+  z-index: 300 !important;
+  font-family: "Roboto", sans-serif;
+  font-weight: bold !important;
+}
+
+.clearfix::after {
+  content: "";
+  clear: both;
+  display: table;
+}
+
+.default-transit5 {
+  transition: all 0.5s !important;
+}
+.default-transit3 {
+  transition: all 0.3s !important;
+}

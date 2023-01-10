@@ -25,6 +25,39 @@ if torch.backends.mps.is_built() and torch.backends.mps.is_available():
 print("Pytorch device: ")
 print(device)
 
+#connect to mongoDB for save result
+import bson
+import numpy as np
+from bson.binary import Binary
+from dotenv import load_dotenv
+load_dotenv()
+from pymongo import MongoClient
+from bson.objectid import ObjectId
+# Connect to the MongoDB instance
+connection_string = os.getenv("MONGO_CONNECTION_STRING")
+client = MongoClient(connection_string)
+
+# Select the database and collection
+databasestr = os.getenv("MONGO_DATABASE")
+collectionstr = os.getenv("MONGO_XAI_COLLECTION")
+database = client[databasestr]
+collection = database[collectionstr]
+
+def save_cam_result(task_ticket, index, filename, binary_data_img):
+    # Save the result to MongoDB
+    # Convert the numpy array to a binary object
+    
+    #binary_img = bson.binary.Binary(img)
+    # Create a document
+    cam_document = {
+        "task_ticket": task_ticket,
+        "index": index,
+        "filename": filename,
+        "image": binary_data_img
+        #"img": binary_img
+    }
+    # Insert the document into the collection
+    collection.insert_one(cam_document)
 
 def cam_task(task_ticket, publisher_endpoint_url, task_parameters):
     tmpdir = os.environ.get('COMPONENT_TMP_DIR')
@@ -110,6 +143,12 @@ def cam_task(task_ticket, publisher_endpoint_url, task_parameters):
         plt.imsave(os.path.join(local_exp_save_dir,
                    f'{imgd[1]}.png'), grayscale_cam)
 
+        # with open(os.path.join(e_save_dir, f'{imgd[1]}.png'), "rb") as f:
+        #     imgmap = f.read()
+        # #get saved plot
+        # binary_data_img = bson.binary.Binary(imgmap)
+        
+        # save_cam_result(task_ticket, i, imgd[1], binary_data_img)
     shutil.make_archive(os.path.join(tmpdir, task_ticket),
                         'zip', local_exp_save_dir)
 

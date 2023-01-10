@@ -15,6 +15,39 @@ import cv2
 import matplotlib.pyplot as plt
 
 from xai_backend_central_dev.constant import TaskStatus
+import pymongo
+#connect to mongoDB for save result
+import bson
+import numpy as np
+from bson.binary import Binary
+from dotenv import load_dotenv
+load_dotenv()
+from pymongo import MongoClient
+from bson.objectid import ObjectId
+# Connect to the MongoDB instance
+connection_string = os.getenv("MONGO_CONNECTION_STRING")
+client = MongoClient(connection_string)
+
+# Select the database and collection
+databasestr = os.getenv("MONGO_DATABASE")
+collectionstr = os.getenv("MONGO_EVA_COLLECTION")
+database = client[databasestr]
+collection = database[collectionstr]
+
+# def img_to_binary(img):
+#     # Convert the image to a binary format
+#     binary_img = bson.binary.Binary(img)
+#     return binary_img
+
+def save_eva_result(task_ticket, index, filename, org_img, heat_img, mask_img):
+    content = {
+        "index": index,
+        "filename": filename,
+        "org_img": org_img,
+        "mask_img": mask_img,
+        "heat_img": heat_img
+        }
+    collection.update_one({"task_ticket": task_ticket}, {"$push": {"cam_documents": content}}, upsert=True)
 
 #device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -346,9 +379,10 @@ def eval_task(task_ticket, publisher_endpoint_url, task_parameters):
     # print(prediction_change_distance)
 
     # Image save
+    index = 0
     for img in img_data:
         img_name = img[1]
-
+        index += 1
         heatmap = cv2.imread(os.path.join(
             explanation_keep_path, f'{img_name}.png'))
         original = cv2.imread(os.path.join(

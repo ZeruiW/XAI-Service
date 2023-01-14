@@ -6,7 +6,6 @@ from tinydb import TinyDB, Query
 
 from xai_backend_central_dev.task_manager import TaskComponent, __get_random_string__, __get_random_string_no_low__
 
-from xai_backend_central_dev.flask_manager import ExecutorBluePrint
 from xai_backend_central_dev.constant import Pipeline
 from xai_backend_central_dev.constant import TaskStatus
 from xai_backend_central_dev.constant import TaskSheet
@@ -16,7 +15,6 @@ from xai_backend_central_dev.constant import TaskInfo
 from xai_backend_central_dev.constant import ExecutorRegInfo
 
 from xai_backend_central_dev.pipeline_db_helper import PipelineDB
-from xai_backend_central_dev.pipeline_task_func import run_pipeline_tasks
 
 
 class TaskPublisher(TaskComponent):

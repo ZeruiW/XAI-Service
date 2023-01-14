@@ -7,6 +7,8 @@ setup(
     install_requires=[
         "tinydb",
         "python-dotenv",
-        "Flask >= 2.2"
+        "Flask >= 2.2",
+        "flask-cors",
+        "pymongo"
     ],
 )

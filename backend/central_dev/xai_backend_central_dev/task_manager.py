@@ -2,6 +2,8 @@ import random
 import string
 import os
 
+from xai_backend_central_dev.mongodb_helper import Mon
+
 
 def __get_random_string__(length):
     letters = string.ascii_lowercase + string.ascii_uppercase + string.digits
@@ -50,3 +52,5 @@ class TaskComponent():
         os.environ['COMPONENT_TMP_DIR'] = self.tmp_path
         os.environ['COMPONENT_STATIC_DIR'] = self.static_path
         os.environ['CONTEXT_PATH'] = self.context_path
+
+        self.mondb = Mon()

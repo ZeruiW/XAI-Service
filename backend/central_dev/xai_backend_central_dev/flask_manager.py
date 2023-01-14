@@ -1,4 +1,4 @@
-from dotenv import load_dotenv, dotenv_values
+from dotenv import dotenv_values
 import glob
 import os
 import json
@@ -21,23 +21,22 @@ def create_tmp_dir(service_init_path):
         os.mkdir(tmpdir)
 
 
-def load_env(app: Flask):
-    # cors
-    CORS(app, resources={r"/*": {"origins": "*"}})
-
-    print('App Mode: ' + 'dev' if app.debug else 'prod')
-
-    env_file = f".env.{'dev' if app.debug else 'prod'}"
+def load_env(mode):
+    os.environ['ENV'] = mode
+    print('App Mode: ', os.environ['ENV'])
+    env_file = f".env.{os.environ['ENV']}"
     for f in glob.glob(os.path.join(os.getcwd(), '**', env_file), recursive=True):
         env_file = f
 
-    if app.debug:
-        config = dotenv_values(env_file)
-        for k in config.keys():
-            if os.getenv(k) == None:
-                os.environ[k] = config[k]
-    else:
-        load_dotenv(env_file)
+    config = dotenv_values(env_file)
+    for k in config.keys():
+        if os.getenv(k) == None:
+            os.environ[k] = config[k]
+
+
+def set_app(app: Flask):
+    # cors
+    CORS(app, resources={r"/*": {"origins": "*"}})
 
 
 class ExecutorBluePrint(Blueprint):

@@ -22,3 +22,5 @@ build
 .vscode/
 
 **/static/rs/
+
+mongo.conf

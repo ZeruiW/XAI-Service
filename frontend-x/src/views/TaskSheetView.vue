@@ -241,10 +241,11 @@
           <v-table>
             <colgroup>
               <col span="1" style="width: 10%" />
-              <col span="1" style="width: 50%" />
+              <col span="1" style="width: 30%" />
               <col span="1" style="width: 15%" />
               <col span="1" style="width: 15%" />
               <col span="1" style="width: 10%" />
+              <col span="1" style="width: 20%" />
             </colgroup>
             <thead>
               <tr>
@@ -252,7 +253,7 @@
                 <th class="text-left font-weight-bold">Task Ticket</th>
                 <th class="text-left font-weight-bold">Start Time</th>
                 <th class="text-left font-weight-bold">End Time</th>
-                <th class="text-left font-weight-bold">Status</th>
+                <th class="text-center font-weight-bold">Status</th>
                 <th class="text-left font-weight-bold"></th>
               </tr>
             </thead>
@@ -262,15 +263,41 @@
                 <td>{{ item.task_ticket }}</td>
                 <td>{{ item.task_status.formated_start_time }}</td>
                 <td>{{ item.task_status.formated_end_time }}</td>
-                <td>
-                  {{
+                <td class="stt">
+                  <!-- {{
                     item.task_status.formated_start_time !== undefined &&
                     item.task_status.task_status === "initialized"
                       ? "stopped"
                       : item.task_status.task_status
-                  }}
+                  }} -->
+                  <transition name="fade" mode="out-in">
+                    <v-progress-circular
+                      class="st"
+                      :size="20"
+                      color="primary"
+                      indeterminate
+                      v-show="getTaskStatus(item) === 'running'"
+                    ></v-progress-circular>
+                  </transition>
+
+                  <transition name="fade" mode="out-in">
+                    <v-icon
+                      class="st"
+                      v-show="getTaskStatus(item) === 'finished'"
+                      icon="mdi-check-bold"
+                      color="success"
+                    ></v-icon>
+                  </transition>
+                  <transition name="fade" mode="out-in">
+                    <v-icon
+                      class="st"
+                      v-if="getTaskStatus(item) === 'stopped'"
+                      icon="mdi-alert-octagon"
+                      color="error"
+                    ></v-icon>
+                  </transition>
                 </td>
-                <td style="text-align: right">
+                <td style="text-align: right" mode="out-in">
                   <v-btn
                     v-if="item.task_status.task_status === 'finished'"
                     style="margin-left: 0.5em"
@@ -288,6 +315,14 @@
                     prepend-icon="mdi-close"
                     @click="stopATask(item)"
                     >Stop</v-btn
+                  >
+                  <v-btn
+                    style="margin-left: 0.5em"
+                    color="yellow"
+                    size="x-small"
+                    prepend-icon="mdi-delete"
+                    @click="deleteATask(item)"
+                    >Delete</v-btn
                   >
                 </td>
               </tr>
@@ -322,66 +357,79 @@
             </v-btn>
           </v-card-actions>
         </v-card-title>
-        <v-card-title>
-          <span class="text-h6">Global Explaination</span>
-        </v-card-title>
-        <v-card-text>
-          <v-table>
-            <colgroup>
-              <col span="1" style="width: 30%" />
-              <col span="1" style="width: 70%" />
-            </colgroup>
-            <thead>
-              <tr>
-                <th class="text-left font-weight-bold">File Name</th>
-                <th class="text-left font-weight-bold">Content</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                class="trHover"
+        <div v-if="task_rs['global'].length > 0">
+          <v-card-title>
+            <span class="text-h6">Global Explaination</span>
+          </v-card-title>
+          <v-card-text>
+            <v-expansion-panels variant="accordion">
+              <v-expansion-panel
                 v-for="item in task_rs['global']"
-                :key="item.filename"
+                :key="item.file_name"
               >
-                <td>{{ item.file_name }}</td>
-                <td>
-                  <img :src="item.address" alt="" srcset="" />
-                </td>
-              </tr>
-            </tbody>
-          </v-table>
-        </v-card-text>
+                <v-expansion-panel-title v-slot="{}">
+                  {{ item.file_name }}
+                </v-expansion-panel-title>
+
+                <v-expansion-panel-text
+                  v-if="item.file_type === 'img'"
+                  class="unselectable"
+                  style="overflow-x: auto; text-align: center"
+                >
+                  <img :src="item.address" style="max-height: 500px" />
+                </v-expansion-panel-text>
+                <v-expansion-panel-text v-else>
+                  This file is not support for present.
+                </v-expansion-panel-text>
+              </v-expansion-panel>
+            </v-expansion-panels>
+          </v-card-text>
+        </div>
 
         <v-divider></v-divider>
-        <v-card-title>
-          <span class="text-h6">Local Explaination</span>
-        </v-card-title>
-        <v-card-text>
-          <v-table>
-            <colgroup>
-              <col span="1" style="width: 30%" />
-              <col span="1" style="width: 70%" />
-            </colgroup>
-            <thead>
-              <tr>
-                <th class="text-left font-weight-bold">File Name</th>
-                <th class="text-left font-weight-bold">Content</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                class="trHover"
-                v-for="item in task_rs['local']"
-                :key="item.filename"
+        <div v-if="task_rs['local'].length > 0">
+          <v-card-title>
+            <span class="text-h6">Local Explaination</span>
+          </v-card-title>
+          <v-card-text>
+            <v-expansion-panels variant="accordion">
+              <v-expansion-panel
+                v-for="sample in task_rs['local']"
+                :key="sample.sample_name"
               >
-                <td>{{ item.file_name }}</td>
-                <td>
-                  <img :src="item.address" alt="" srcset="" />
-                </td>
-              </tr>
-            </tbody>
-          </v-table>
-        </v-card-text>
+                <v-expansion-panel-title v-slot="{}">
+                  {{ sample.sample_name }}
+                </v-expansion-panel-title>
+                <v-expansion-panel-text>
+                  <v-expansion-panels variant="accordion">
+                    <v-expansion-panel
+                      v-for="item in sample.explanation_results"
+                      :key="item.file_name"
+                    >
+                      <v-expansion-panel-title v-slot="{}">
+                        {{ item.file_name }}
+                      </v-expansion-panel-title>
+                      <v-expansion-panel-text
+                        v-if="item.file_type === 'img'"
+                        class="unselectable"
+                        style="overflow-x: auto; text-align: center"
+                      >
+                        <img
+                          lazy-src="https://picsum.photos/id/11/100/60"
+                          :src="item.address"
+                          style="max-height: 500px"
+                        />
+                      </v-expansion-panel-text>
+                      <v-expansion-panel-text v-else style="text-align: center">
+                        This file is not support for present.
+                      </v-expansion-panel-text>
+                    </v-expansion-panel>
+                  </v-expansion-panels>
+                </v-expansion-panel-text>
+              </v-expansion-panel>
+            </v-expansion-panels>
+          </v-card-text>
+        </div>
       </v-card>
     </v-dialog>
   </v-card>
@@ -456,6 +504,12 @@ export default {
     taskListIntv: undefined,
   }),
   methods: {
+    getTaskStatus(item) {
+      return item.task_status.formated_start_time !== undefined &&
+        item.task_status.task_status === "initialized"
+        ? "stopped"
+        : item.task_status.task_status;
+    },
     deleteTaskSheet(item) {
       this.ax.post(
         "http://127.0.0.1:5006/task_publisher/task_sheet",
@@ -486,12 +540,13 @@ export default {
         {
           success: (response) => {
             let localRs = [];
-            for (const i of response.data["local"]) {
-              if (i.file_type === "img") {
-                localRs.push(i);
-              }
+            // console.log(response.data["local"]);
+            for (const [key, value] of Object.entries(response.data["local"])) {
+              localRs.push({
+                sample_name: key,
+                explanation_results: value,
+              });
             }
-            localRs.sort();
             this.task_rs["local"] = localRs;
 
             let globalRs = [];
@@ -505,6 +560,22 @@ export default {
           },
           error: () => {},
           final: () => {},
+        }
+      );
+    },
+    deleteATask(item) {
+      this.ax.post(
+        "http://127.0.0.1:5006/task_publisher/task",
+        {
+          act: "delete",
+          task_ticket: item.task_ticket,
+        },
+        {
+          success: (response) => {},
+          error: () => {},
+          final: () => {
+            this.fetchTaskList(this.current_task_sheet_id);
+          },
         }
       );
     },
@@ -646,6 +717,7 @@ export default {
       this.xai_service_executor_id = "";
       this.db_service_executor_id = "";
       this.evaluation_service_executor_id = "";
+      this.explanation_task_ticket = "";
       this.task_parameters = "{}";
     },
     openD() {
@@ -738,4 +810,26 @@ export default {
 };
 </script>
 
-<style></style>
+<style>
+.fade-enter-active {
+  transition: all 0.5s ease-in;
+}
+.fade-leave-active {
+  transition: all 0.2s;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.stt {
+  position: relative;
+}
+.st {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+</style>

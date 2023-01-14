@@ -144,7 +144,8 @@ def eval_task(task_ticket, publisher_endpoint_url, task_parameters):
     exp_zip_path = os.path.join(
         tmpdir, f"{explanation_task_ticket}_for_eval.zip")
 
-    explanation_keep_path = os.path.join(tmpdir, explanation_task_ticket)
+    explanation_keep_path = os.path.join(
+        staticdir, 'rs', task_ticket, f'exp_{explanation_task_ticket}')
 
     if not os.path.exists(explanation_keep_path):
         print('# exp not exist, fetch from xai service')
@@ -162,7 +163,7 @@ def eval_task(task_ticket, publisher_endpoint_url, task_parameters):
 
     def get_cam_data(img_name):
         # print(os.path.join(tmpdir, task_name, f'{img_name}.npy'))
-        with open(os.path.join(explanation_keep_path, f'{img_name}.npy'), 'rb') as f:
+        with open(os.path.join(explanation_keep_path, 'local', img_name, f'{img_name}.npy'), 'rb') as f:
             d = np.load(f)
             # print(d.shape)
             return d
@@ -201,11 +202,16 @@ def eval_task(task_ticket, publisher_endpoint_url, task_parameters):
     i = 0
     for img in img_data:
         sys.stdout.write(f'\r{i + 1} / {len(img_data)}')
+
         img_name = img[1]
+        sample_exp_path = os.path.join(local_eval_keep_path, img_name)
+        if not os.path.isdir(sample_exp_path):
+            os.makedirs(sample_exp_path, exist_ok=True)
+
         imgg = Image.open(io.BytesIO(base64.b64decode(img[2]))).convert('RGB')
         # imgg.show()
         imgg.save(os.path.join(
-            local_eval_keep_path, f'{img_name}_original.png'))
+            sample_exp_path, f'{img_name}_original.png'))
         rs = predict_one_img(imgg)
 
         original_pred[img[1]] = rs
@@ -252,8 +258,13 @@ def eval_task(task_ticket, publisher_endpoint_url, task_parameters):
                         cam_on_pixel
 
             new_img = Image.fromarray(img_data_array_copy)
+
+            sample_exp_path = os.path.join(local_eval_keep_path, img_name)
+            if not os.path.isdir(sample_exp_path):
+                os.makedirs(sample_exp_path, exist_ok=True)
+
             new_img.save(os.path.join(
-                local_eval_keep_path, f'{img_name}_masked.png'))
+                sample_exp_path, f'{img_name}_masked.png'))
             # new_img.show()
 
             rs2 = predict_one_img(new_img)
@@ -287,6 +298,7 @@ def eval_task(task_ticket, publisher_endpoint_url, task_parameters):
     prediction_change_distance = {}
     score_map = {}
 
+    # global evaluation
     for cam_method in cam_method_name:
         score_save_path = os.path.join(global_eval_keep_path,
                                        f'rs.npy')
@@ -346,18 +358,23 @@ def eval_task(task_ticket, publisher_endpoint_url, task_parameters):
     # print(prediction_change_distance)
 
     # Image save
+    # local evaluation result
     for img in img_data:
         img_name = img[1]
 
+        sample_exp_path = os.path.join(local_eval_keep_path, img_name)
+        if not os.path.isdir(sample_exp_path):
+            os.makedirs(sample_exp_path, exist_ok=True)
+
         heatmap = cv2.imread(os.path.join(
-            explanation_keep_path, f'{img_name}.png'))
+            explanation_keep_path, 'local',  img_name, f'{img_name}.png'))
         original = cv2.imread(os.path.join(
-            local_eval_keep_path, f'{img_name}_original.png'))
+            sample_exp_path, f'{img_name}_original.png'))
         masked = cv2.imread(os.path.join(
-            local_eval_keep_path, f'{img_name}_masked.png'))
+            sample_exp_path, f'{img_name}_masked.png'))
 
         im_concat = cv2.vconcat([original, heatmap, masked])
         cv2.imwrite(os.path.join(
-            local_eval_keep_path, f'{img_name}_concat.png'), im_concat)
+            sample_exp_path, f'{img_name}_concat.png'), im_concat)
 
     return TaskStatus.finished

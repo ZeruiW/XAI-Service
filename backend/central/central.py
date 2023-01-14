@@ -89,6 +89,9 @@ def task():
         if act == 'stop':
             task_ticket = form_data['task_ticket']
             tp.pipeline.stop_a_task(task_ticket)
+        if act == 'delete':
+            task_ticket = form_data['task_ticket']
+            tp.pipeline.delete_task(task_ticket)
         return ""
 
 

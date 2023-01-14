@@ -2,6 +2,7 @@ from dotenv import load_dotenv, dotenv_values
 import glob
 import os
 import json
+import shutil
 from flask import (
     Blueprint, request, jsonify, Response, send_file, Flask
 )
@@ -61,9 +62,18 @@ class ExecutorBluePrint(Blueprint):
         def task_result():
             if request.method == 'GET':
                 task_ticket = request.args['task_ticket']
-                file_name = os.path.join(self.tmp_path, f'{task_ticket}.zip')
-                if os.path.exists(file_name):
-                    return send_file(file_name, as_attachment=True)
+                exp_rs_path = os.path.join(
+                    self.te.static_path, 'rs', task_ticket)
+
+                zip_path = os.path.join(
+                    self.te.static_path, 'rs', f'{task_ticket}.zip')
+
+                if not os.path.exists(zip_path):
+                    shutil.make_archive(os.path.join(self.te.static_path, 'rs', task_ticket),
+                                        'zip', exp_rs_path)
+
+                if os.path.exists(zip_path):
+                    return send_file(zip_path, as_attachment=True)
                 else:
                     # TODO: should follow the restful specification
                     return "no such task"
@@ -117,6 +127,10 @@ class ExecutorBluePrint(Blueprint):
                     return jsonify({
                         TaskInfo.task_ticket: task_ticket
                     })
+
+                if act == 'delete':
+                    task_ticket = form_data[TaskInfo.task_ticket]
+                    self.te.delete_the_task(task_ticket)
 
                 # run a task which create by the executor
                 if act == 'run_in_self':

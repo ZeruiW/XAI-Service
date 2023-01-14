@@ -156,8 +156,9 @@ class TaskPublisher(TaskComponent):
                     executor_tasks_status = []
 
             for executor_task_status in executor_tasks_status:
-                rs[executor_task_status['task_ticket']
-                   ]['task_status'] = executor_task_status
+                r = rs.get(executor_task_status['task_ticket'])
+                if r is not None:
+                    r['task_status'] = executor_task_status
 
         return rs
 
@@ -601,10 +602,21 @@ class TaskPipeline():
         return pipeline[Pipeline.evaluation_task_sheet_id] != TaskSheet.empty and \
             pipeline[Pipeline.evaluation_task_sheet_status] == TaskStatus.initialized
 
-    def __get_url_from_executor_id__(self, executor_registration_infos, executor_id):
-        for executor_info in executor_registration_infos:
+    def __get_url_from_executor_id__(self, executor_id):
+        for executor_info in self.task_publisher.get_executor_registration_info():
             if executor_info[ExecutorRegInfo.executor_id] == executor_id:
                 return executor_info[ExecutorRegInfo.executor_endpoint_url]
+
+    def __get_url_and_ticket_info_from_task_ticket(self, task_ticket):
+        tikcet_infos = self.task_publisher.ticket_info_map_tb.all()
+
+        target_ticket_info = None
+        for ticket_info in tikcet_infos:
+            if task_ticket in ticket_info['ticket_infos']:
+                target_ticket_info = ticket_info
+                break
+
+        return target_ticket_info, self.__get_url_from_executor_id__(target_ticket_info['executor_id'])
 
     def run_task_with_sheet(self, task_ticket, executor_endpoint_url):
 
@@ -621,6 +633,22 @@ class TaskPipeline():
 
         return task_ticket[TaskInfo.task_ticket]
 
+    def delete_task(self, task_ticket):
+        target_ticket_info, executor_endpoint_url = self.__get_url_and_ticket_info_from_task_ticket(
+            task_ticket)
+        payload = {
+            'act': 'delete',
+            'task_ticket': task_ticket
+        }
+
+        response = requests.request(
+            "POST", f"{executor_endpoint_url}/task", headers={}, data=payload)
+
+        if response.status_code == 200:
+            target_ticket_info['ticket_infos'].pop(task_ticket)
+            self.task_publisher.ticket_info_map_tb.update(
+                target_ticket_info, Query().executor_id == target_ticket_info['executor_id'])
+
     def __run_pipeline_with_pipeline__(self, pipeline):
         pipeline_id = pipeline[Pipeline.pipeline_id]
         pipeline_status = self.get_pipeline_status(pipeline)
@@ -629,15 +657,13 @@ class TaskPipeline():
             xai_ready = self.__xai_task_ready_for_run__(pipeline=pipeline)
             eval_ready = self.__eval_task_ready_for_run__(pipeline=pipeline)
 
-            executor_registration_infos = self.task_publisher.get_executor_registration_info()
-
             if xai_ready:
                 xai_task_sheet = self.get_task_sheet(
                     [pipeline[Pipeline.xai_task_sheet_id]])[0]
                 executor_task_ticket = pipeline[Pipeline.xai_task_ticket]
                 executor_id = xai_task_sheet[TaskSheet.xai_service_executor_id]
                 executor_endpoint_url = self.__get_url_from_executor_id__(
-                    executor_registration_infos, executor_id)
+                    executor_id)
                 task_status_key = Pipeline.xai_task_sheet_status
             elif eval_ready:
                 eval_task_sheet = self.get_task_sheet(
@@ -645,7 +671,7 @@ class TaskPipeline():
                 executor_task_ticket = pipeline[Pipeline.evaluation_task_ticket]
                 executor_id = eval_task_sheet[TaskSheet.evaluation_service_executor_id]
                 executor_endpoint_url = self.__get_url_from_executor_id__(
-                    executor_registration_infos, executor_id)
+                    executor_id)
                 task_status_key = Pipeline.evaluation_task_sheet_status
 
             if xai_ready or eval_ready:
@@ -680,9 +706,8 @@ class TaskPipeline():
             task_executor_id, task_name, task_sheet)
 
         if required_task_ticket != None:
-            executor_registration_infos = self.task_publisher.get_executor_registration_info()
             executor_endpoint_url = self.__get_url_from_executor_id__(
-                executor_registration_infos, task_executor_id)
+                task_executor_id)
             return self.run_task_with_sheet(
                 required_task_ticket, executor_endpoint_url)
         else:
@@ -776,10 +801,9 @@ class TaskPipeline():
             task_ticket = pipeline[Pipeline.xai_task_ticket]
 
             task_executor_id = task_sheet[TaskSheet.xai_service_executor_id]
-            executor_registration_infos = self.task_publisher.get_executor_registration_info()
 
             executor_endpoint_url = self.__get_url_from_executor_id__(
-                executor_registration_infos, task_executor_id)
+                task_executor_id)
 
         if pipeline[Pipeline.evaluation_task_sheet_status] == TaskStatus.running:
             task_sheet = self.get_task_sheet(
@@ -787,10 +811,9 @@ class TaskPipeline():
             task_ticket = pipeline[Pipeline.evaluation_task_ticket]
 
             task_executor_id = task_sheet[TaskSheet.evaluation_service_executor_id]
-            executor_registration_infos = self.task_publisher.get_executor_registration_info()
 
             executor_endpoint_url = self.__get_url_from_executor_id__(
-                executor_registration_infos, task_executor_id)
+                task_executor_id)
 
         if executor_endpoint_url != None:
             requests.post(
@@ -817,8 +840,9 @@ class TaskPipeline():
 
         pre = json.loads(response.content.decode('utf-8'))
 
-        for f in pre['local']:
-            f['address'] = executor_reg_info[ExecutorRegInfo.executor_endpoint_url] + f['address']
+        for sample_name, fs in pre['local'].items():
+            for f in fs:
+                f['address'] = executor_reg_info[ExecutorRegInfo.executor_endpoint_url] + f['address']
 
         for f in pre['global']:
             f['address'] = executor_reg_info[ExecutorRegInfo.executor_endpoint_url] + f['address']

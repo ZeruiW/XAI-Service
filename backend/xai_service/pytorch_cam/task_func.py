@@ -82,7 +82,12 @@ def cam_task(task_ticket, publisher_endpoint_url, task_parameters):
         os.makedirs(local_exp_save_dir, exist_ok=True)
 
     for imgd in img_data:
-        print(i, imgd[1])
+        file_name = imgd[1]
+        print(i, file_name)
+        sample_exp_path = os.path.join(local_exp_save_dir, file_name)
+        if not os.path.isdir(sample_exp_path):
+            os.makedirs(sample_exp_path, exist_ok=True)
+
         i += 1
         rgb_img = bytes_to_pil_image(imgd[2])
 
@@ -105,13 +110,10 @@ def cam_task(task_ticket, publisher_endpoint_url, task_parameters):
                             aug_smooth=True,
                             eigen_smooth=False)[0]
 
-        np.save(os.path.join(local_exp_save_dir,
+        np.save(os.path.join(sample_exp_path,
                 f'{imgd[1]}.npy'), grayscale_cam)
-        plt.imsave(os.path.join(local_exp_save_dir,
+        plt.imsave(os.path.join(sample_exp_path,
                    f'{imgd[1]}.png'), grayscale_cam)
-
-    shutil.make_archive(os.path.join(tmpdir, task_ticket),
-                        'zip', local_exp_save_dir)
 
     # TODO: keep this at static for now
     # shutil.rmtree(local_exp_save_dir)
@@ -126,6 +128,6 @@ def bytes_to_pil_image(b):
 
 def cf(task_ticket):
     local_exp_save_dir = os.path.join(os.environ.get(
-        'COMPONENT_STATIC_DIR'), task_ticket)
+        'COMPONENT_STATIC_DIR'), 'rs', task_ticket)
     if os.path.exists(local_exp_save_dir):
         shutil.rmtree(local_exp_save_dir)

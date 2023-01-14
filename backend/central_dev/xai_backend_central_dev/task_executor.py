@@ -110,7 +110,7 @@ class TaskExecutor(TaskComponent):
 
         # TODO: a callback to send task result to central db
 
-    def __file_present__(self, rs_files, task_ticket, scope):
+    def __file_present__(self, rs_files, task_ticket, scope, sample=None):
         pre = []
         for rs_file in rs_files:
             ext = rs_file.split('.')[-1].lower()
@@ -124,7 +124,7 @@ class TaskExecutor(TaskComponent):
                 pre.append({
                     'file_name': rs_file,
                     'address': f'/static/rs/{task_ticket}/{scope}/{rs_file}',
-                    'file_type': 'text',
+                    'file_type': 'npy',
                     'content': 'todo'
                 })
         return pre
@@ -132,11 +132,14 @@ class TaskExecutor(TaskComponent):
     def get_task_rs_presentation(self, task_ticket):
         local_task_rs_save_dir = os.path.join(
             self.static_path, 'rs', task_ticket, 'local')
-        local_task_rs_pre = []
+        local_task_rs_pre = {}
         if os.path.exists(local_task_rs_save_dir):
-            rs_files = os.listdir(local_task_rs_save_dir)
-            local_task_rs_pre.extend(
-                self.__file_present__(rs_files, task_ticket, 'local'))
+            samples = os.listdir(local_task_rs_save_dir)
+            for sample in samples:
+                rs_files = [
+                    f'{sample}/{f}' for f in os.listdir(os.path.join(local_task_rs_save_dir, sample))]
+                local_task_rs_pre[sample] = self.__file_present__(
+                    rs_files, task_ticket, 'local')
 
         global_task_rs_save_dir = os.path.join(
             self.static_path, 'rs', task_ticket, 'global')
@@ -278,6 +281,18 @@ class TaskExecutor(TaskComponent):
         )
 
         return task_ticket
+
+    def delete_the_task(self, task_ticket):
+        task_rs_path = os.path.join(self.static_path, 'rs', task_ticket)
+        if os.path.exists(task_rs_path):
+            shutil.rmtree(task_rs_path)
+
+        task_rs_zip_path = os.path.join(
+            self.static_path, 'rs', f'{task_ticket}.zip')
+        if os.path.exists(task_rs_zip_path):
+            os.remove(task_rs_zip_path)
+
+        self.executor_task_info_tb.remove(Query().task_ticket == task_ticket)
 
     # TODO: run the task created by executor
     def request_ticket_and_start_task(self, task_name, task_function_key, task_parameters):

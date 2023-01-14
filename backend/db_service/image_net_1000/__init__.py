@@ -4,10 +4,11 @@ from flask import Flask
 import xai_backend_central_dev.flask_manager as fm
 
 
-def create_app(test_config=None):
+def create_app(mode='dev'):
+    fm.load_env(mode)
     # create and configure the app
     app = Flask(__name__, instance_relative_config=True)
-    fm.load_env(app)
+    fm.set_app(app)
 
     # set global db pool
     from . import db_helper

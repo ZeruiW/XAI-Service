@@ -18,4 +18,6 @@ task_parameters = 'task_parameters'
 task_sheet_name = 'task_sheet_name'
 task_function_key = 'task_function_key'
 
+explanation_task_ticket = 'explanation_task_ticket'
+
 empty = ''

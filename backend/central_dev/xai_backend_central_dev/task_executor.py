@@ -89,7 +89,7 @@ class TaskExecutor(TaskComponent):
 
     def update_task_status_to_central(self, task_ticket, task_status):
         requests.post(
-            self.get_publisher_endpoint_url() + '/task_publisher/pipeline',
+            self.get_publisher_endpoint_url() + '/task_publisher/task',
             data={
                 'act': 'update_task_status',
                 TaskInfo.task_ticket: task_ticket,
@@ -99,13 +99,6 @@ class TaskExecutor(TaskComponent):
 
     def execution_call_back(self, task_status, task_ticket, process):
         process.close()
-        et = time.time()
-        task_info = self.get_task_info(task_ticket)
-        task_info[TaskInfo.task_status] = task_status
-        task_info[TaskInfo.end_time] = et
-        task_info[TaskInfo.formated_end_time] = time.strftime("%m/%d/%Y, %H:%M:%S",
-                                                              time.localtime(et))
-        self.update_task_info_locally(task_info)
         self.update_task_status_to_central(task_ticket, task_status)
 
         # TODO: a callback to send task result to central db
@@ -186,16 +179,6 @@ class TaskExecutor(TaskComponent):
             'as_rs': as_rs
         }
 
-        task_info = self.get_task_info(task_ticket)
-
-        # update info
-        task_info[TaskInfo.start_time] = st
-        task_info[TaskInfo.formated_start_time] = time.strftime("%m/%d/%Y, %H:%M:%S",
-                                                                time.localtime(st))
-        task_info[TaskInfo.task_status] = TaskStatus.running
-
-        self.update_task_info_locally(task_info)
-
         return task_ticket
 
     # set cleaning function when terminating a task
@@ -207,10 +190,7 @@ class TaskExecutor(TaskComponent):
             self.process_holder[task_ticket]['process'].terminate(
             )
         print('teriminate ', task_ticket)
-        task_info = self.get_task_info(task_ticket)
-        task_info[TaskInfo.task_status] = TaskStatus.initialized
-        self.update_task_info_locally(task_info)
-        self.update_task_status_to_central(task_ticket, TaskStatus.initialized)
+        self.update_task_status_to_central(task_ticket, TaskStatus.stopped)
         if hasattr(self, 'cf') and callable(self.cf):
             try:
                 self.cf(task_ticket)
@@ -231,56 +211,17 @@ class TaskExecutor(TaskComponent):
             )
             return json.loads(response.content)
 
-    def process_holder_str(self, task_ticket=None):
-        if task_ticket != None:
-            return self.get_task_info(task_ticket)
-        else:
-            return self.executor_task_info_tb.all()
-
     def define_task_func_map(self, key, func):
         self.task_func_map[key] = func
         return self
 
-    def get_task_info(self, task_ticket=None):
-        query = self.executor_task_info_tb.search(
-            Query().task_ticket == task_ticket)
-        if len(query) == 1:
-            return query[0]
-        else:
-            return None
-
-    # this keep all the task parameters and which function to be choose in db
-    def create_a_task_with_from_central(self, task_ticket, task_name, task_function_key, task_parameters):
-        # this function did not map any task function
-        if self.task_func_map.get(task_function_key) == None:
-            return False
-        task_info = self.get_task_info(task_ticket)
-
-        # new task
-        if task_info == None:
-            self.executor_task_info_tb.insert({
-                TaskInfo.task_ticket: task_ticket,
-                TaskInfo.task_name: task_name,
-                TaskSheet.task_function_key: task_function_key,
-                TaskSheet.task_parameters: task_parameters,
-                TaskInfo.task_status: TaskStatus.initialized
-            })
-            return True
-        # duplicate creation
-        else:
-            return False
-
     # run the task created by central
-    def run_the_task(self, task_ticket):
-        task_info = self.get_task_info(task_ticket)
-
+    def run_the_task(self, task):
         self.start_a_task(
-            task_info[TaskInfo.task_ticket],
-            self.task_func_map[task_info[TaskSheet.task_function_key]],
-            task_info[TaskSheet.task_parameters]
+            task[TaskInfo.task_ticket],
+            self.task_func_map[task[TaskSheet.task_function_key]],
+            task[TaskSheet.task_parameters]
         )
-
-        return task_ticket
 
     def delete_the_task(self, task_ticket):
         task_rs_path = os.path.join(self.static_path, 'rs', task_ticket)
@@ -296,14 +237,7 @@ class TaskExecutor(TaskComponent):
 
     # TODO: run the task created by executor
     def request_ticket_and_start_task(self, task_name, task_function_key, task_parameters):
-        task_ticket = self.request_task_ticket(task_name)
-        self.create_a_task_with_from_central(
-            task_ticket, task_name, task_function_key, task_parameters)
-        print(f'{self.get_executor_id()} requested a ticket: {task_ticket}')
-        if task_ticket != None:
-            # WARNNING: executor and task_ticket will be the first two arguments of the func
-            self.run_the_task(task_ticket)
-            return task_ticket
+        pass
 
     def reset(self):
         self.executor_reg_info_tb.truncate()

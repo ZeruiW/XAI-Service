@@ -37,11 +37,7 @@
           <td>{{ item.pipeline_id }}</td>
           <td>{{ item.pipeline_name }}</td>
           <td>
-            {{
-              item.xai_task_sheet_status +
-              ", " +
-              item.evaluation_task_sheet_status
-            }}
+            {{ item.xai_task_status + ", " + item.evaluation_task_status }}
           </td>
           <td style="text-align: right">
             <v-btn
@@ -300,13 +296,13 @@
               <v-container>
                 <v-expansion-panels>
                   <v-expansion-panel
-                    v-if="current_pipeline.xai_task_sheet_status !== 'finished'"
+                    v-if="current_pipeline.xai_task_status !== 'finished'"
                     title="Show Result"
                     text="No Result Yet."
                   >
                   </v-expansion-panel>
                   <v-expansion-panel
-                    v-if="current_pipeline.xai_task_sheet_status === 'finished'"
+                    v-if="current_pipeline.xai_task_status === 'finished'"
                     title="Show Result"
                   >
                     <v-expansion-panel-text
@@ -394,8 +390,7 @@
                 <v-expansion-panels>
                   <v-expansion-panel
                     v-if="
-                      current_pipeline.evaluation_task_sheet_status !==
-                      'finished'
+                      current_pipeline.evaluation_task_status !== 'finished'
                     "
                     title="Show Result"
                     text="No Result Yet."
@@ -403,8 +398,7 @@
                   </v-expansion-panel>
                   <v-expansion-panel
                     v-if="
-                      current_pipeline.evaluation_task_sheet_status ===
-                      'finished'
+                      current_pipeline.evaluation_task_status === 'finished'
                     "
                     title="Show Result"
                   >
@@ -576,8 +570,8 @@ export default {
     },
     currentPipelineRunnable() {
       return (
-        this.current_pipeline.xai_task_sheet_status === "initialized" ||
-        this.current_pipeline.evaluation_task_sheet_status === "initialized"
+        this.current_pipeline.xai_task_status === "initialized" ||
+        this.current_pipeline.evaluation_task_status === "initialized"
       );
     },
     runPipeline() {
@@ -707,10 +701,10 @@ export default {
     openPRSDD(item) {
       this.prsddialog = true;
       this.current_pipeline = item;
-      if (this.current_pipeline.xai_task_sheet_status === "finished") {
+      if (this.current_pipeline.xai_task_status === "finished") {
         this.fetchTaskResult(this.current_pipeline.xai_task_ticket, "xai");
       }
-      if (this.current_pipeline.evaluation_task_sheet_status === "finished") {
+      if (this.current_pipeline.evaluation_task_status === "finished") {
         this.fetchTaskResult(
           this.current_pipeline.evaluation_task_ticket,
           "evaluation"
@@ -787,8 +781,8 @@ export default {
             let hasRunning = false;
             for (const p of this.pipelines) {
               if (
-                p.xai_task_sheet_status === "running" ||
-                p.evaluation_task_sheet_status === "running"
+                p.xai_task_status === "running" ||
+                p.evaluation_task_status === "running"
               ) {
                 hasRunning = true;
                 break;

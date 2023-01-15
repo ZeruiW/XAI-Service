@@ -82,7 +82,7 @@ def task():
         task_sheet_id = request.args.get('task_sheet_id')
 
         if task_sheet_id != None:
-            return jsonify(tp.get_task_info_by_task_sheet_id(task_sheet_id, True))
+            return jsonify(tp.get_task_info_by_task_sheet_id(task_sheet_id))
     else:
         form_data = request.form
         act = form_data['act']
@@ -92,6 +92,12 @@ def task():
         if act == 'delete':
             task_ticket = form_data['task_ticket']
             tp.pipeline.delete_task(task_ticket)
+
+        if act == 'update_task_status':
+            task_ticket = form_data[TaskInfo.task_ticket]
+            task_status = form_data[TaskInfo.task_status]
+            tp.pipeline.update_task_status(task_ticket, task_status)
+
         return ""
 
 
@@ -154,11 +160,6 @@ def pipeline():
             pipeline_id = form_data[Pipeline.pipeline_id]
             pipeline_info = tp.pipeline.stop_pipeline(pipeline_id)
             return jsonify(pipeline_info)
-
-        if act == 'update_task_status':
-            task_ticket = form_data[TaskInfo.task_ticket]
-            task_status = form_data[TaskInfo.task_status]
-            tp.pipeline.update_pipeline_task_status(task_ticket, task_status)
 
         if act == 'del':
             pipeline_id = form_data[Pipeline.pipeline_id]

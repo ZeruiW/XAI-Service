@@ -36,7 +36,7 @@ def run_pipeline_tasks(task_ticket, task_parameters):
 
         ticket = run_task_with_sheet(
             executor_task_ticket, executor_endpoint_url)
-        pipeline[Pipeline.xai_task_sheet_status] = TaskStatus.running
+        pipeline[Pipeline.xai_task_status] = TaskStatus.running
         pipeline[Pipeline.xai_task_ticket] = ticket
 
         db.pipeline_tb.update(
@@ -53,7 +53,7 @@ def run_pipeline_tasks(task_ticket, task_parameters):
             executor_registration_infos, executor_id)
         ticket = run_task_with_sheet(
             executor_task_ticket, executor_endpoint_url)
-        pipeline[Pipeline.evaluation_task_sheet_status] = TaskStatus.running
+        pipeline[Pipeline.evaluation_task_status] = TaskStatus.running
         pipeline[Pipeline.evaluation_task_ticket] = ticket
 
         db.pipeline_tb.update(

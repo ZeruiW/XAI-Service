@@ -88,10 +88,7 @@ class ExecutorBluePrint(Blueprint):
         @self.route('/task', methods=['GET', 'POST'])
         def task():
             if request.method == 'GET':
-                # get task status
-                task_ticket = request.args.get(TaskInfo.task_ticket)
-                tl = self.te.process_holder_str(task_ticket)
-                return jsonify(tl)
+                pass
             else:
                 form_data = request.form
                 act = form_data['act']
@@ -100,32 +97,10 @@ class ExecutorBluePrint(Blueprint):
                     task_ticket = form_data[TaskInfo.task_ticket]
                     self.te.terminate_process(task_ticket)
 
-                # create a task info which assigned by the central
-                if act == 'create':
-                    task_ticket = form_data[TaskInfo.task_ticket]
-                    task_name = form_data[TaskInfo.task_name]
-                    task_function_key = form_data[TaskSheet.task_function_key]
-                    print(form_data[TaskSheet.task_parameters])
-                    task_parameters = dict(json.loads(
-                        form_data[TaskSheet.task_parameters]))
-
-                    rs = self.te.create_a_task_with_from_central(
-                        task_ticket,
-                        task_name,
-                        task_function_key,
-                        task_parameters
-                    )
-
-                    if not rs:
-                        return Response("", status=400)
-
                 # run a task which assigned by the central
                 if act == 'run':
-                    task_ticket = form_data[TaskInfo.task_ticket]
-                    self.te.run_the_task(task_ticket)
-                    return jsonify({
-                        TaskInfo.task_ticket: task_ticket
-                    })
+                    task = json.loads(form_data['task'])
+                    self.te.run_the_task(task)
 
                 if act == 'delete':
                     task_ticket = form_data[TaskInfo.task_ticket]

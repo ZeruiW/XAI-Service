@@ -13,8 +13,10 @@ from xai_backend_central_dev.constant import TaskType
 from xai_backend_central_dev.constant import ExecutorTicketInfo
 from xai_backend_central_dev.constant import TaskInfo
 from xai_backend_central_dev.constant import ExecutorRegInfo
+from xai_backend_central_dev.constant import Mongo
 
 from xai_backend_central_dev.pipeline_db_helper import PipelineDB
+from bson.json_util import dumps
 
 
 class TaskPublisher(TaskComponent):
@@ -27,24 +29,14 @@ class TaskPublisher(TaskComponent):
 
         c_db_path = os.path.join(self.db_path, 'central_db.json')
         self.db = TinyDB(c_db_path)
-        self.ticket_info_map_tb = self.db.table('ticket_info_map')
-        self.executor_registration_tb = self.db.table('executor_registration')
         self.central_info_tb = self.db.table('central_info')
 
         self.pipeline = TaskPipeline(self)
-        # print(self.ticket_info_map_tb.all())
-        # print(self.executor_registration_tb.all())
 
         # recover activation
         central_info = self.central_info_tb.all()
         if len(central_info) == 1:
             self.publisher_endpoint_url = central_info[0]['publisher_endpoint_url']
-
-    def __feed_info__(self, task_info: dict):
-        task_info[TaskInfo.publisher] = self.publisher_name
-        if task_info.get(TaskInfo.time_tail) == None:
-            task_info[TaskInfo.time_tail] = str(time.time()).split('.')[1]
-        return task_info
 
     def is_activated(self):
         return self.publisher_endpoint_url != None
@@ -62,214 +54,105 @@ class TaskPublisher(TaskComponent):
 
     def get_executor_registration_info(self, executor_id=None):
         if executor_id == None:
-            return self.executor_registration_tb.all()
+            return self.mondb.find(
+                Mongo.executor_registration_col, {})
         else:
-            query = self.executor_registration_tb.search(
-                Query().executor_id == executor_id)
-            if len(query) == 0:
-                return None
-            else:
-                return query[0]
+            return self.mondb.find_one(
+                Mongo.executor_registration_col, {ExecutorRegInfo.executor_id: executor_id})
 
     def remove_task_ticket(self, executor_id, task_ticket):
-        executor_ticket_info = self.ticket_info_map_tb.search(
-            Query().executor_id == executor_id)
+        pass
 
-        if len(executor_ticket_info) != 0:
-            executor_ticket_info[0][ExecutorTicketInfo.ticket_infos].pop(
-                task_ticket, None)
-            self.ticket_info_map_tb.update(
-                executor_ticket_info[0], Query().executor_id == executor_id)
-
-    def gen_task_ticket(self, executor_id, task_name, task_sheet_id):
-        if not self.is_activated():
-            return "central not activated"
-        if self.if_executor_registered(executor_id):
-            task_ticket_gen_info = {
-                'executor_id': executor_id,
-                'task_sheet_id': task_sheet_id,
-                'task_name': task_name,
-            }
-            task_ticket_gen_info = self.__feed_info__(task_ticket_gen_info)
-            task_ticket = __get_random_string__(
-                15) + '.' + task_ticket_gen_info[TaskInfo.time_tail] + '.' + executor_id
-
-            # remove duplicated ticket information
-            task_ticket_gen_info.pop(TaskInfo.task_ticket, None)
-
-            executor_ticket_info = self.ticket_info_map_tb.search(
-                Query().executor_id == executor_id)
-
-            if len(executor_ticket_info) == 0:
-                self.ticket_info_map_tb.insert({
-                    ExecutorTicketInfo.executor_id: executor_id,
-                    ExecutorTicketInfo.ticket_infos: {}
-                })
-
-            executor_ticket_info = self.ticket_info_map_tb.search(
-                Query().executor_id == executor_id)[0]
-
-            executor_ticket_info[ExecutorTicketInfo.ticket_infos][task_ticket] = dict(
-                **task_ticket_gen_info,
-                request_time=time.time()
-            )
-
-            self.ticket_info_map_tb.update(
-                executor_ticket_info, Query().executor_id == executor_id)
-
-            return task_ticket
+    def gen_task_ticket(self, executor_id, task_name, task_sheet):
+        if not self.is_activated() or not self.if_executor_registered(executor_id):
+            return None
         else:
-            return "executor not register"
+            task_ticket_info = {
+                TaskInfo.task_ticket: __get_random_string__(
+                    15) + '.' + executor_id,
+                TaskInfo.executor_id: executor_id,
+                TaskInfo.task_sheet_id: task_sheet[TaskSheet.task_sheet_id],
+                TaskInfo.task_status: TaskStatus.initialized,
+                TaskInfo.task_name: task_name,
+                TaskInfo.publisher: self.publisher_name,
+                TaskInfo.request_time: time.time(),
+                TaskInfo.start_time: TaskInfo.empty,
+                TaskInfo.end_time: TaskInfo.empty,
+                TaskInfo.task_function_key: task_sheet[TaskSheet.task_function_key]
+            }
 
-    def get_task_info_by_task_sheet_id(self, task_sheet_id, with_status: bool = False):
-        all_ticket_infos = self.ticket_info_map_tb.all()
-        target_executor_id = None
-        rs = {}
-        for info in all_ticket_infos:
-            executor_id = info['executor_id']
-            ticket_infos = info['ticket_infos']
-            for ticket, task_info in ticket_infos.items():
-                if task_info[TaskSheet.task_sheet_id] == task_sheet_id:
-                    task_info['task_ticket'] = ticket
-                    rs[ticket] = task_info
-                    target_executor_id = executor_id
+            task_parameters = task_sheet[TaskSheet.task_parameters]
+            executor_reg_info = self.get_executor_registration_info(
+                executor_id)
 
-        if target_executor_id == None:
-            return rs
+            # fill executor endpoint url
+            task_ticket_info[TaskInfo.executor_endpoint_url] = executor_reg_info[ExecutorRegInfo.executor_endpoint_url]
 
-        if with_status:
-            executor_reg_info = self.executor_registration_tb.search(
-                Query().executor_id == target_executor_id)[0]
+            # fill parameters with executor url
+            if task_sheet[TaskSheet.db_service_executor_id] != TaskSheet.empty:
+                db_executor_reg_info = self.get_executor_registration_info(
+                    executor_id=task_sheet[TaskSheet.db_service_executor_id])
+                if type(db_executor_reg_info) is not list:
+                    task_parameters[TaskInfo.db_service_url] = db_executor_reg_info[ExecutorRegInfo.executor_endpoint_url]
 
-            executor_endpoint_url = executor_reg_info[ExecutorRegInfo.executor_endpoint_url]
+            if task_sheet[TaskSheet.model_service_executor_id] != TaskSheet.empty:
+                model_executor_reg_info = self.get_executor_registration_info(
+                    executor_id=task_sheet[TaskSheet.model_service_executor_id])
+                if type(model_executor_reg_info) is not list:
+                    task_parameters[TaskInfo.model_service_url] = model_executor_reg_info[ExecutorRegInfo.executor_endpoint_url]
 
-            executor_tasks_status = None
-            try:
-                response = requests.get(
-                    executor_endpoint_url + '/task')
-                executor_tasks_status = json.loads(
-                    response.content.decode('utf-8'))
-            except:
-                if executor_tasks_status == None:
-                    executor_tasks_status = []
+            if task_sheet[TaskSheet.xai_service_executor_id] != TaskSheet.empty:
+                xai_executor_reg_info = self.get_executor_registration_info(
+                    executor_id=task_sheet[TaskSheet.xai_service_executor_id])
+                if type(xai_executor_reg_info) is not list:
+                    task_parameters[TaskInfo.xai_service_url] = xai_executor_reg_info[ExecutorRegInfo.executor_endpoint_url]
 
-            for executor_task_status in executor_tasks_status:
-                r = rs.get(executor_task_status['task_ticket'])
-                if r is not None:
-                    r['task_status'] = executor_task_status
+            if task_sheet[TaskSheet.evaluation_service_executor_id] != TaskSheet.empty:
+                evaluation_executor_reg_info = self.get_executor_registration_info(
+                    executor_id=task_sheet[TaskSheet.evaluation_service_executor_id])
+                if type(evaluation_executor_reg_info) is not list:
+                    task_parameters[TaskInfo.evaluation_service_url] = evaluation_executor_reg_info[ExecutorRegInfo.executor_endpoint_url]
 
-        return rs
+            # add explanation task ticket to param
+            if task_sheet[TaskSheet.task_type] == TaskType.evaluation:
+                explanation_task_ticket = task_parameters['explanation_task_ticket']
+                xai_task_ticket_info = self.get_ticket_info(
+                    explanation_task_ticket)
+                task_parameters['explanation_task_parameters'] = \
+                    xai_task_ticket_info[TaskSheet.task_parameters]
+
+            task_ticket_info[TaskInfo.task_parameters] = task_parameters
+
+            self.mondb.insert_one(Mongo.task_col, task_ticket_info)
+
+            return self.mondb.parse_json(task_ticket_info)
+
+    def get_task_info_by_task_sheet_id(self, task_sheet_id):
+        return self.mondb.find(Mongo.task_col, {
+            TaskInfo.task_sheet_id: task_sheet_id
+        })
 
     def get_ticket_info(self, target_ticket: str, with_status: bool = False):
-        all_ticket_info = self.ticket_info_map_tb.all()
-
-        all_ticket_info_tmp = {}
-        for executor_ticket_info in all_ticket_info:
-            executor_id = executor_ticket_info[ExecutorTicketInfo.executor_id]
-            ticket_infos = executor_ticket_info[ExecutorTicketInfo.ticket_infos]
-            all_ticket_info_tmp[executor_id] = ticket_infos
-
-        all_ticket_info = all_ticket_info_tmp
-
-        # print(self.ticket_info_map_tb.all())
-
         if target_ticket == None:
-            if with_status:
-                for executor_id, ticket_infos in all_ticket_info.items():
-                    # ANCHOR: what if unknow executor_id
-                    executor_reg_info = self.executor_registration_tb.search(
-                        Query().executor_id == executor_id)
-
-                    if len(executor_reg_info) == 0:
-                        continue
-                    else:
-                        executor_reg_info = executor_reg_info[0]
-
-                    executor_endpoint_url = executor_reg_info[ExecutorRegInfo.executor_endpoint_url]
-                    try:
-                        response = requests.get(
-                            executor_endpoint_url + '/task')
-                        executor_tasks_status = json.loads(
-                            response.content.decode('utf-8'))
-                    except:
-                        if executor_tasks_status == None:
-                            executor_tasks_status = []
-
-                    for executor_task_status in executor_tasks_status:
-                        current_task_ticket = executor_task_status.get(
-                            TaskInfo.task_ticket)
-                        if current_task_ticket != None and all_ticket_info[executor_id].get(current_task_ticket) != None:
-                            executor_task_status.pop(
-                                TaskInfo.task_ticket, None)
-                            all_ticket_info[executor_id][current_task_ticket]['task_status'] = executor_task_status
-
-            formated_all_ticket_info = {}
-            for executor_id, ticket_infos in all_ticket_info.items():
-                executor_reg_info = self.executor_registration_tb.search(
-                    Query().executor_id == executor_id)
-
-                if len(executor_reg_info) == 0:
-                    continue
-                else:
-                    executor_reg_info = executor_reg_info[0]
-
-                formated_all_ticket_info[executor_id] = dict(
-                    executor=executor_reg_info,
-                    ticket_infos=ticket_infos
-                )
-
-            return formated_all_ticket_info
+            return self.mondb.find(Mongo.task_col, {})
         else:
-            find_target_task_ticket = None
-            find_target_task_ticket_info = None
-            find_target_task_ticket_executor_id = None
-
-            for executor_id, ticket_infos in all_ticket_info.items():
-                for current_task_ticket, ticket_info in ticket_infos.items():
-                    if current_task_ticket == target_ticket:
-                        find_target_task_ticket = target_ticket
-                        find_target_task_ticket_info = ticket_info
-                        find_target_task_ticket_executor_id = executor_id
-                        break
-
-            if find_target_task_ticket_executor_id != None and find_target_task_ticket_info != None:
-                executor_reg_info = self.executor_registration_tb.search(
-                    Query().executor_id == find_target_task_ticket_executor_id)
-
-                if len(executor_reg_info) == 0:
-                    return None
-                else:
-                    executor_reg_info = executor_reg_info[0]
-
-                if with_status:
-                    executor_endpoint_url = executor_reg_info[ExecutorRegInfo.executor_endpoint_url]
-                    response = requests.get(
-                        executor_endpoint_url + '/task',
-                        params={
-                            TaskInfo.task_ticket: find_target_task_ticket,
-                        })
-                    executor_task_status = json.loads(
-                        response.content.decode('utf-8'))
-
-                    # remove duplicated ticket information
-                    executor_task_status.pop(TaskInfo.task_ticket, None)
-                    find_target_task_ticket_info['task_status'] = executor_task_status
-
-                find_target_task_ticket_info['executor_registeration_info'] = executor_reg_info
-                find_target_task_ticket_info[TaskInfo.task_ticket] = find_target_task_ticket
-                return find_target_task_ticket_info
-            else:
-                return
+            return self.mondb.find_one(Mongo.task_col, {
+                TaskInfo.task_ticket: target_ticket
+            })
 
     def register_executor_endpoint(self,
                                    executor_type: str,
                                    executor_endpoint_url: str,
-                                   executor_info: dict):
+                                   executor_info: dict,
+                                   executor_owner="Jim"):
         existed_executor_id = None
-        all_executor_registration_info = self.executor_registration_tb.all()
+        all_executor_registration_info = self.mondb.find(
+            Mongo.executor_registration_col, {})
         # print(all_executor_registration_info)
         for e_rg_info in all_executor_registration_info:
-            if e_rg_info[ExecutorRegInfo.executor_info] == executor_info and e_rg_info[ExecutorRegInfo.executor_type] == executor_type:
+            # if url and type is the same, consider the update
+            if e_rg_info[ExecutorRegInfo.executor_endpoint_url] == executor_endpoint_url \
+                    and e_rg_info[ExecutorRegInfo.executor_type] == executor_type:
                 existed_executor_id = e_rg_info[ExecutorRegInfo.executor_id]
                 break
 
@@ -279,12 +162,16 @@ class TaskPublisher(TaskComponent):
         else:
             _id = __get_random_string_no_low__(10)
 
+        reg_time = time.time()
+
         # send reg info to executor service
         resp = requests.post(
             executor_endpoint_url + '/executor',
             data={
                 'act': 'reg',
                 ExecutorRegInfo.executor_id: _id,
+                ExecutorRegInfo.executor_owner: executor_owner,
+                ExecutorRegInfo.executor_register_time: reg_time,
                 ExecutorRegInfo.executor_type: executor_type,
                 ExecutorRegInfo.executor_endpoint_url: executor_endpoint_url,
                 ExecutorRegInfo.executor_info: json.dumps(executor_info),
@@ -293,72 +180,58 @@ class TaskPublisher(TaskComponent):
         )
 
         if resp.status_code == 200:
-            if existed_executor_id != None and _id == existed_executor_id:
-                self.executor_registration_tb.update({
-                    ExecutorRegInfo.executor_id: _id,
-                    ExecutorRegInfo.executor_info: executor_info,
-                    ExecutorRegInfo.executor_endpoint_url: executor_endpoint_url,
-                }, Query().executor_id == _id)
+            if existed_executor_id != None:
+                self.mondb.update_one(Mongo.executor_registration_col, {
+                    ExecutorRegInfo.executor_id: existed_executor_id
+                }, {
+                    "$set": {
+                        ExecutorRegInfo.executor_info: executor_info,
+                    },
+                    "$currentDate": {"last_modified": {"$type": "timestamp"}}
+                })
             else:
-                self.executor_registration_tb.insert({
+                executor_reg_info = {
                     ExecutorRegInfo.executor_id: _id,
+                    ExecutorRegInfo.executor_owner: executor_owner,
+                    ExecutorRegInfo.executor_register_time: reg_time,
                     ExecutorRegInfo.executor_type: executor_type,
                     ExecutorRegInfo.executor_info: executor_info,
                     ExecutorRegInfo.executor_endpoint_url: executor_endpoint_url,
-                })
+                }
+                self.mondb.insert_one(Mongo.executor_registration_col,
+                                      executor_reg_info)
             return _id
         else:
             return None
 
     def reset_all_data(self):
-        self.ticket_info_map_tb.truncate()
-        self.pipeline.pipeline_tb.truncate()
-        self.pipeline.xai_task_sheet_tb.truncate()
-        self.pipeline.evaluation_task_sheet_tb.truncate()
-        self.pipeline.prediction_task_sheet_tb.truncate()
+        # TODO: mongo reset
+        pass
+        # self.ticket_info_map_tb.truncate()
+        # self.pipeline.pipeline_tb.truncate()
+        # self.pipeline.xai_task_sheet_tb.truncate()
+        # self.pipeline.evaluation_task_sheet_tb.truncate()
+        # self.pipeline.prediction_task_sheet_tb.truncate()
 
-        exe_reg_infos = self.get_executor_registration_info()
-        for exe_reg_info in exe_reg_infos:
-            try:
-                requests.get(
-                    exe_reg_info[ExecutorRegInfo.executor_endpoint_url] + '/reset'
-                )
-            except Exception:
-                pass
+        # exe_reg_infos = self.get_executor_registration_info()
+        # for exe_reg_info in exe_reg_infos:
+        #     try:
+        #         requests.get(
+        #             exe_reg_info[ExecutorRegInfo.executor_endpoint_url] + '/reset'
+        #         )
+        #     except Exception:
+        #         pass
 
-        self.executor_registration_tb.truncate()
+        # self.executor_registration_tb.truncate()
 
     def if_executor_registered(self, executor_id: str):
-        return len(self.executor_registration_tb.search(Query().executor_id == executor_id)) > 0
-
-    def update_executor_endpoint(self, executor_id,
-                                 executor_endpoint_url: str,
-                                 executor_info: dict):
-        executor_reg_info = self.get_executor_registration_info(executor_id)
-        if executor_info != None:
-            resp = requests.post(
-                executor_endpoint_url + '/executor',
-                data={
-                    'act': 'update',
-                    ExecutorRegInfo.executor_id: executor_id,
-                    ExecutorRegInfo.executor_endpoint_url: executor_endpoint_url,
-                    ExecutorRegInfo.executor_info: json.dumps(executor_info),
-                    ExecutorRegInfo.publisher_endpoint_url: self.publisher_endpoint_url
-                }
-            )
-
-            if resp.status_code == 200:
-                executor_reg_info[ExecutorRegInfo.executor_info] = executor_info
-                executor_reg_info[ExecutorRegInfo.executor_endpoint_url] = executor_endpoint_url
-                self.executor_registration_tb.update(
-                    executor_reg_info, Query().executor_id == executor_id)
-                return executor_id
-            else:
-                return None
+        return self.mondb.find_one(Mongo.executor_registration_col, {
+            ExecutorRegInfo.executor_id: executor_id
+        }) is not None
 
     def delete_executor_endpoint(self, executor_id):
-        self.executor_registration_tb.remove(
-            Query().executor_id == executor_id)
+        self.mondb.delete_one(Mongo.executor_registration_col, {
+                              ExecutorRegInfo.executor_id: executor_id})
 
 
 class TaskPipeline():
@@ -385,11 +258,6 @@ class TaskPipeline():
         self.db = PipelineDB(self.pipeline_db_path)
 
         self.pipeline_tb = self.db.pipeline_tb
-        self.xai_task_sheet_tb = self.db.xai_task_sheet_tb
-        self.evaluation_task_sheet_tb = self.db.evaluation_task_sheet_tb
-
-        # TODO: predictionn task
-        self.prediction_task_sheet_tb = self.db.prediction_task_sheet_tb
 
     def create_pipeline(self, pipeline_name: str):
         pipeline_id = __get_random_string_no_low__(18)
@@ -398,15 +266,17 @@ class TaskPipeline():
             Pipeline.created_time: time.time(),
             Pipeline.pipeline_name: pipeline_name,
             Pipeline.xai_task_sheet_id: TaskSheet.empty,
-            Pipeline.xai_task_sheet_status: TaskStatus.undefined,
+            Pipeline.xai_task_status: TaskStatus.undefined,
             Pipeline.xai_task_ticket: TaskSheet.empty,
             Pipeline.evaluation_task_sheet_id: TaskSheet.empty,
-            Pipeline.evaluation_task_sheet_status: TaskStatus.undefined,
+            Pipeline.evaluation_task_status: TaskStatus.undefined,
             Pipeline.evaluation_task_ticket: TaskSheet.empty,
         }
 
-        self.pipeline_tb.insert(pipeline_info)
-        return pipeline_info
+        self.task_publisher.mondb.insert_one(Mongo.pipeline_col, pipeline_info)
+        return self.task_publisher.mondb.find_one(Mongo.pipeline_col, {
+            Pipeline.pipeline_id: pipeline_id
+        })
 
     def create_task_sheet(self, payload: dict):
 
@@ -423,25 +293,21 @@ class TaskPipeline():
             TaskSheet.task_parameters: json.loads(payload.get(TaskSheet.task_parameters)),
         }
 
-        if task_type == TaskType.xai:
-            task_tb = self.xai_task_sheet_tb
-        elif task_type == TaskType.evaluation:
-            task_tb = self.evaluation_task_sheet_tb
-        else:
-            task_tb = self.prediction_task_sheet_tb
+        task_tb = self.task_publisher.mondb.col(Mongo.task_sheet_col)
 
-        task_sheet_query = task_tb.search(
-            Query().fragment(task_sheet))
+        task_sheet[TaskSheet.task_sheet_id] = __get_random_string_no_low__(15)
+        task_tb.insert_one(task_sheet)
+        return task_sheet[TaskSheet.task_sheet_id]
 
-        if len(task_sheet_query) > 0:
-            # duplicated
-            return task_sheet_query[0][TaskSheet.task_sheet_id]
-        else:
-            task_sheet[TaskSheet.task_sheet_id] = \
-                __get_random_string_no_low__(15)
-
-            task_tb.insert(task_sheet)
-            return task_sheet[TaskSheet.task_sheet_id]
+    def update_task_status(self, task_ticket, task_status):
+        self.task_publisher.mondb.update_one(Mongo.task_col, {
+            TaskInfo.task_ticket: task_ticket
+        }, {
+            "$set": {
+                TaskInfo.task_status: task_status,
+                TaskInfo.end_time: time.time() if task_status == TaskStatus.finished else ''
+            },
+        })
 
     def update_pipeline_task_status(self, task_ticket, task_status):
         pipelines = self.get_pipeline()
@@ -449,11 +315,11 @@ class TaskPipeline():
         task_type = None
         for pipeline in pipelines:
             if task_ticket == pipeline[Pipeline.xai_task_ticket]:
-                pipeline[Pipeline.xai_task_sheet_status] = task_status
+                pipeline[Pipeline.xai_task_status] = task_status
                 find = True
                 task_type = TaskType.xai
             if task_ticket == pipeline[Pipeline.evaluation_task_ticket]:
-                pipeline[Pipeline.evaluation_task_sheet_status] = task_status
+                pipeline[Pipeline.evaluation_task_status] = task_status
                 find = True
                 task_type = TaskType.evaluation
             if find:
@@ -464,96 +330,26 @@ class TaskPipeline():
                     pipeline, Query().pipeline_id == pipeline_id)
                 if task_type == TaskType.xai \
                     and self.__eval_task_ready_for_run__(pipeline) \
-                        and pipeline[Pipeline.xai_task_sheet_status] == TaskStatus.finished:
+                        and pipeline[Pipeline.xai_task_status] == TaskStatus.finished:
                     self.__run_pipeline_with_pipeline__(pipeline)
 
                 break
 
     def get_pipeline(self, pipeline_id: str = None):
         if pipeline_id == None:
-            all_pipeline = self.pipeline_tb.all()
-            for pipeline in all_pipeline:
-                self.check_pipeline_status(pipeline)
-            return self.pipeline_tb.all()
+            return self.task_publisher.mondb.find(Mongo.pipeline_col, {})
         else:
-            pipeline = self.pipeline_tb.search(
-                Query().pipeline_id == pipeline_id)[0]
-            self.check_pipeline_status(pipeline)
-            return self.pipeline_tb.search(Query().pipeline_id == pipeline_id)
+            return self.task_publisher.mondb.find_one(Mongo.pipeline_col, {
+                Pipeline.pipeline_id: pipeline_id
+            })
 
     def get_task_sheet(self, task_sheet_ids):
         if task_sheet_ids == None:
-            return [
-                *self.xai_task_sheet_tb.all(),
-                *self.evaluation_task_sheet_tb.all(),
-            ]
+            return self.task_publisher.mondb.find(Mongo.task_sheet_col, {})
 
-        def tf(v, *l):
-            return v in [*l]
-        return [
-            *self.xai_task_sheet_tb.search(Query().task_sheet_id.test(tf, *task_sheet_ids)),
-            *self.evaluation_task_sheet_tb.search(
-                Query().task_sheet_id.test(tf, *task_sheet_ids)),
-        ]
-
-    def tell_executor_about_the_task(self, task_executor_id, task_name, task_sheet):
-        # request a ticket from central here
-        task_ticket = self.task_publisher.gen_task_ticket(
-            executor_id=task_executor_id, task_name=task_name, task_sheet_id=task_sheet[TaskSheet.task_sheet_id])
-
-        executor_reg_info = self.task_publisher.get_executor_registration_info(
-            executor_id=task_executor_id)
-
-        # add services url into the parameters
-        if task_sheet[TaskSheet.db_service_executor_id] != TaskSheet.empty:
-            db_executor_reg_info = self.task_publisher.get_executor_registration_info(
-                executor_id=task_sheet[TaskSheet.db_service_executor_id])
-            if type(db_executor_reg_info) is not list:
-                task_sheet[TaskSheet.task_parameters][TaskInfo.db_service_url] = db_executor_reg_info[ExecutorRegInfo.executor_endpoint_url]
-
-        if task_sheet[TaskSheet.model_service_executor_id] != TaskSheet.empty:
-            model_executor_reg_info = self.task_publisher.get_executor_registration_info(
-                executor_id=task_sheet[TaskSheet.model_service_executor_id])
-            if type(model_executor_reg_info) is not list:
-                task_sheet[TaskSheet.task_parameters][TaskInfo.model_service_url] = model_executor_reg_info[ExecutorRegInfo.executor_endpoint_url]
-
-        if task_sheet[TaskSheet.xai_service_executor_id] != TaskSheet.empty:
-            xai_executor_reg_info = self.task_publisher.get_executor_registration_info(
-                executor_id=task_sheet[TaskSheet.xai_service_executor_id])
-            if type(xai_executor_reg_info) is not list:
-                task_sheet[TaskSheet.task_parameters][TaskInfo.xai_service_url] = xai_executor_reg_info[ExecutorRegInfo.executor_endpoint_url]
-
-        if task_sheet[TaskSheet.evaluation_service_executor_id] != TaskSheet.empty:
-            evaluation_executor_reg_info = self.task_publisher.get_executor_registration_info(
-                executor_id=task_sheet[TaskSheet.evaluation_service_executor_id])
-            if type(evaluation_executor_reg_info) is not list:
-                task_sheet[TaskSheet.task_parameters][TaskInfo.evaluation_service_url] = evaluation_executor_reg_info[ExecutorRegInfo.executor_endpoint_url]
-
-        if task_sheet[TaskSheet.task_type] == TaskType.evaluation:
-            explanation_task_ticket = task_sheet[TaskSheet.task_parameters]['explanation_task_ticket']
-            xai_task_ticket_info = self.task_publisher.get_ticket_info(
-                explanation_task_ticket, with_status=True)
-            task_sheet[TaskSheet.task_parameters]['explanation_task_parameters'] = \
-                xai_task_ticket_info[TaskInfo.task_status][TaskSheet.task_parameters]
-
-        # tell executor about the task
-        resp = requests.post(
-            executor_reg_info[ExecutorRegInfo.executor_endpoint_url] + '/task',
-            data={
-                'act': 'create',
-                TaskInfo.task_ticket: task_ticket,
-                TaskInfo.task_name: task_name,
-                TaskSheet.task_function_key: task_sheet[TaskSheet.task_function_key],
-                TaskSheet.task_parameters: json.dumps(task_sheet[TaskSheet.task_parameters]),
-            }
-        )
-
-        if resp.status_code != 200:
-            self.task_publisher.remove_task_ticket(
-                task_executor_id, task_ticket)
-            return None
-        else:
-            return task_ticket
+        return self.task_publisher.mondb.find(Mongo.task_sheet_col, {
+            TaskSheet.task_sheet_id: {"$in": task_sheet_ids}
+        })
 
     def add_task_to_pipeline(self, pipeline_id: str, task_name: str, task_sheet_id: str):
         pipeline = self.get_pipeline(pipeline_id)[0]
@@ -563,13 +359,13 @@ class TaskPipeline():
 
         if task_type == TaskType.xai:
             task_sheet_id_key = Pipeline.xai_task_sheet_id
-            task_sheet_status_key = Pipeline.xai_task_sheet_status
+            task_sheet_status_key = Pipeline.xai_task_status
             task_task_ticket_key = Pipeline.xai_task_ticket
             task_executor_id = task_sheet[TaskSheet.xai_service_executor_id]
 
         elif task_type == TaskType.evaluation:
             task_sheet_id_key = Pipeline.evaluation_task_sheet_id
-            task_sheet_status_key = Pipeline.evaluation_task_sheet_status
+            task_sheet_status_key = Pipeline.evaluation_task_status
             task_task_ticket_key = Pipeline.evaluation_task_ticket
             task_executor_id = task_sheet[TaskSheet.evaluation_service_executor_id]
         else:
@@ -579,12 +375,12 @@ class TaskPipeline():
         if pipeline[task_sheet_id_key] != TaskSheet.empty:
             return -1   # xai task already exist
         else:
-            required_task_ticket = self.tell_executor_about_the_task(
+            required_task = self.task_publisher.gen_task_ticket(
                 task_executor_id, task_name, task_sheet)
-            if required_task_ticket != None:
+            if required_task != None:
                 pipeline[task_sheet_id_key] = task_sheet_id
                 pipeline[task_sheet_status_key] = TaskStatus.initialized
-                pipeline[task_task_ticket_key] = required_task_ticket
+                pipeline[task_task_ticket_key] = required_task[TaskInfo.task_ticket]
 
         self.pipeline_tb.update(pipeline, Query().pipeline_id == pipeline_id)
         return 1
@@ -594,58 +390,53 @@ class TaskPipeline():
 
     def __xai_task_ready_for_run__(self, pipeline):
         return pipeline[Pipeline.xai_task_sheet_id] != TaskSheet.empty and \
-            pipeline[Pipeline.xai_task_sheet_status] == TaskStatus.initialized
+            pipeline[Pipeline.xai_task_status] == TaskStatus.initialized
 
     def __eval_task_ready_for_run__(self, pipeline):
         return pipeline[Pipeline.evaluation_task_sheet_id] != TaskSheet.empty and \
-            pipeline[Pipeline.evaluation_task_sheet_status] == TaskStatus.initialized
+            pipeline[Pipeline.evaluation_task_status] == TaskStatus.initialized
 
     def __get_url_from_executor_id__(self, executor_id):
         for executor_info in self.task_publisher.get_executor_registration_info():
             if executor_info[ExecutorRegInfo.executor_id] == executor_id:
                 return executor_info[ExecutorRegInfo.executor_endpoint_url]
 
-    def __get_url_and_ticket_info_from_task_ticket(self, task_ticket):
-        tikcet_infos = self.task_publisher.ticket_info_map_tb.all()
+    def tell_executor_to_run_task(self, task):
 
-        target_ticket_info = None
-        for ticket_info in tikcet_infos:
-            if task_ticket in ticket_info['ticket_infos']:
-                target_ticket_info = ticket_info
-                break
-
-        return target_ticket_info, self.__get_url_from_executor_id__(target_ticket_info['executor_id'])
-
-    def run_task_with_sheet(self, task_ticket, executor_endpoint_url):
+        self.task_publisher.mondb.update_one(Mongo.task_col, {
+            TaskInfo.task_ticket: task[TaskInfo.task_ticket]
+        }, {
+            "$set": {
+                TaskInfo.task_status: TaskStatus.running,
+                TaskInfo.start_time: time.time()
+            }
+        })
 
         payload = {
             'act': 'run',
-            'task_ticket': task_ticket
+            'task': json.dumps(task)
         }
+        requests.request(
+            "POST", f"{task[TaskInfo.executor_endpoint_url]}/task", headers={}, data=payload)
 
-        response = requests.request(
-            "POST", f"{executor_endpoint_url}/task", headers={}, data=payload)
-
-        task_ticket = json.loads(
-            response.content.decode('utf-8'))
-
-        return task_ticket[TaskInfo.task_ticket]
+        return task[TaskInfo.task_ticket]
 
     def delete_task(self, task_ticket):
-        target_ticket_info, executor_endpoint_url = self.__get_url_and_ticket_info_from_task_ticket(
-            task_ticket)
+        task_info = self.task_publisher.mondb.find_one(Mongo.task_col, {
+            TaskInfo.task_ticket: task_ticket
+        })
         payload = {
             'act': 'delete',
             'task_ticket': task_ticket
         }
 
         response = requests.request(
-            "POST", f"{executor_endpoint_url}/task", headers={}, data=payload)
+            "POST", f"{task_info[TaskInfo.executor_endpoint_url]}/task", headers={}, data=payload)
 
         if response.status_code == 200:
-            target_ticket_info['ticket_infos'].pop(task_ticket)
-            self.task_publisher.ticket_info_map_tb.update(
-                target_ticket_info, Query().executor_id == target_ticket_info['executor_id'])
+            self.task_publisher.mondb.delete_one(Mongo.task_col, {
+                TaskInfo.task_ticket: task_ticket
+            })
 
     def __run_pipeline_with_pipeline__(self, pipeline):
         pipeline_id = pipeline[Pipeline.pipeline_id]
@@ -656,25 +447,17 @@ class TaskPipeline():
             eval_ready = self.__eval_task_ready_for_run__(pipeline=pipeline)
 
             if xai_ready:
-                xai_task_sheet = self.get_task_sheet(
-                    [pipeline[Pipeline.xai_task_sheet_id]])[0]
-                executor_task_ticket = pipeline[Pipeline.xai_task_ticket]
-                executor_id = xai_task_sheet[TaskSheet.xai_service_executor_id]
-                executor_endpoint_url = self.__get_url_from_executor_id__(
-                    executor_id)
-                task_status_key = Pipeline.xai_task_sheet_status
+                task_ticket = pipeline[Pipeline.xai_task_ticket]
+                task_status_key = Pipeline.xai_task_status
             elif eval_ready:
-                eval_task_sheet = self.get_task_sheet(
-                    [pipeline[Pipeline.evaluation_task_sheet_id]])[0]
-                executor_task_ticket = pipeline[Pipeline.evaluation_task_ticket]
-                executor_id = eval_task_sheet[TaskSheet.evaluation_service_executor_id]
-                executor_endpoint_url = self.__get_url_from_executor_id__(
-                    executor_id)
-                task_status_key = Pipeline.evaluation_task_sheet_status
+                task_ticket = pipeline[Pipeline.evaluation_task_ticket]
+                task_status_key = Pipeline.evaluation_task_status
 
             if xai_ready or eval_ready:
-                self.run_task_with_sheet(
-                    executor_task_ticket, executor_endpoint_url)
+                required_task = self.task_publisher.mondb.find_one(Mongo.task_col, {
+                    TaskInfo.task_ticket: task_ticket
+                })
+                self.tell_executor_to_run_task(required_task)
                 pipeline[task_status_key] = TaskStatus.running
                 self.pipeline_tb.update(
                     pipeline, Query().pipeline_id == pipeline_id)
@@ -700,14 +483,11 @@ class TaskPipeline():
             # the prediction task does not involve in XAI pipeline
             pass
 
-        required_task_ticket = self.tell_executor_about_the_task(
+        required_task = self.task_publisher.gen_task_ticket(
             task_executor_id, task_name, task_sheet)
 
-        if required_task_ticket != None:
-            executor_endpoint_url = self.__get_url_from_executor_id__(
-                task_executor_id)
-            return self.run_task_with_sheet(
-                required_task_ticket, executor_endpoint_url)
+        if required_task != None:
+            return self.tell_executor_to_run_task(required_task)
         else:
             return None
 
@@ -726,8 +506,8 @@ class TaskPipeline():
                 src_pipeline[Pipeline.xai_task_ticket])
             src_task_name = src_task_info[TaskInfo.task_name]
             src_executor_id = src_task_info['executor_id']
-            new_xai_task_ticket = self.tell_executor_about_the_task(
-                src_executor_id, src_task_name + ' Copied', src_task_sheet)
+            new_xai_task_ticket = self.task_publisher.gen_task_ticket(
+                src_executor_id, src_task_name + ' Copied', src_task_sheet)[TaskInfo.task_ticket]
 
         if has_evaluation_task_sheet:
             src_task_sheet = self.get_task_sheet(
@@ -736,18 +516,18 @@ class TaskPipeline():
                 src_pipeline[Pipeline.evaluation_task_ticket])
             src_task_name = src_task_info[TaskInfo.task_name]
             src_executor_id = src_task_info['executor_id']
-            new_evaluation_task_ticket = self.tell_executor_about_the_task(
-                src_executor_id, src_task_name + ' Copied', src_task_sheet)
+            new_evaluation_task_ticket = self.task_publisher.gen_task_ticket(
+                src_executor_id, src_task_name + ' Copied', src_task_sheet)[TaskInfo.task_ticket]
 
         pipeline_info = {
             Pipeline.pipeline_id: pipeline_id,
             Pipeline.created_time: time.time(),
             Pipeline.pipeline_name: src_pipeline[Pipeline.pipeline_name] + ' Copied',
             Pipeline.xai_task_sheet_id: src_pipeline[Pipeline.xai_task_sheet_id],
-            Pipeline.xai_task_sheet_status: TaskStatus.initialized if has_xai_task_sheet else TaskStatus.undefined,
+            Pipeline.xai_task_status: TaskStatus.initialized if has_xai_task_sheet else TaskStatus.undefined,
             Pipeline.xai_task_ticket: new_xai_task_ticket if has_xai_task_sheet else TaskSheet.empty,
             Pipeline.evaluation_task_sheet_id: src_pipeline[Pipeline.evaluation_task_sheet_id],
-            Pipeline.evaluation_task_sheet_status: TaskStatus.initialized if has_evaluation_task_sheet else TaskStatus.undefined,
+            Pipeline.evaluation_task_status: TaskStatus.initialized if has_evaluation_task_sheet else TaskStatus.undefined,
             Pipeline.evaluation_task_ticket: new_evaluation_task_ticket if has_evaluation_task_sheet else TaskSheet.empty,
         }
 
@@ -755,7 +535,7 @@ class TaskPipeline():
         return pipeline_info
 
     def get_pipeline_status(self, pipeline):
-        return (pipeline[Pipeline.xai_task_sheet_status], pipeline[Pipeline.evaluation_task_sheet_status])
+        return (pipeline[Pipeline.xai_task_status], pipeline[Pipeline.evaluation_task_status])
 
     def check_pipeline_status(self, pipeline):
         if pipeline[Pipeline.xai_task_sheet_id] != TaskSheet.empty:
@@ -763,8 +543,8 @@ class TaskPipeline():
             ticket_info = self.task_publisher.get_ticket_info(
                 task_ticket, True)
             task_status = ticket_info[TaskInfo.task_status]
-            if task_status[TaskInfo.task_status] != pipeline[Pipeline.xai_task_sheet_status]:
-                pipeline[Pipeline.xai_task_sheet_status] = task_status[TaskInfo.task_status]
+            if task_status[TaskInfo.task_status] != pipeline[Pipeline.xai_task_status]:
+                pipeline[Pipeline.xai_task_status] = task_status[TaskInfo.task_status]
             self.pipeline_tb.update(
                 pipeline, Query().pipeline_id == pipeline[Pipeline.pipeline_id])
             return pipeline
@@ -773,17 +553,18 @@ class TaskPipeline():
             ticket_info = self.task_publisher.get_ticket_info(
                 task_ticket, True)
             task_status = ticket_info[TaskInfo.task_status]
-            if task_status[TaskInfo.task_status] != pipeline[Pipeline.evaluation_task_sheet_status]:
-                pipeline[Pipeline.evaluation_task_sheet_status] = task_status[TaskInfo.task_status]
+            if task_status[TaskInfo.task_status] != pipeline[Pipeline.evaluation_task_status]:
+                pipeline[Pipeline.evaluation_task_status] = task_status[TaskInfo.task_status]
             self.pipeline_tb.update(
                 pipeline, Query().pipeline_id == pipeline[Pipeline.pipeline_id])
             return pipeline
 
     def stop_a_task(self, task_ticket):
-        ticket_info = self.task_publisher.get_ticket_info(task_ticket)
-        executor_endpoint_url = ticket_info['executor_registeration_info'][ExecutorRegInfo.executor_endpoint_url]
+        task = self.task_publisher.mondb.find_one(Mongo.task_col, {
+            TaskInfo.task_ticket: task_ticket
+        })
         requests.post(
-            executor_endpoint_url + '/task',
+            task[TaskInfo.executor_endpoint_url] + '/task',
             data={
                 'act': 'stop',
                 TaskInfo.task_ticket: task_ticket
@@ -793,7 +574,7 @@ class TaskPipeline():
     def stop_pipeline(self, pipeline_id):
         pipeline = self.get_pipeline(pipeline_id)[0]
         executor_endpoint_url = None
-        if pipeline[Pipeline.xai_task_sheet_status] == TaskStatus.running:
+        if pipeline[Pipeline.xai_task_status] == TaskStatus.running:
             task_sheet = self.get_task_sheet(
                 [pipeline[Pipeline.xai_task_sheet_id]])[0]
             task_ticket = pipeline[Pipeline.xai_task_ticket]
@@ -803,7 +584,7 @@ class TaskPipeline():
             executor_endpoint_url = self.__get_url_from_executor_id__(
                 task_executor_id)
 
-        if pipeline[Pipeline.evaluation_task_sheet_status] == TaskStatus.running:
+        if pipeline[Pipeline.evaluation_task_status] == TaskStatus.running:
             task_sheet = self.get_task_sheet(
                 [pipeline[Pipeline.evaluation_task_sheet_id]])[0]
             task_ticket = pipeline[Pipeline.evaluation_task_ticket]
@@ -825,11 +606,12 @@ class TaskPipeline():
         return self.get_pipeline(pipeline_id)[0]
 
     def get_task_presentation(self, task_ticket):
-        ticket_info = self.task_publisher.get_ticket_info(task_ticket)
-        # print(ticket_info)
-        executor_reg_info = ticket_info['executor_registeration_info']
+        task = self.task_publisher.mondb.find_one(Mongo.task_col, {
+            TaskInfo.task_ticket: task_ticket
+        })
+        executor_endpoint_url = task[TaskInfo.executor_endpoint_url]
         response = requests.get(
-            executor_reg_info[ExecutorRegInfo.executor_endpoint_url] +
+            executor_endpoint_url +
             '/task_result_present',
             params={
                 TaskInfo.task_ticket: task_ticket,
@@ -840,22 +622,23 @@ class TaskPipeline():
 
         for sample_name, fs in pre['local'].items():
             for f in fs:
-                f['address'] = executor_reg_info[ExecutorRegInfo.executor_endpoint_url] + f['address']
+                f['address'] = executor_endpoint_url + f['address']
 
         for f in pre['global']:
-            f['address'] = executor_reg_info[ExecutorRegInfo.executor_endpoint_url] + f['address']
+            f['address'] = executor_endpoint_url + f['address']
 
         return pre
 
     def delete_pipeline(self, pipeline_id):
-        self.pipeline_tb.remove(Query().pipeline_id == pipeline_id)
+        # self.pipeline_tb.remove(Query().pipeline_id == pipeline_id)
+        self.task_publisher.mondb.delete_one(Mongo.pipeline_col, {
+            Pipeline.pipeline_id: pipeline_id
+        })
 
     def delete_task_sheet(self, task_sheet_id):
-        self.xai_task_sheet_tb.remove(Query().task_sheet_id == task_sheet_id)
-        self.evaluation_task_sheet_tb.remove(
-            Query().task_sheet_id == task_sheet_id)
-        self.prediction_task_sheet_tb.remove(
-            Query().task_sheet_id == task_sheet_id)
+        self.task_publisher.mondb.delete_one(Mongo.task_sheet_col, {
+            TaskSheet.task_sheet_id: task_sheet_id
+        })
 
     def check_task_sheet_status(self, task_sheet_id):
         pass

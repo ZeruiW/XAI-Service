@@ -261,8 +261,8 @@
               <tr class="trHover" v-for="item in tasks" :key="item.task_ticket">
                 <td>{{ item.task_name }}</td>
                 <td>{{ item.task_ticket }}</td>
-                <td>{{ item.task_status.formated_start_time }}</td>
-                <td>{{ item.task_status.formated_end_time }}</td>
+                <td>{{ timestampFormat(item.start_time) }}</td>
+                <td>{{ timestampFormat(item.end_time) }}</td>
                 <td class="stt">
                   <!-- {{
                     item.task_status.formated_start_time !== undefined &&
@@ -299,7 +299,7 @@
                 </td>
                 <td style="text-align: right" mode="out-in">
                   <v-btn
-                    v-if="item.task_status.task_status === 'finished'"
+                    v-if="item.task_status === 'finished'"
                     style="margin-left: 0.5em"
                     color="blue"
                     size="x-small"
@@ -308,7 +308,7 @@
                     >Result</v-btn
                   >
                   <v-btn
-                    v-if="item.task_status.task_status === 'running'"
+                    v-if="item.task_status === 'running'"
                     style="margin-left: 0.5em"
                     color="error"
                     size="x-small"
@@ -504,11 +504,17 @@ export default {
     taskListIntv: undefined,
   }),
   methods: {
+    timestampFormat(ts) {
+      if (ts === "" || ts === undefined) {
+        return "";
+      }
+      return ts;
+    },
     getTaskStatus(item) {
-      return item.task_status.formated_start_time !== undefined &&
-        item.task_status.task_status === "initialized"
+      return item.formated_start_time !== undefined &&
+        item.task_status === "initialized"
         ? "stopped"
-        : item.task_status.task_status;
+        : item.task_status;
     },
     deleteTaskSheet(item) {
       this.ax.post(
@@ -633,9 +639,9 @@ export default {
           success: (response) => {
             let rs = [];
             let hasRunning = false;
-            for (let key of Object.keys(response.data)) {
-              rs.push(response.data[key]);
-              if (response.data[key].task_status.task_status === "running") {
+            for (let task of response.data) {
+              rs.push(task);
+              if (task.task_status === "running") {
                 hasRunning = true;
               }
             }
@@ -662,6 +668,8 @@ export default {
     },
     closeTaskDialog() {
       this.tldialog = false;
+      this.current_task_sheet_id = "";
+      clearInterval(this.taskListIntv);
     },
     async showTaskSheetDetail(item) {
       this.openD();

@@ -42,6 +42,36 @@ It is hosted on [Vercel](https://vercel.com).
 
 # XAI Service Backend
 
+## Local Dev
+
+### MongoDB
+
+Please have the `mongo.dev.conf` or `mongo.pred.conf` under the backend folder.
+
+``` properties
+conn_str=<<your mongodb url str>>
+```
+
+
+
+### Run In Different Env Mode
+
+Please use:
+
+``` bash
+flask --app 'backend/central:create_app("dev")' run -p 5006
+```
+
+or 
+
+``` bash
+flask --app 'backend/central:create_app("pred")' run -p 5006
+```
+
+to start the flask application.
+
+
+
 ## Run Docker in Dev Env
 
 ### 1. Start-Up Local MySQL

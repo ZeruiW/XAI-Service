@@ -85,6 +85,15 @@ class ExecutorBluePrint(Blueprint):
                 return jsonify(pre)
             return ""
 
+        @self.route('/task_status', methods=['GET', 'POST'])
+        def task_status():
+            if request.method == 'GET':
+                task_ticket = request.args['task_ticket']
+                return jsonify({
+                    TaskInfo.task_status: self.te.get_task_actual_staus(
+                        task_ticket)
+                })
+
         @self.route('/task', methods=['GET', 'POST'])
         def task():
             if request.method == 'GET':

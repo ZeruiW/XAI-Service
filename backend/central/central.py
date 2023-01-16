@@ -6,6 +6,7 @@ from flask import (
 
 from xai_backend_central_dev.task_publisher import TaskPublisher
 from xai_backend_central_dev.constant import Pipeline
+from xai_backend_central_dev.constant import PipelineRun
 from xai_backend_central_dev.constant import TaskInfo
 from xai_backend_central_dev.constant import TaskSheet
 from xai_backend_central_dev.constant import ExecutorRegInfo
@@ -126,6 +127,25 @@ def ticket():
         })
 
 
+@bp.route('/pipeline_run', methods=['GET', 'POST'])
+def pipeline_run():
+    if request.method == 'GET':
+        pipeline_id = request.args.get(Pipeline.pipeline_id)
+        rs = tp.pipeline.get_pipeline_run(pipeline_id)
+        return jsonify(rs)
+    else:
+        form_data = request.form
+        act = form_data['act']
+        if act == 'delete':
+            pipeline_run_ticket = form_data[PipelineRun.pipeline_run_ticket]
+            tp.pipeline.delete_pipeline_run(pipeline_run_ticket)
+
+        if act == 'stop':
+            pipeline_run_ticket = form_data[PipelineRun.pipeline_run_ticket]
+            tp.pipeline.stop_pipeline_run(pipeline_run_ticket)
+    return ""
+
+
 @bp.route('/pipeline', methods=['GET', 'POST'])
 def pipeline():
     if request.method == 'GET':
@@ -137,15 +157,17 @@ def pipeline():
         act = form_data['act']
         if act == 'create':
             pipeline_name = form_data[Pipeline.pipeline_name]
-            pipeline_info = tp.pipeline.create_pipeline(pipeline_name)
+            xai_task_sheet_id = form_data[Pipeline.xai_task_sheet_id]
+            evaluation_task_sheet_id = form_data[Pipeline.evaluation_task_sheet_id]
+            pipeline_info = tp.pipeline.create_pipeline(
+                pipeline_name, xai_task_sheet_id, evaluation_task_sheet_id)
             return jsonify(pipeline_info)
         if act == 'add_task':
             pipeline_id = form_data[Pipeline.pipeline_id]
             task_name = form_data[TaskInfo.task_name]
             task_sheet_id = form_data[TaskSheet.task_sheet_id]
-            code = tp.pipeline.add_task_to_pipeline(
+            tp.pipeline.add_task_to_pipeline(
                 pipeline_id, task_name, task_sheet_id)
-            return jsonify(code)
         if act == 'run':
             pipeline_id = form_data[Pipeline.pipeline_id]
             pipeline_info = tp.pipeline.run_pipeline(pipeline_id)
@@ -154,11 +176,6 @@ def pipeline():
         if act == 'duplicate':
             pipeline_id = form_data[Pipeline.pipeline_id]
             pipeline_info = tp.pipeline.duplicate_pipeline(pipeline_id)
-            return jsonify(pipeline_info)
-
-        if act == 'stop':
-            pipeline_id = form_data[Pipeline.pipeline_id]
-            pipeline_info = tp.pipeline.stop_pipeline(pipeline_id)
             return jsonify(pipeline_info)
 
         if act == 'del':

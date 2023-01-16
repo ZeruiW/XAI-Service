@@ -8,7 +8,7 @@
         <div
           style="width: 50%; float: right; text-align: right; padding: 0.1em"
         >
-          <v-btn size="small" color="success" @click="openD">
+          <v-btn size="small" color="success" @click="openD()">
             Add Pipeline
           </v-btn>
         </div>
@@ -20,15 +20,17 @@
     <v-table>
       <colgroup>
         <col span="1" style="width: 20%" />
-        <col span="1" style="width: 15%" />
+        <col span="1" style="width: 10%" />
+        <col span="1" style="width: 20%" />
+        <col span="1" style="width: 20%" />
         <col span="1" style="width: 30%" />
-        <col span="1" style="width: 35%" />
       </colgroup>
       <thead>
         <tr>
           <th class="text-left font-weight-bold">ID</th>
           <th class="text-left font-weight-bold">Name</th>
-          <th class="text-left font-weight-bold">Status (XAI, Evaluation)</th>
+          <th class="text-left font-weight-bold">XAI Task Sheet ID</th>
+          <th class="text-left font-weight-bold">Evaluation Task Sheet ID</th>
           <th class="text-left font-weight-bold"></th>
         </tr>
       </thead>
@@ -37,14 +39,17 @@
           <td>{{ item.pipeline_id }}</td>
           <td>{{ item.pipeline_name }}</td>
           <td>
-            {{ item.xai_task_status + ", " + item.evaluation_task_status }}
+            {{ item.xai_task_sheet_id }}
+          </td>
+          <td>
+            {{ item.evaluation_task_sheet_id }}
           </td>
           <td style="text-align: right">
             <v-btn
-              color="primary"
+              color="blue"
               size="x-small"
               prepend-icon="mdi-television"
-              @click="openPDD(item)"
+              @click="openD(item)"
               >Detials</v-btn
             >
             <v-btn
@@ -52,7 +57,7 @@
               color="success"
               size="x-small"
               prepend-icon="mdi-play"
-              @click="openPRSDD(item)"
+              @click="openPRLD(item)"
               >Tasks</v-btn
             >
             <v-btn
@@ -95,10 +100,42 @@
                 <v-text-field
                   label="Pipeline Name*"
                   name="pipeline_name"
-                  v-model="pipeline_name"
+                  v-model="current_pipeline.pipeline_name"
                   :rules="[(v) => !!v || 'Name is required']"
+                  :readonly="disabled"
                   required
                 ></v-text-field>
+              </v-row>
+              <!-- xai -->
+              <v-row>
+                <v-select
+                  label="XAI Task Sheet Name"
+                  :items="xaiTaskSheetList"
+                  item-title="task_sheet_name"
+                  item-value="task_sheet_id"
+                  name="current_xai_task_sheet_id"
+                  v-model="current_pipeline.xai_task_sheet_id"
+                  :rules="[(v) => !!v || 'This field is required']"
+                  ref="current_xai_task_sheet_id"
+                  :readonly="disabled"
+                  hide-details
+                ></v-select>
+              </v-row>
+
+              <!-- eval -->
+              <v-row class="mt-8">
+                <v-select
+                  label="Evaluation Task Sheet Name"
+                  :items="evalTaskSheetList"
+                  item-title="task_sheet_name"
+                  item-value="task_sheet_id"
+                  name="current_evaluation_task_sheet_id"
+                  v-model="current_pipeline.evaluation_task_sheet_id"
+                  :rules="[(v) => !!v || 'This field is required']"
+                  ref="current_evaluation_task_sheet_id"
+                  :readonly="disabled"
+                  hide-details
+                ></v-select>
               </v-row>
             </v-container>
             <small v-if="!disabled">*indicates required field</small>
@@ -119,164 +156,242 @@
       </v-form>
     </v-dialog>
 
-    <!-- pipeline detail  -->
+    <!-- pipeline run list  -->
     <v-dialog
-      id="pipeline-detail-dialog"
+      id="pipeline-run-list-dialog"
       contained
-      v-model="pddialog"
-      max-width="600px"
+      style="height: 100%"
+      v-model="prldialog"
       persistent
     >
-      <v-form id="pipeline-detail-form" ref="form2">
-        <v-card>
-          <v-card-title>
-            <span class="text-h5">Pipeline Detail</span>
-          </v-card-title>
-          <v-card-text>
-            <v-container>
-              <v-row>
-                <v-text-field
-                  label="Pipeline Name*"
-                  name="pipeline_name"
-                  v-model="current_pipeline.pipeline_name"
-                  readonly
-                ></v-text-field>
-              </v-row>
-
-              <!-- xai -->
-              <v-row>
-                <v-select
-                  label="XAI Task Sheet Name"
-                  :items="
-                    showSheetListForPipeline(
-                      current_pipeline.xai_task_sheet_id,
-                      xaiTaskSheetList
-                    )
-                  "
-                  item-title="task_sheet_name"
-                  item-value="task_sheet_id"
-                  name="current_xai_task_sheet_id"
-                  v-model="current_xai_task_sheet_id"
-                  :rules="[(v) => !!v || 'This field is required']"
-                  ref="current_xai_task_sheet_id"
-                  :readonly="current_xai_task_sheet_id !== ''"
-                  hide-details
-                ></v-select>
-              </v-row>
-              <v-row
-                class="mt-8"
-                v-if="current_pipeline.xai_task_ticket === ''"
-              >
-                <v-text-field
-                  ref="current_xai_task_name"
-                  label="XAI Task Name*"
-                  name="current_xai_task_name"
-                  v-model="current_xai_task_name"
-                  :rules="[(v) => !!v || 'This field is required']"
-                  hide-details
-                ></v-text-field>
-                <div class="ml-3" style="margin: auto; bottom: 0; top: 0">
-                  <v-btn color="success" @click="addXAITaskSheetSheet"
-                    >ADD</v-btn
-                  >
-                </div>
-              </v-row>
-
-              <v-row
-                class="mt-8"
-                v-if="current_pipeline.xai_task_ticket !== ''"
-              >
-                <v-text-field
-                  label="XAI Task Ticket"
-                  name="current_xai_task_ticket"
-                  v-model="current_pipeline.xai_task_ticket"
-                  hide-details
-                  readonly
-                ></v-text-field>
-              </v-row>
-
-              <!-- eval -->
-              <v-row class="mt-8">
-                <v-select
-                  label="Evaluation Task Sheet Name"
-                  :items="
-                    showSheetListForPipeline(
-                      current_pipeline.evaluation_task_sheet_id,
-                      evalTaskSheetList
-                    )
-                  "
-                  item-title="task_sheet_name"
-                  item-value="task_sheet_id"
-                  name="current_evaluation_task_sheet_id"
-                  v-model="current_evaluation_task_sheet_id"
-                  :rules="[(v) => !!v || 'This field is required']"
-                  ref="current_evaluation_task_sheet_id"
-                  :readonly="current_evaluation_task_sheet_id !== ''"
-                  hide-details
-                ></v-select>
-              </v-row>
-              <v-row
-                class="mt-9"
-                v-if="current_pipeline.evaluation_task_ticket === ''"
-              >
-                <v-text-field
-                  ref="current_evaluation_task_name"
-                  label="Evaluation Task Name*"
-                  name="current_evaluation_task_name"
-                  v-model="current_evaluation_task_name"
-                  :rules="[(v) => !!v || 'This field is required']"
-                  hide-details
-                ></v-text-field>
-                <div class="ml-3" style="margin: auto; bottom: 0; top: 0">
-                  <v-btn color="success" @click="addEvaluationTaskSheet"
-                    >ADD</v-btn
-                  >
-                </div>
-              </v-row>
-
-              <v-row
-                class="mt-8"
-                v-if="current_pipeline.evaluation_task_ticket !== ''"
-              >
-                <v-text-field
-                  label="Evaluation Task Ticket"
-                  name="current_evaluation_task_ticket"
-                  v-model="current_pipeline.evaluation_task_ticket"
-                  hide-details
-                  readonly
-                ></v-text-field>
-              </v-row>
-            </v-container>
-          </v-card-text>
+      <v-card style="height: 100000px">
+        <v-card-title>
           <v-card-actions>
+            <span class="text-h5"
+              >Pipeline Run: {{ current_pipeline.pipeline_name }}</span
+            >
             <v-spacer></v-spacer>
-            <v-btn color="red-darken-1" @click="closePDD"> Close </v-btn>
+            <v-btn
+              size="small"
+              variant="outlined"
+              color="green-darken-1"
+              form="task-sheet-create-form"
+              @click="runCurrentPipeline"
+            >
+              Run
+            </v-btn>
+            <v-btn
+              size="small"
+              variant="outlined"
+              color="red-darken-1"
+              @click="closePRLD"
+            >
+              Close
+            </v-btn>
           </v-card-actions>
-        </v-card>
-      </v-form>
+        </v-card-title>
+        <v-divider></v-divider>
+        <v-card-text>
+          <v-table>
+            <colgroup>
+              <col span="1" style="width: 30%" />
+              <col span="1" style="width: 30%" />
+              <col span="1" style="width: 10%" />
+              <col span="1" style="width: 10%" />
+              <col span="1" style="width: 20%" />
+            </colgroup>
+            <thead>
+              <tr>
+                <th class="text-left font-weight-bold">Run Ticket</th>
+                <th class="text-left font-weight-bold">Task Tickets</th>
+                <th class="text-center font-weight-bold">XAI Task Status</th>
+                <th class="text-center font-weight-bold">Eval Task Status</th>
+                <th class="text-left font-weight-bold"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                class="trHover"
+                v-for="item in current_pipeline_run_list"
+                :key="item.pipeline_run_ticket"
+              >
+                <td>{{ item.pipeline_run_ticket }}</td>
+                <td>
+                  <tr>
+                    <td style="padding: 0 0.5em 0 0">
+                      <v-chip
+                        class="font-weight-black"
+                        size="x-small"
+                        color="success"
+                        label
+                      >
+                        XAI
+                      </v-chip>
+                    </td>
+                    <td>
+                      {{ item.xai_task_ticket }}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 0 0.5em 0 0">
+                      <v-chip
+                        class="font-weight-black"
+                        size="x-small"
+                        color="info"
+                        label
+                      >
+                        Eval
+                      </v-chip>
+                    </td>
+                    <td>
+                      {{ item.evaluation_task_ticket }}
+                    </td>
+                  </tr>
+                </td>
+
+                <!-- xai task -->
+                <td class="stt">
+                  <v-tooltip :text="item.xai_task.task_status">
+                    <template v-slot:activator="{ props }">
+                      <TransitionGroup name="fade" mode="out-in">
+                        <v-progress-circular
+                          class="st"
+                          v-bind="props"
+                          :size="20"
+                          color="primary"
+                          indeterminate
+                          v-if="item.xai_task.task_status === 'running'"
+                        ></v-progress-circular>
+                        <v-icon
+                          v-if="item.xai_task.task_status === 'finished'"
+                          v-bind="props"
+                          class="st"
+                          icon="mdi-check-bold"
+                          color="success"
+                        ></v-icon>
+                        <v-icon
+                          v-bind="props"
+                          class="st"
+                          v-if="item.xai_task.task_status === 'stopped'"
+                          icon="mdi-alert-octagon"
+                          color="error"
+                        ></v-icon>
+                      </TransitionGroup>
+                    </template>
+                  </v-tooltip>
+                </td>
+
+                <!-- eval task -->
+                <td class="stt">
+                  <v-tooltip :text="item.evaluation_task.task_status">
+                    <template v-slot:activator="{ props }">
+                      <TransitionGroup name="fade" mode="out-in">
+                        <v-progress-circular
+                          class="st"
+                          v-bind="props"
+                          :size="20"
+                          color="primary"
+                          indeterminate
+                          v-if="item.evaluation_task.task_status === 'running'"
+                        ></v-progress-circular>
+                        <v-icon
+                          v-if="item.evaluation_task.task_status === 'finished'"
+                          v-bind="props"
+                          class="st"
+                          icon="mdi-check-bold"
+                          color="success"
+                        ></v-icon>
+                        <v-icon
+                          v-bind="props"
+                          class="st"
+                          v-if="item.evaluation_task.task_status === 'stopped'"
+                          icon="mdi-stop-circle"
+                          color="grey"
+                        ></v-icon>
+                        <v-icon
+                          v-bind="props"
+                          class="st"
+                          v-if="item.evaluation_task.task_status === 'error'"
+                          icon="mdi-alert-circle"
+                          color="error"
+                        ></v-icon>
+                        <v-icon
+                          v-bind="props"
+                          class="st"
+                          v-if="
+                            item.evaluation_task.task_status === 'initialized'
+                          "
+                          icon="mdi-arrow-right-drop-circle"
+                          color="blue-grey"
+                        ></v-icon>
+                      </TransitionGroup>
+                    </template>
+                  </v-tooltip>
+                </td>
+                <td style="text-align: right" mode="out-in">
+                  <v-btn
+                    style="margin-left: 0.5em"
+                    color="blue"
+                    size="x-small"
+                    prepend-icon="mdi-clipboard-minus-outline"
+                    @click="showPipelineRunResult(item)"
+                    :disabled="
+                      !(
+                        item.xai_task.task_status === 'finished' ||
+                        item.evaluation_task.task_status === 'finished'
+                      )
+                    "
+                    >Result</v-btn
+                  >
+                  <v-btn
+                    style="margin-left: 0.5em"
+                    color="warning"
+                    size="x-small"
+                    prepend-icon="mdi-close"
+                    @click="stopARun(item)"
+                    :disabled="
+                      !(
+                        item.xai_task.task_status === 'running' ||
+                        item.evaluation_task.task_status === 'running'
+                      )
+                    "
+                    >Stop</v-btn
+                  >
+                  <v-btn
+                    style="margin-left: 0.5em"
+                    color="error"
+                    size="x-small"
+                    prepend-icon="mdi-delete"
+                    @click="deleteARun(item)"
+                    :disabled="
+                      item.xai_task.task_status === 'running' ||
+                      item.evaluation_task.task_status === 'running'
+                    "
+                    >Delete</v-btn
+                  >
+                </td>
+              </tr>
+            </tbody>
+          </v-table>
+        </v-card-text>
+      </v-card>
     </v-dialog>
 
-    <!-- pipeline result detail  -->
+    <!-- pipeline run result detail  -->
     <v-dialog
       id="pipeline-rs-detail-dialog"
       contained
-      v-model="prsddialog"
+      v-model="prrsdialog"
       persistent
     >
       <v-form id="pipeline-rs-detail-form" ref="form2">
         <v-card>
           <v-card-title>
             <v-card-actions>
-              <span class="text-h5">Pipeline Result Detail</span>
-              <v-spacer></v-spacer>
-              <v-btn
-                size="small"
-                variant="outlined"
-                color="success"
-                @click="runPipeline"
-                :disabled="!currentPipelineRunnable()"
-                >RUN</v-btn
+              <span class="text-h5"
+                >Run: {{ current_pipeline.pipeline_name }}</span
               >
+              <v-spacer></v-spacer>
               <v-btn
                 size="small"
                 variant="outlined"
@@ -503,16 +618,16 @@ export default {
     pipelines: [],
     disabled: false,
     dialog: false,
-    pddialog: false,
-    prsddialog: false,
-    pipeline_name: "",
-    current_pipeline: "",
+    prldialog: false,
+    prrsdialog: false,
+    current_pipeline: {
+      pipeline_name: "",
+      xai_task_sheet_id: "",
+      evaluation_task_sheet_id: "",
+    },
     xaiTaskSheetList: [],
     evalTaskSheetList: [],
-    current_xai_task_sheet_id: "",
-    current_evaluation_task_sheet_id: "",
-    current_xai_task_name: "",
-    current_evaluation_task_name: "",
+    current_pipeline_run_list: [],
     xai_task_rs: {
       global: [],
       local: [],
@@ -521,12 +636,15 @@ export default {
       global: [],
       local: [],
     },
-    fetchPipelineInv: undefined,
+    fetchPipelineRunInv: undefined,
   }),
   mounted: function () {
     this.fetchPipeline();
   },
   methods: {
+    showPipelineRunResult(item) {
+      console.log(item);
+    },
     fetchTaskResult(task_ticket, task_type) {
       this.trdialog = true;
       // console.log(item);
@@ -572,25 +690,6 @@ export default {
       return (
         this.current_pipeline.xai_task_status === "initialized" ||
         this.current_pipeline.evaluation_task_status === "initialized"
-      );
-    },
-    runPipeline() {
-      this.ax.post(
-        "http://127.0.0.1:5006/task_publisher/pipeline",
-        {
-          act: "run",
-          pipeline_id: this.current_pipeline.pipeline_id,
-        },
-        {
-          success: (response) => {
-            console.log(response.data);
-          },
-          error: () => {},
-          final: () => {
-            this.fetchPipeline();
-            this.closePRSDD();
-          },
-        }
       );
     },
     addEvaluationTaskSheet() {
@@ -699,7 +798,7 @@ export default {
       return rs;
     },
     openPRSDD(item) {
-      this.prsddialog = true;
+      this.prrsdialog = true;
       this.current_pipeline = item;
       if (this.current_pipeline.xai_task_status === "finished") {
         this.fetchTaskResult(this.current_pipeline.xai_task_ticket, "xai");
@@ -711,33 +810,143 @@ export default {
         );
       }
     },
+    stopARun(item) {
+      const pipeline_run_ticket = item.pipeline_run_ticket;
+      this.ax.post(
+        "http://127.0.0.1:5006/task_publisher/pipeline_run",
+        {
+          act: "stop",
+          pipeline_run_ticket,
+        },
+        {
+          success: (response) => {
+            this.fetchPipelineRuntList();
+          },
+          error: () => {},
+          final: () => {},
+        }
+      );
+    },
+    deleteARun(item) {
+      const pipeline_run_ticket = item.pipeline_run_ticket;
+      this.ax.post(
+        "http://127.0.0.1:5006/task_publisher/pipeline_run",
+        {
+          act: "delete",
+          pipeline_run_ticket,
+        },
+        {
+          success: (response) => {
+            this.fetchPipelineRuntList();
+          },
+          error: () => {},
+          final: () => {},
+        }
+      );
+    },
+    runCurrentPipeline() {
+      console.log("run pipeline " + this.current_pipeline.pipeline_id);
+      this.ax.post(
+        "http://127.0.0.1:5006/task_publisher/pipeline",
+        {
+          act: "run",
+          pipeline_id: this.current_pipeline.pipeline_id,
+        },
+        {
+          success: (response) => {
+            this.fetchPipelineRuntList();
+          },
+          error: () => {},
+          final: () => {},
+        }
+      );
+    },
+    getTaskStatus(item) {
+      return item.start_time !== undefined && item.task_status === "initialized"
+        ? "stopped"
+        : item.task_status;
+    },
     closePRSDD() {
-      this.prsddialog = false;
-      this.current_pipeline = {};
+      this.resetForm();
+      this.prrsdialog = false;
     },
-    openPDD(item) {
-      this.fetchTaskSheetList();
-      this.pddialog = true;
+    openPRLD(item) {
+      this.prldialog = true;
       this.current_pipeline = item;
+      this.fetchPipelineRuntList();
     },
-    closePDD() {
-      this.pddialog = false;
-      this.current_pipeline = {};
-      this.current_xai_task_name = "";
-      this.current_xai_task_sheet_id = "";
-      this.current_evaluation_task_name = "";
-      this.current_evaluation_task_sheet_id = "";
+    closePRLD() {
+      this.prldialog = false;
+      clearInterval(this.fetchPipelineRunInv);
+      setTimeout(() => {
+        this.current_pipeline = {
+          pipeline_name: "",
+          xai_task_sheet_id: "",
+          evaluation_task_sheet_id: "",
+        };
+      }, 500);
     },
     resetForm() {
-      this.pipeline_name = "";
+      setTimeout(() => {
+        this.current_pipeline = {
+          pipeline_name: "",
+          xai_task_sheet_id: "",
+          evaluation_task_sheet_id: "",
+        };
+        this.xaiTaskSheetList = [];
+        this.evalTaskSheetList = [];
+        this.disabled = false;
+      }, 300);
     },
-    openD() {
-      this.resetForm();
-      this.disabled = false;
+    openD(item) {
+      if (item != undefined) {
+        this.disabled = true;
+        this.current_pipeline = item;
+      } else {
+        this.fetchTaskSheetList();
+        this.disabled = false;
+      }
       this.dialog = true;
     },
     closeD() {
+      this.resetForm();
       this.dialog = false;
+    },
+    fetchPipelineRuntList() {
+      console.log("fetch pipeline run list");
+      const pipeline_id = this.current_pipeline.pipeline_id;
+      this.ax.get(
+        "http://127.0.0.1:5006/task_publisher/pipeline_run",
+        {
+          pipeline_id,
+        },
+        {
+          success: (response) => {
+            // console.log(response.data);
+            this.current_pipeline_run_list = response.data;
+          },
+          error: () => {},
+          final: () => {
+            let hasRunning = false;
+            for (const pipeline_run of this.current_pipeline_run_list) {
+              if (
+                pipeline_run.xai_task.task_status === "running" ||
+                pipeline_run.evaluation_task.task_status === "running"
+              ) {
+                hasRunning = true;
+                break;
+              }
+            }
+
+            clearInterval(this.fetchPipelineRunInv);
+            if (hasRunning) {
+              this.fetchPipelineRunInv = setInterval(() => {
+                this.fetchPipelineRuntList();
+              }, 10000);
+            }
+          },
+        }
+      );
     },
     fetchTaskSheetList() {
       console.log("fetch task sheet list");
@@ -765,7 +974,7 @@ export default {
       );
     },
     fetchPipeline(cb) {
-      console.log("fetch task sheet list");
+      console.log("fetch pipeline");
       this.ax.get(
         "http://127.0.0.1:5006/task_publisher/pipeline",
         {},
@@ -777,24 +986,7 @@ export default {
             }
           },
           error: () => {},
-          final: () => {
-            let hasRunning = false;
-            for (const p of this.pipelines) {
-              if (
-                p.xai_task_status === "running" ||
-                p.evaluation_task_status === "running"
-              ) {
-                hasRunning = true;
-                break;
-              }
-            }
-            clearInterval(this.fetchPipelineInv);
-            if (hasRunning) {
-              this.fetchPipelineInv = setInterval(() => {
-                this.fetchPipeline();
-              }, 2000);
-            }
-          },
+          final: () => {},
         }
       );
     },
@@ -818,7 +1010,10 @@ export default {
       // this.validate();
       e.preventDefault();
       const { valid } = await this.$refs.form.validate();
-      const pipeline_name = this.pipeline_name;
+      const pipeline_name = this.current_pipeline.pipeline_name;
+      const xai_task_sheet_id = this.current_pipeline.xai_task_sheet_id;
+      const evaluation_task_sheet_id =
+        this.current_pipeline.evaluation_task_sheet_id;
 
       if (valid) {
         this.ax.post(
@@ -826,6 +1021,8 @@ export default {
           {
             act: "create",
             pipeline_name,
+            xai_task_sheet_id,
+            evaluation_task_sheet_id,
           },
           {
             success: (response) => {
@@ -844,4 +1041,14 @@ export default {
 };
 </script>
 
-<style></style>
+<style>
+.stt {
+  position: relative;
+}
+.st {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+</style>

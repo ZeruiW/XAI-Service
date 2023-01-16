@@ -10,13 +10,12 @@ from xai_backend_central_dev.constant import Pipeline
 from xai_backend_central_dev.constant import TaskStatus
 from xai_backend_central_dev.constant import TaskSheet
 from xai_backend_central_dev.constant import TaskType
-from xai_backend_central_dev.constant import ExecutorTicketInfo
 from xai_backend_central_dev.constant import TaskInfo
 from xai_backend_central_dev.constant import ExecutorRegInfo
+from xai_backend_central_dev.constant import PipelineRun
 from xai_backend_central_dev.constant import Mongo
 
 from xai_backend_central_dev.pipeline_db_helper import PipelineDB
-from bson.json_util import dumps
 
 
 class TaskPublisher(TaskComponent):
@@ -63,6 +62,27 @@ class TaskPublisher(TaskComponent):
     def remove_task_ticket(self, executor_id, task_ticket):
         pass
 
+    def gen_pipeline_run_ticket(self, pipeline, xai_task_ticket, evaluation_task_ticket):
+        pipeline_run_ticket_info = {
+            PipelineRun.created_time: time.time(),
+            PipelineRun.pipeline_id: pipeline[Pipeline.pipeline_id],
+            PipelineRun.pipeline_name: pipeline[Pipeline.pipeline_name],
+            PipelineRun.xai_task_sheet_id: pipeline[Pipeline.xai_task_sheet_id],
+            PipelineRun.evaluation_task_sheet_id: pipeline[Pipeline.evaluation_task_sheet_id],
+            PipelineRun.xai_task_ticket: xai_task_ticket,
+            PipelineRun.evaluation_task_ticket: evaluation_task_ticket,
+            PipelineRun.pipeline_run_ticket:  __get_random_string__(
+                4) + '.' + __get_random_string_no_low__(
+                4) + '.' + pipeline[Pipeline.pipeline_id]
+        }
+
+        self.mondb.insert_one(Mongo.pipeline_run_col, pipeline_run_ticket_info)
+
+        return self.mondb.find_one(Mongo.pipeline_run_col, {
+            PipelineRun.pipeline_run_ticket: pipeline_run_ticket_info[
+                PipelineRun.pipeline_run_ticket]
+        })
+
     def gen_task_ticket(self, executor_id, task_name, task_sheet):
         if not self.is_activated() or not self.if_executor_registered(executor_id):
             return None
@@ -70,6 +90,7 @@ class TaskPublisher(TaskComponent):
             task_ticket_info = {
                 TaskInfo.task_ticket: __get_random_string__(
                     15) + '.' + executor_id,
+                TaskInfo.task_type: task_sheet[TaskSheet.task_type],
                 TaskInfo.executor_id: executor_id,
                 TaskInfo.task_sheet_id: task_sheet[TaskSheet.task_sheet_id],
                 TaskInfo.task_status: TaskStatus.initialized,
@@ -78,7 +99,9 @@ class TaskPublisher(TaskComponent):
                 TaskInfo.request_time: time.time(),
                 TaskInfo.start_time: TaskInfo.empty,
                 TaskInfo.end_time: TaskInfo.empty,
-                TaskInfo.task_function_key: task_sheet[TaskSheet.task_function_key]
+                TaskInfo.task_function_key: task_sheet[TaskSheet.task_function_key],
+                TaskInfo.pipeline_id: TaskInfo.empty,
+                TaskInfo.pipeline_run_ticket: TaskInfo.empty,
             }
 
             task_parameters = task_sheet[TaskSheet.task_parameters]
@@ -125,12 +148,49 @@ class TaskPublisher(TaskComponent):
 
             self.mondb.insert_one(Mongo.task_col, task_ticket_info)
 
-            return self.mondb.parse_json(task_ticket_info)
+            return self.mondb.find_one(Mongo.task_col, {
+                TaskInfo.task_ticket: task_ticket_info[TaskInfo.task_ticket]
+            })
+
+    def ask_executor_task_actual_status(self, task_ticket, executor_endpoint_url):
+
+        response = requests.get(
+            executor_endpoint_url +
+            '/task_status',
+            params={
+                TaskInfo.task_ticket: task_ticket,
+            }
+        )
+
+        rs = json.loads(response.content.decode('utf-8'))
+
+        return rs[TaskInfo.task_status]
 
     def get_task_info_by_task_sheet_id(self, task_sheet_id):
-        return self.mondb.find(Mongo.task_col, {
+        tasks = self.mondb.find(Mongo.task_col, {
             TaskInfo.task_sheet_id: task_sheet_id
         })
+
+        for task in tasks:
+            if task[TaskInfo.task_status] == TaskStatus.running:
+                current_acutal_status = self.ask_executor_task_actual_status(
+                    task[TaskInfo.task_ticket],
+                    task[TaskInfo.executor_endpoint_url]
+                )
+
+                if current_acutal_status == TaskStatus.not_exist_in_executor_process_holder:
+                    # if the executor is shutdown
+                    task[TaskInfo.task_status] = TaskStatus.stopped
+
+                    self.mondb.update_one(Mongo.task_col, {
+                        TaskInfo.task_ticket: task[TaskInfo.task_ticket]
+                    }, {
+                        "$set": {
+                            TaskInfo.task_status: task[TaskInfo.task_status]
+                        }
+                    })
+
+        return tasks
 
     def get_ticket_info(self, target_ticket: str, with_status: bool = False):
         if target_ticket == None:
@@ -247,30 +307,16 @@ class TaskPipeline():
         self.storage_path = os.path.join(
             self.component_path_parent, f'{self.component_name}_storage')
         self.import_name = self.task_publisher.import_name
-        self.db_path = os.path.join(self.storage_path, 'db')
 
-        if not os.path.exists(self.db_path):
-            os.makedirs(self.db_path, exist_ok=True)
-
-        self.pipeline_db_path = os.path.join(
-            self.db_path, 'central_pipeline_db.json')
-
-        self.db = PipelineDB(self.pipeline_db_path)
-
-        self.pipeline_tb = self.db.pipeline_tb
-
-    def create_pipeline(self, pipeline_name: str):
+    def create_pipeline(self, pipeline_name: str, xai_task_sheet_id: str, evaluation_task_sheet_id: str, pipeline_owner='Jim'):
         pipeline_id = __get_random_string_no_low__(18)
         pipeline_info = {
             Pipeline.pipeline_id: pipeline_id,
             Pipeline.created_time: time.time(),
             Pipeline.pipeline_name: pipeline_name,
-            Pipeline.xai_task_sheet_id: TaskSheet.empty,
-            Pipeline.xai_task_status: TaskStatus.undefined,
-            Pipeline.xai_task_ticket: TaskSheet.empty,
-            Pipeline.evaluation_task_sheet_id: TaskSheet.empty,
-            Pipeline.evaluation_task_status: TaskStatus.undefined,
-            Pipeline.evaluation_task_ticket: TaskSheet.empty,
+            Pipeline.xai_task_sheet_id: xai_task_sheet_id,
+            Pipeline.evaluation_task_sheet_id: evaluation_task_sheet_id,
+            Pipeline.pipeline_owner: pipeline_owner
         }
 
         self.task_publisher.mondb.insert_one(Mongo.pipeline_col, pipeline_info)
@@ -291,6 +337,7 @@ class TaskPipeline():
             TaskSheet.task_sheet_name: payload.get(TaskSheet.task_sheet_name),
             TaskSheet.task_function_key: payload.get(TaskSheet.task_function_key) if payload.get(TaskSheet.task_function_key) != None else 'default',
             TaskSheet.task_parameters: json.loads(payload.get(TaskSheet.task_parameters)),
+            TaskSheet.task_sheet_owner: 'Jim',
         }
 
         task_tb = self.task_publisher.mondb.col(Mongo.task_sheet_col)
@@ -309,31 +356,24 @@ class TaskPipeline():
             },
         })
 
-    def update_pipeline_task_status(self, task_ticket, task_status):
-        pipelines = self.get_pipeline()
-        find = False
-        task_type = None
-        for pipeline in pipelines:
-            if task_ticket == pipeline[Pipeline.xai_task_ticket]:
-                pipeline[Pipeline.xai_task_status] = task_status
-                find = True
-                task_type = TaskType.xai
-            if task_ticket == pipeline[Pipeline.evaluation_task_ticket]:
-                pipeline[Pipeline.evaluation_task_status] = task_status
-                find = True
-                task_type = TaskType.evaluation
-            if find:
-                pipeline_id = pipeline[Pipeline.pipeline_id]
-                print('update pipeline status ', pipeline_id,
-                      ' ', task_ticket,  ' ', task_status)
-                self.pipeline_tb.update(
-                    pipeline, Query().pipeline_id == pipeline_id)
-                if task_type == TaskType.xai \
-                    and self.__eval_task_ready_for_run__(pipeline) \
-                        and pipeline[Pipeline.xai_task_status] == TaskStatus.finished:
-                    self.__run_pipeline_with_pipeline__(pipeline)
+        task = self.task_publisher.mondb.find_one(Mongo.task_col, {
+            TaskInfo.task_ticket: task_ticket
+        })
 
-                break
+        if task[TaskInfo.task_type] == TaskType.xai and\
+            task[TaskInfo.pipeline_id] != TaskInfo.empty and\
+                task[TaskInfo.pipeline_run_ticket] != TaskInfo.empty and\
+        task[TaskInfo.task_status] == TaskStatus.finished:
+
+            pipeline_run = self.task_publisher.mondb.find_one(Mongo.pipeline_run_col, {
+                PipelineRun.pipeline_run_ticket: task[TaskInfo.pipeline_run_ticket]
+            })
+
+            evaluation_task = self.task_publisher.mondb.find_one(Mongo.task_col, {
+                TaskInfo.task_ticket: pipeline_run[PipelineRun.evaluation_task_ticket]
+            })
+
+            self.tell_executor_to_run_task(evaluation_task)
 
     def get_pipeline(self, pipeline_id: str = None):
         if pipeline_id == None:
@@ -352,22 +392,22 @@ class TaskPipeline():
         })
 
     def add_task_to_pipeline(self, pipeline_id: str, task_name: str, task_sheet_id: str):
-        pipeline = self.get_pipeline(pipeline_id)[0]
+        pipeline = self.task_publisher.mondb.find_one(Mongo.pipeline_col, {
+            Pipeline.pipeline_id: pipeline_id
+        })
 
-        task_sheet = self.get_task_sheet([task_sheet_id])[0]
+        task_sheet = self.task_publisher.mondb.find_one(Mongo.task_sheet_col, {
+            TaskSheet.task_sheet_id: task_sheet_id
+        })
         task_type = task_sheet[TaskSheet.task_type]
 
         if task_type == TaskType.xai:
             task_sheet_id_key = Pipeline.xai_task_sheet_id
             task_sheet_status_key = Pipeline.xai_task_status
-            task_task_ticket_key = Pipeline.xai_task_ticket
-            task_executor_id = task_sheet[TaskSheet.xai_service_executor_id]
 
         elif task_type == TaskType.evaluation:
             task_sheet_id_key = Pipeline.evaluation_task_sheet_id
             task_sheet_status_key = Pipeline.evaluation_task_status
-            task_task_ticket_key = Pipeline.evaluation_task_ticket
-            task_executor_id = task_sheet[TaskSheet.evaluation_service_executor_id]
         else:
             # the prediction task does not involve in XAI pipeline
             pass
@@ -375,26 +415,18 @@ class TaskPipeline():
         if pipeline[task_sheet_id_key] != TaskSheet.empty:
             return -1   # xai task already exist
         else:
-            required_task = self.task_publisher.gen_task_ticket(
-                task_executor_id, task_name, task_sheet)
-            if required_task != None:
-                pipeline[task_sheet_id_key] = task_sheet_id
-                pipeline[task_sheet_status_key] = TaskStatus.initialized
-                pipeline[task_task_ticket_key] = required_task[TaskInfo.task_ticket]
-
-        self.pipeline_tb.update(pipeline, Query().pipeline_id == pipeline_id)
-        return 1
+            self.task_publisher.mondb.update_one(Mongo.pipeline_col, {
+                Pipeline.pipeline_id: pipeline_id
+            }, {
+                "$set": {
+                    task_sheet_id_key: task_sheet_id,
+                    task_sheet_status_key: TaskStatus.initialized,
+                }
+            })
+            return 1
 
     def remove_task_sheet_to_pipeline(self, pipeline_id: str, task_sheet_id: str):
         pass
-
-    def __xai_task_ready_for_run__(self, pipeline):
-        return pipeline[Pipeline.xai_task_sheet_id] != TaskSheet.empty and \
-            pipeline[Pipeline.xai_task_status] == TaskStatus.initialized
-
-    def __eval_task_ready_for_run__(self, pipeline):
-        return pipeline[Pipeline.evaluation_task_sheet_id] != TaskSheet.empty and \
-            pipeline[Pipeline.evaluation_task_status] == TaskStatus.initialized
 
     def __get_url_from_executor_id__(self, executor_id):
         for executor_info in self.task_publisher.get_executor_registration_info():
@@ -439,34 +471,103 @@ class TaskPipeline():
             })
 
     def __run_pipeline_with_pipeline__(self, pipeline):
-        pipeline_id = pipeline[Pipeline.pipeline_id]
-        pipeline_status = self.get_pipeline_status(pipeline)
+        xai_task_sheet_id = pipeline[Pipeline.xai_task_sheet_id]
+        evaluation_task_sheet_id = pipeline[Pipeline.evaluation_task_sheet_id]
 
-        if TaskStatus.initialized in pipeline_status:
-            xai_ready = self.__xai_task_ready_for_run__(pipeline=pipeline)
-            eval_ready = self.__eval_task_ready_for_run__(pipeline=pipeline)
+        xai_task_sheet = self.task_publisher.mondb.find_one(Mongo.task_sheet_col, {
+            TaskSheet.task_sheet_id: xai_task_sheet_id
+        })
 
-            if xai_ready:
-                task_ticket = pipeline[Pipeline.xai_task_ticket]
-                task_status_key = Pipeline.xai_task_status
-            elif eval_ready:
-                task_ticket = pipeline[Pipeline.evaluation_task_ticket]
-                task_status_key = Pipeline.evaluation_task_status
+        evaluation_task_sheet = self.task_publisher.mondb.find_one(Mongo.task_sheet_col, {
+            TaskSheet.task_sheet_id: evaluation_task_sheet_id
+        })
 
-            if xai_ready or eval_ready:
-                required_task = self.task_publisher.mondb.find_one(Mongo.task_col, {
-                    TaskInfo.task_ticket: task_ticket
-                })
-                self.tell_executor_to_run_task(required_task)
-                pipeline[task_status_key] = TaskStatus.running
-                self.pipeline_tb.update(
-                    pipeline, Query().pipeline_id == pipeline_id)
+        # gen xai task
+        xai_task = self.task_publisher.gen_task_ticket(
+            xai_task_sheet[TaskSheet.xai_service_executor_id],
+            pipeline[Pipeline.pipeline_name] + '_xai',
+            xai_task_sheet)
+
+        # fill explanation_task_ticket if missing
+        evaluation_task_sheet[TaskInfo.task_parameters]['explanation_task_ticket'] = xai_task[TaskInfo.task_ticket]
+
+        # gen eval task
+        evaluation_task = self.task_publisher.gen_task_ticket(
+            evaluation_task_sheet[TaskSheet.evaluation_service_executor_id],
+            pipeline[Pipeline.pipeline_name] + '_evaluation',
+            evaluation_task_sheet)
+
+        # gen pipeline run
+        pipeline_run = self.task_publisher.gen_pipeline_run_ticket(
+            pipeline,
+            xai_task[TaskInfo.task_ticket],
+            evaluation_task[TaskInfo.task_ticket])
+
+        # update xai task & eval task
+        self.task_publisher.mondb.update_many(Mongo.task_col, {
+            TaskInfo.task_ticket: {
+                "$in": [xai_task[TaskInfo.task_ticket], evaluation_task[TaskInfo.task_ticket]]
+            }
+        }, {
+            "$set": {
+                TaskInfo.pipeline_id: pipeline[Pipeline.pipeline_id],
+                TaskInfo.pipeline_run_ticket: pipeline_run[PipelineRun.pipeline_run_ticket]
+            }
+        })
+
+        # run xai task first
+        self.tell_executor_to_run_task(xai_task)
 
         return pipeline
 
     def run_pipeline(self, pipeline_id):
-        pipeline = self.get_pipeline(pipeline_id)[0]
+        pipeline = self.task_publisher.mondb.find_one(Mongo.pipeline_col, {
+            Pipeline.pipeline_id: pipeline_id
+        })
         return self.__run_pipeline_with_pipeline__(pipeline)
+
+    def get_pipeline_run(self, pipeline_id):
+        pipeline_runs = self.task_publisher.mondb.find(Mongo.pipeline_run_col, {
+            PipelineRun.pipeline_id: pipeline_id
+        })
+
+        for pipeline_run in pipeline_runs:
+            tasks = self.task_publisher.mondb.find(Mongo.task_col, {
+                TaskInfo.task_ticket: {
+                    "$in": [
+                        pipeline_run[PipelineRun.xai_task_ticket],
+                        pipeline_run[PipelineRun.evaluation_task_ticket],
+                    ]
+                }
+            })
+
+            for task in tasks:
+                if task[TaskInfo.task_type] == TaskType.xai:
+                    pipeline_run[PipelineRun.xai_task] = task
+
+                if task[TaskInfo.task_type] == TaskType.evaluation:
+                    pipeline_run[PipelineRun.evaluation_task] = task
+
+                if task[TaskInfo.task_status] == TaskStatus.running:
+                    current_acutal_status = self.task_publisher.ask_executor_task_actual_status(
+                        task[TaskInfo.task_ticket],
+                        task[TaskInfo.executor_endpoint_url]
+                    )
+
+                    if current_acutal_status == TaskStatus.not_exist_in_executor_process_holder:
+                        # if the executor is shutdown
+                        current_acutal_status = TaskStatus.stopped
+
+                    if current_acutal_status != task[TaskInfo.task_status]:
+                        self.task_publisher.mondb.update_one(Mongo.task_col, {
+                            TaskInfo.task_ticket: task[TaskInfo.task_ticket]
+                        }, {
+                            "$set": {
+                                TaskInfo.task_status: current_acutal_status
+                            }
+                        })
+
+        return pipeline_runs
 
     def run_task_sheet_directly(self, task_sheet_id, task_name):
         task_sheet = self.get_task_sheet([task_sheet_id])[0]
@@ -492,72 +593,7 @@ class TaskPipeline():
             return None
 
     def duplicate_pipeline(self, pipeline_id):
-        src_pipeline = self.get_pipeline(pipeline_id)[0]
-
-        pipeline_id = __get_random_string_no_low__(18)
-
-        has_xai_task_sheet = src_pipeline[Pipeline.xai_task_sheet_id] != TaskSheet.empty
-        has_evaluation_task_sheet = src_pipeline[Pipeline.evaluation_task_sheet_id] != TaskSheet.empty
-
-        if has_xai_task_sheet:
-            src_task_sheet = self.get_task_sheet(
-                [src_pipeline[Pipeline.xai_task_sheet_id]])[0]
-            src_task_info = self.task_publisher.get_ticket_info(
-                src_pipeline[Pipeline.xai_task_ticket])
-            src_task_name = src_task_info[TaskInfo.task_name]
-            src_executor_id = src_task_info['executor_id']
-            new_xai_task_ticket = self.task_publisher.gen_task_ticket(
-                src_executor_id, src_task_name + ' Copied', src_task_sheet)[TaskInfo.task_ticket]
-
-        if has_evaluation_task_sheet:
-            src_task_sheet = self.get_task_sheet(
-                [src_pipeline[Pipeline.evaluation_task_sheet_id]])[0]
-            src_task_info = self.task_publisher.get_ticket_info(
-                src_pipeline[Pipeline.evaluation_task_ticket])
-            src_task_name = src_task_info[TaskInfo.task_name]
-            src_executor_id = src_task_info['executor_id']
-            new_evaluation_task_ticket = self.task_publisher.gen_task_ticket(
-                src_executor_id, src_task_name + ' Copied', src_task_sheet)[TaskInfo.task_ticket]
-
-        pipeline_info = {
-            Pipeline.pipeline_id: pipeline_id,
-            Pipeline.created_time: time.time(),
-            Pipeline.pipeline_name: src_pipeline[Pipeline.pipeline_name] + ' Copied',
-            Pipeline.xai_task_sheet_id: src_pipeline[Pipeline.xai_task_sheet_id],
-            Pipeline.xai_task_status: TaskStatus.initialized if has_xai_task_sheet else TaskStatus.undefined,
-            Pipeline.xai_task_ticket: new_xai_task_ticket if has_xai_task_sheet else TaskSheet.empty,
-            Pipeline.evaluation_task_sheet_id: src_pipeline[Pipeline.evaluation_task_sheet_id],
-            Pipeline.evaluation_task_status: TaskStatus.initialized if has_evaluation_task_sheet else TaskStatus.undefined,
-            Pipeline.evaluation_task_ticket: new_evaluation_task_ticket if has_evaluation_task_sheet else TaskSheet.empty,
-        }
-
-        self.pipeline_tb.insert(pipeline_info)
-        return pipeline_info
-
-    def get_pipeline_status(self, pipeline):
-        return (pipeline[Pipeline.xai_task_status], pipeline[Pipeline.evaluation_task_status])
-
-    def check_pipeline_status(self, pipeline):
-        if pipeline[Pipeline.xai_task_sheet_id] != TaskSheet.empty:
-            task_ticket = pipeline[Pipeline.xai_task_ticket]
-            ticket_info = self.task_publisher.get_ticket_info(
-                task_ticket, True)
-            task_status = ticket_info[TaskInfo.task_status]
-            if task_status[TaskInfo.task_status] != pipeline[Pipeline.xai_task_status]:
-                pipeline[Pipeline.xai_task_status] = task_status[TaskInfo.task_status]
-            self.pipeline_tb.update(
-                pipeline, Query().pipeline_id == pipeline[Pipeline.pipeline_id])
-            return pipeline
-        if pipeline[Pipeline.evaluation_task_sheet_id] != TaskSheet.empty:
-            task_ticket = pipeline[Pipeline.evaluation_task_ticket]
-            ticket_info = self.task_publisher.get_ticket_info(
-                task_ticket, True)
-            task_status = ticket_info[TaskInfo.task_status]
-            if task_status[TaskInfo.task_status] != pipeline[Pipeline.evaluation_task_status]:
-                pipeline[Pipeline.evaluation_task_status] = task_status[TaskInfo.task_status]
-            self.pipeline_tb.update(
-                pipeline, Query().pipeline_id == pipeline[Pipeline.pipeline_id])
-            return pipeline
+        pass
 
     def stop_a_task(self, task_ticket):
         task = self.task_publisher.mondb.find_one(Mongo.task_col, {
@@ -571,39 +607,23 @@ class TaskPipeline():
             }
         )
 
-    def stop_pipeline(self, pipeline_id):
-        pipeline = self.get_pipeline(pipeline_id)[0]
-        executor_endpoint_url = None
-        if pipeline[Pipeline.xai_task_status] == TaskStatus.running:
-            task_sheet = self.get_task_sheet(
-                [pipeline[Pipeline.xai_task_sheet_id]])[0]
-            task_ticket = pipeline[Pipeline.xai_task_ticket]
+    def stop_pipeline_run(self, pipeline_run_ticket):
+        pipeline_run = self.task_publisher.mondb.find_one(Mongo.pipeline_run_col, {
+            PipelineRun.pipeline_run_ticket: pipeline_run_ticket
+        })
 
-            task_executor_id = task_sheet[TaskSheet.xai_service_executor_id]
+        tasks = self.task_publisher.mondb.find(Mongo.task_col, {
+            TaskInfo.task_ticket: {
+                "$in": [
+                    pipeline_run[PipelineRun.xai_task_ticket],
+                    pipeline_run[PipelineRun.evaluation_task_ticket],
+                ]
+            }
+        })
 
-            executor_endpoint_url = self.__get_url_from_executor_id__(
-                task_executor_id)
-
-        if pipeline[Pipeline.evaluation_task_status] == TaskStatus.running:
-            task_sheet = self.get_task_sheet(
-                [pipeline[Pipeline.evaluation_task_sheet_id]])[0]
-            task_ticket = pipeline[Pipeline.evaluation_task_ticket]
-
-            task_executor_id = task_sheet[TaskSheet.evaluation_service_executor_id]
-
-            executor_endpoint_url = self.__get_url_from_executor_id__(
-                task_executor_id)
-
-        if executor_endpoint_url != None:
-            requests.post(
-                executor_endpoint_url + '/task',
-                data={
-                    'act': 'stop',
-                    TaskInfo.task_ticket: task_ticket
-                }
-            )
-
-        return self.get_pipeline(pipeline_id)[0]
+        for task in tasks:
+            if task[TaskInfo.task_status] == TaskStatus.running:
+                self.stop_a_task(task[TaskInfo.task_ticket])
 
     def get_task_presentation(self, task_ticket):
         task = self.task_publisher.mondb.find_one(Mongo.task_col, {
@@ -630,9 +650,29 @@ class TaskPipeline():
         return pre
 
     def delete_pipeline(self, pipeline_id):
-        # self.pipeline_tb.remove(Query().pipeline_id == pipeline_id)
+
+        pipeline_runs = self.task_publisher.mondb.find(Mongo.pipeline_run_col, {
+            PipelineRun.pipeline_id: pipeline_id
+        })
+
+        for pipeline_run in pipeline_runs:
+            self.delete_pipeline_run(
+                pipeline_run[PipelineRun.pipeline_run_ticket])
+
         self.task_publisher.mondb.delete_one(Mongo.pipeline_col, {
             Pipeline.pipeline_id: pipeline_id
+        })
+
+    def delete_pipeline_run(self, pipeline_run_ticket):
+        pipeline_run = self.task_publisher.mondb.find_one(Mongo.pipeline_run_col, {
+            PipelineRun.pipeline_run_ticket: pipeline_run_ticket
+        })
+
+        self.delete_task(pipeline_run[PipelineRun.xai_task_ticket])
+        self.delete_task(pipeline_run[PipelineRun.evaluation_task_ticket])
+
+        self.task_publisher.mondb.delete_one(Mongo.pipeline_run_col, {
+            PipelineRun.pipeline_run_ticket: pipeline_run_ticket
         })
 
     def delete_task_sheet(self, task_sheet_id):

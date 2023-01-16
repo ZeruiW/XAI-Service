@@ -62,5 +62,8 @@ class Mon:
     def update_one(self, col_name, filter, update):
         return self.col(col_name).update_one(filter, update)
 
+    def update_many(self, col_name, filter, update):
+        return self.col(col_name).update_many(filter, update)
+
     def delete_one(self, col_name, filter):
         return self.col(col_name).delete_one(filter)

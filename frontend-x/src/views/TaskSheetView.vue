@@ -39,7 +39,7 @@
           <td>{{ typeMap[item.task_type] }}</td>
           <td style="text-align: right">
             <v-btn
-              color="primary"
+              color="blue"
               size="x-small"
               prepend-icon="mdi-television"
               @click="showTaskSheetDetail(item)"
@@ -72,17 +72,18 @@
       contained
       v-model="dialog"
       max-width="600px"
+      style="height: 100%"
       persistent
     >
-      <v-form
-        id="task-sheet-create-form"
-        ref="form"
-        v-model="valid"
-        lazy-validation
-        @submit="submitAction"
-        :disabled="disabled"
-      >
-        <v-card>
+      <v-card style="height: 100000px">
+        <v-form
+          id="task-sheet-create-form"
+          ref="form"
+          v-model="valid"
+          lazy-validation
+          @submit="submitAction"
+          :disabled="disabled"
+        >
           <v-card-title>
             <span v-if="!disabled" class="text-h5">New Task Sheet</span>
             <span v-if="disabled" class="text-h5">Task Sheet Detail</span>
@@ -156,7 +157,7 @@
                   required
                 ></v-select>
               </v-row>
-              <v-row v-if="task_type === 'Evaluation'">
+              <!-- <v-row v-if="task_type === 'Evaluation'">
                 <v-text-field
                   label="Explanation Task Ticket*"
                   name="explanation_task_ticket"
@@ -164,7 +165,7 @@
                   :rules="[(v) => !!v || 'Explanation task ticket is required']"
                   required
                 ></v-text-field>
-              </v-row>
+              </v-row> -->
               <v-row>
                 <v-textarea
                   name="task_parameters"
@@ -188,8 +189,8 @@
               Submit
             </v-btn>
           </v-card-actions>
-        </v-card>
-      </v-form>
+        </v-form>
+      </v-card>
     </v-dialog>
 
     <!-- task list -->
@@ -264,42 +265,52 @@
                 <td>{{ timestampFormat(item.start_time) }}</td>
                 <td>{{ timestampFormat(item.end_time) }}</td>
                 <td class="stt">
-                  <!-- {{
-                    item.task_status.formated_start_time !== undefined &&
-                    item.task_status.task_status === "initialized"
-                      ? "stopped"
-                      : item.task_status.task_status
-                  }} -->
-                  <transition name="fade" mode="out-in">
-                    <v-progress-circular
-                      class="st"
-                      :size="20"
-                      color="primary"
-                      indeterminate
-                      v-show="getTaskStatus(item) === 'running'"
-                    ></v-progress-circular>
-                  </transition>
-
-                  <transition name="fade" mode="out-in">
-                    <v-icon
-                      class="st"
-                      v-show="getTaskStatus(item) === 'finished'"
-                      icon="mdi-check-bold"
-                      color="success"
-                    ></v-icon>
-                  </transition>
-                  <transition name="fade" mode="out-in">
-                    <v-icon
-                      class="st"
-                      v-if="getTaskStatus(item) === 'stopped'"
-                      icon="mdi-alert-octagon"
-                      color="error"
-                    ></v-icon>
-                  </transition>
+                  <v-tooltip :text="item.task_status">
+                    <template v-slot:activator="{ props }">
+                      <TransitionGroup name="fade" mode="out-in">
+                        <v-progress-circular
+                          class="st"
+                          v-bind="props"
+                          :size="20"
+                          color="primary"
+                          indeterminate
+                          v-if="item.task_status === 'running'"
+                        ></v-progress-circular>
+                        <v-icon
+                          v-if="item.task_status === 'finished'"
+                          v-bind="props"
+                          class="st"
+                          icon="mdi-check-bold"
+                          color="success"
+                        ></v-icon>
+                        <v-icon
+                          v-bind="props"
+                          class="st"
+                          v-if="item.task_status === 'stopped'"
+                          icon="mdi-stop-circle"
+                          color="grey"
+                        ></v-icon>
+                        <v-icon
+                          v-bind="props"
+                          class="st"
+                          v-if="item.task_status === 'error'"
+                          icon="mdi-alert-circle"
+                          color="error"
+                        ></v-icon>
+                        <v-icon
+                          v-bind="props"
+                          class="st"
+                          v-if="item.task_status === 'initialized'"
+                          icon="mdi-arrow-right-drop-circle"
+                          color="blue-grey"
+                        ></v-icon>
+                      </TransitionGroup>
+                    </template>
+                  </v-tooltip>
                 </td>
-                <td style="text-align: right" mode="out-in">
+                <td style="text-align: right">
                   <v-btn
-                    v-if="item.task_status === 'finished'"
+                    :disabled="item.task_status !== 'finished'"
                     style="margin-left: 0.5em"
                     color="blue"
                     size="x-small"
@@ -308,9 +319,9 @@
                     >Result</v-btn
                   >
                   <v-btn
-                    v-if="item.task_status === 'running'"
+                    :disabled="item.task_status !== 'running'"
                     style="margin-left: 0.5em"
-                    color="error"
+                    color="warning"
                     size="x-small"
                     prepend-icon="mdi-close"
                     @click="stopATask(item)"
@@ -318,10 +329,13 @@
                   >
                   <v-btn
                     style="margin-left: 0.5em"
-                    color="yellow"
+                    color="error"
                     size="x-small"
                     prepend-icon="mdi-delete"
                     @click="deleteATask(item)"
+                    :disabled="
+                      item.pipeline_id !== '' || item.task_status === 'running'
+                    "
                     >Delete</v-btn
                   >
                 </td>
@@ -436,6 +450,8 @@
 </template>
 
 <script>
+import { TransitionGroup } from "vue";
+
 const typeMap = {
   db: "Database",
   xai: "XAI",
@@ -511,8 +527,7 @@ export default {
       return ts;
     },
     getTaskStatus(item) {
-      return item.formated_start_time !== undefined &&
-        item.task_status === "initialized"
+      return item.start_time !== undefined && item.task_status === "initialized"
         ? "stopped"
         : item.task_status;
     },
@@ -554,7 +569,6 @@ export default {
               });
             }
             this.task_rs["local"] = localRs;
-
             let globalRs = [];
             for (const i of response.data["global"]) {
               if (i.file_type === "img") {
@@ -653,7 +667,7 @@ export default {
             if (hasRunning) {
               this.taskListIntv = setInterval(() => {
                 this.fetchTaskList(task_sheet_id);
-              }, 1000);
+              }, 10000);
             }
           },
           error: () => {},
@@ -707,7 +721,6 @@ export default {
                 newEvaluationList.push(item);
               }
             }
-
             this.dbSrviceList = newDBList;
             this.xaiSrviceList = newXAIList;
             this.modelSrviceList = newModelList;
@@ -741,9 +754,7 @@ export default {
       // this.validate();
       e.preventDefault();
       const { valid } = await this.$refs.form.validate();
-
       console.log(valid);
-
       const task_sheet_name = this.task_sheet_name;
       const task_type = typeMap[this.task_type];
       const model_service_executor_id = this.model_service_executor_id;
@@ -753,13 +764,11 @@ export default {
         this.evaluation_service_executor_id;
       let task_parameters = this.task_parameters;
       const explanation_task_ticket = this.explanation_task_ticket;
-
       if (task_type === "evaluation") {
         let param = JSON.parse(task_parameters);
         param["explanation_task_ticket"] = explanation_task_ticket;
         task_parameters = JSON.stringify(param);
       }
-
       // console.log(task_sheet_name);
       // console.log(task_type);
       // console.log(db_service_executor_id);
@@ -767,7 +776,6 @@ export default {
       // console.log(xai_service_executor_id);
       // console.log(evaluation_service_executor_id);
       // console.log(task_parameters);
-
       if (valid) {
         this.ax.post(
           "http://127.0.0.1:5006/task_publisher/task_sheet",
@@ -815,6 +823,7 @@ export default {
     // console.log(123);
     this.fetchTaskSheetList();
   },
+  components: { TransitionGroup },
 };
 </script>
 

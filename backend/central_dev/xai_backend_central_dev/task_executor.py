@@ -1,4 +1,5 @@
 import shutil
+import sys
 import time
 import multiprocessing
 import json
@@ -6,6 +7,7 @@ import requests
 import os
 from tinydb import TinyDB, Query
 import torch.multiprocessing
+import traceback
 
 from xai_backend_central_dev.constant import ExecutorRegInfo
 from xai_backend_central_dev.constant import TaskInfo
@@ -23,11 +25,8 @@ class TaskExecutor(TaskComponent):
         self.process_holder = {}
 
         self.db = TinyDB(self.executor_db_file_path)
-        # print(executor_name, c_db_path)
         self.executor_reg_info_tb = self.db.table('executor_info')
 
-        # this keep the task parameters in db
-        self.executor_task_info_tb = self.db.table('executor_task_info')
         # this keep the task and function mapping in memory
         self.task_func_map = {}
 
@@ -83,10 +82,6 @@ class TaskExecutor(TaskComponent):
 
         return self.get_executor_id()
 
-    def update_task_info_locally(self, task_info):
-        self.executor_task_info_tb.update(
-            task_info, Query().task_ticket == task_info[TaskInfo.task_ticket])
-
     def update_task_status_to_central(self, task_ticket, task_status):
         requests.post(
             self.get_publisher_endpoint_url() + '/task_publisher/task',
@@ -102,6 +97,12 @@ class TaskExecutor(TaskComponent):
         self.update_task_status_to_central(task_ticket, task_status)
 
         # TODO: a callback to send task result to central db
+
+    def error_call_back(self, err, task_ticket, process):
+        process.close()
+        print(f'Error occurs for task_ticket: ' + task_ticket)
+        print(''.join(traceback.TracebackException.from_exception(err).format()))
+        self.update_task_status_to_central(task_ticket, TaskStatus.error)
 
     def __file_present__(self, rs_files, task_ticket, scope, sample=None):
         pre = []
@@ -170,7 +171,9 @@ class TaskExecutor(TaskComponent):
 
         as_rs = process.apply_async(function, args=[
             task_ticket, self.get_publisher_endpoint_url(), task_paramenters],
-            callback=lambda status: self.execution_call_back(status, task_ticket, process))
+            callback=lambda status: self.execution_call_back(
+                status, task_ticket, process),
+            error_callback=lambda err: self.error_call_back(err, task_ticket, process))
         st = time.time()
 
         self.process_holder[task_ticket] = {
@@ -181,7 +184,28 @@ class TaskExecutor(TaskComponent):
 
         return task_ticket
 
+    def get_task_actual_staus(self, task_ticket):
+        if self.process_holder.get(task_ticket) == None:
+            return TaskStatus.not_exist_in_executor_process_holder
+        else:
+            rs = self.process_holder.get(task_ticket)
+            as_rs = rs['as_rs']
+
+            # for ready()
+            # false when task is running
+            # true when task is done
+
+            # for successful()
+            # raise error when task is running
+            # true when task is done and not error raised
+            # false when task is done and error raised
+            if as_rs.ready():
+                return TaskStatus.finished if as_rs.successful() else TaskStatus.error
+            else:
+                return TaskStatus.running
+
     # set cleaning function when terminating a task
+
     def set_clean_task_function(self, cf):
         self.cf = cf
 
@@ -189,14 +213,14 @@ class TaskExecutor(TaskComponent):
         if self.process_holder.get(task_ticket) != None:
             self.process_holder[task_ticket]['process'].terminate(
             )
-        print('teriminate ', task_ticket)
+        print('\n', 'teriminate ', task_ticket)
         self.update_task_status_to_central(task_ticket, TaskStatus.stopped)
         if hasattr(self, 'cf') and callable(self.cf):
             try:
                 self.cf(task_ticket)
-            except Exception as e:
+            except Exception:
                 print('clean function error ', task_ticket)
-                print(e)
+                traceback.print_exc()
 
     def get_ticket_info_from_central(self, target_ticket: str):
         if self.get_publisher_endpoint_url() == None or self.get_executor_id() == None:
@@ -233,15 +257,12 @@ class TaskExecutor(TaskComponent):
         if os.path.exists(task_rs_zip_path):
             os.remove(task_rs_zip_path)
 
-        self.executor_task_info_tb.remove(Query().task_ticket == task_ticket)
-
     # TODO: run the task created by executor
     def request_ticket_and_start_task(self, task_name, task_function_key, task_parameters):
         pass
 
     def reset(self):
         self.executor_reg_info_tb.truncate()
-        self.executor_task_info_tb.truncate()
 
         # remove all files in tmp
         shutil.rmtree(self.tmp_path)

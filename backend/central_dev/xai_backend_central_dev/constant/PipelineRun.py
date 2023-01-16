@@ -11,8 +11,15 @@
 # }
 
 pipeline_id = 'pipeline_id'
-pipeline_owner = 'pipeline_owner'
 created_time = 'created_time'
 pipeline_name = 'pipeline_name'
+
 xai_task_sheet_id = 'xai_task_sheet_id'
 evaluation_task_sheet_id = 'evaluation_task_sheet_id'
+
+pipeline_run_ticket = 'pipeline_run_ticket'
+xai_task_ticket = 'xai_task_ticket'
+evaluation_task_ticket = 'evaluation_task_ticket'
+
+xai_task = 'xai_task'
+evaluation_task = 'evaluation_task'

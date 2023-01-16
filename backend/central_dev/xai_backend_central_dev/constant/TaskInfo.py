@@ -5,8 +5,13 @@ executor_endpoint_url = 'executor_endpoint_url'
 
 task_sheet_id = 'task_sheet_id'
 task_sheet = 'task_sheet'
+task_type = 'task_type'
 task_ticket = 'task_ticket'
+task_owner = 'task_owner'
 task_function_key = 'task_function_key'
+
+pipeline_id = 'pipeline_id'
+pipeline_run_ticket = 'pipeline_run_ticket'
 
 publisher = 'publisher'
 

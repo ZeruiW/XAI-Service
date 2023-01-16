@@ -64,7 +64,7 @@ class TaskPublisher(TaskComponent):
 
     def gen_pipeline_run_ticket(self, pipeline, xai_task_ticket, evaluation_task_ticket):
         pipeline_run_ticket_info = {
-            PipelineRun.created_time: time.time(),
+            PipelineRun.create_at: time.time(),
             PipelineRun.pipeline_id: pipeline[Pipeline.pipeline_id],
             PipelineRun.pipeline_name: pipeline[Pipeline.pipeline_name],
             PipelineRun.xai_task_sheet_id: pipeline[Pipeline.xai_task_sheet_id],
@@ -311,7 +311,7 @@ class TaskPipeline():
         pipeline_id = __get_random_string_no_low__(18)
         pipeline_info = {
             Pipeline.pipeline_id: pipeline_id,
-            Pipeline.created_time: time.time(),
+            Pipeline.create_at: time.time(),
             Pipeline.pipeline_name: pipeline_name,
             Pipeline.xai_task_sheet_id: xai_task_sheet_id,
             Pipeline.evaluation_task_sheet_id: evaluation_task_sheet_id,

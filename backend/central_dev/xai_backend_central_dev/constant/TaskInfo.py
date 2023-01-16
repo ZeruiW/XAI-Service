@@ -29,8 +29,4 @@ request_time = 'request_time'
 start_time = 'start_time'
 end_time = 'end_time'
 
-# remove
-formated_start_time = 'formated_start_time'
-formated_end_time = 'formated_end_time'
-
 empty = ''

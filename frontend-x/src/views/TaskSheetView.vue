@@ -758,12 +758,12 @@ export default {
       const evaluation_service_executor_id =
         this.evaluation_service_executor_id;
       let task_parameters = this.task_parameters;
-      const explanation_task_ticket = this.explanation_task_ticket;
-      if (task_type === "evaluation") {
-        let param = JSON.parse(task_parameters);
-        param["explanation_task_ticket"] = explanation_task_ticket;
-        task_parameters = JSON.stringify(param);
-      }
+      // const explanation_task_ticket = this.explanation_task_ticket;
+      // if (task_type === "evaluation") {
+      //   let param = JSON.parse(task_parameters);
+      //   param["explanation_task_ticket"] = explanation_task_ticket;
+      //   task_parameters = JSON.stringify(param);
+      // }
       // console.log(task_sheet_name);
       // console.log(task_type);
       // console.log(db_service_executor_id);

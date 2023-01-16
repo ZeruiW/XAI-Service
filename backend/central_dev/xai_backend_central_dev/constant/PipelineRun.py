@@ -1,6 +1,6 @@
 # pipeline_info = {
 #     'pipeline_id': pipeline_id,
-#     'created_time': time.time(),
+#     'create_at': time.time(),
 #     'pipeline_name': pipeline_name,
 #     'xai_task_sheet_id': "",
 #     'xai_task_status': "undefined",
@@ -11,7 +11,7 @@
 # }
 
 pipeline_id = 'pipeline_id'
-created_time = 'created_time'
+create_at = 'create_at'
 pipeline_name = 'pipeline_name'
 
 xai_task_sheet_id = 'xai_task_sheet_id'

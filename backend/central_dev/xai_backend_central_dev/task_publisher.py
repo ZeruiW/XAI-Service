@@ -203,8 +203,7 @@ class TaskPublisher(TaskComponent):
     def register_executor_endpoint(self,
                                    executor_type: str,
                                    executor_endpoint_url: str,
-                                   executor_info: dict,
-                                   executor_owner="Jim"):
+                                   executor_info: dict):
         existed_executor_id = None
         all_executor_registration_info = self.mondb.find(
             Mongo.executor_registration_col, {})
@@ -230,7 +229,7 @@ class TaskPublisher(TaskComponent):
             data={
                 'act': 'reg',
                 ExecutorRegInfo.executor_id: _id,
-                ExecutorRegInfo.executor_owner: executor_owner,
+                # ExecutorRegInfo.executor_owner: executor_owner,
                 ExecutorRegInfo.executor_register_time: reg_time,
                 ExecutorRegInfo.executor_type: executor_type,
                 ExecutorRegInfo.executor_endpoint_url: executor_endpoint_url,
@@ -252,7 +251,7 @@ class TaskPublisher(TaskComponent):
             else:
                 executor_reg_info = {
                     ExecutorRegInfo.executor_id: _id,
-                    ExecutorRegInfo.executor_owner: executor_owner,
+                    # ExecutorRegInfo.executor_owner: executor_owner,
                     ExecutorRegInfo.executor_register_time: reg_time,
                     ExecutorRegInfo.executor_type: executor_type,
                     ExecutorRegInfo.executor_info: executor_info,
@@ -308,7 +307,7 @@ class TaskPipeline():
             self.component_path_parent, f'{self.component_name}_storage')
         self.import_name = self.task_publisher.import_name
 
-    def create_pipeline(self, pipeline_name: str, xai_task_sheet_id: str, evaluation_task_sheet_id: str, pipeline_owner='Jim'):
+    def create_pipeline(self, pipeline_name: str, xai_task_sheet_id: str, evaluation_task_sheet_id: str):
         pipeline_id = __get_random_string_no_low__(18)
         pipeline_info = {
             Pipeline.pipeline_id: pipeline_id,
@@ -316,7 +315,7 @@ class TaskPipeline():
             Pipeline.pipeline_name: pipeline_name,
             Pipeline.xai_task_sheet_id: xai_task_sheet_id,
             Pipeline.evaluation_task_sheet_id: evaluation_task_sheet_id,
-            Pipeline.pipeline_owner: pipeline_owner
+            # Pipeline.pipeline_owner: pipeline_owner
         }
 
         self.task_publisher.mondb.insert_one(Mongo.pipeline_col, pipeline_info)
@@ -337,7 +336,7 @@ class TaskPipeline():
             TaskSheet.task_sheet_name: payload.get(TaskSheet.task_sheet_name),
             TaskSheet.task_function_key: payload.get(TaskSheet.task_function_key) if payload.get(TaskSheet.task_function_key) != None else 'default',
             TaskSheet.task_parameters: json.loads(payload.get(TaskSheet.task_parameters)),
-            TaskSheet.task_sheet_owner: 'Jim',
+            # TaskSheet.task_sheet_owner: 'Jim',
         }
 
         task_tb = self.task_publisher.mondb.col(Mongo.task_sheet_col)

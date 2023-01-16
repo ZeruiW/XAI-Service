@@ -58,7 +58,7 @@
               size="x-small"
               prepend-icon="mdi-play"
               @click="openPRLD(item)"
-              >Tasks</v-btn
+              >Runs</v-btn
             >
             <v-btn
               style="margin-left: 0.5em"
@@ -334,7 +334,7 @@
                     color="blue"
                     size="x-small"
                     prepend-icon="mdi-clipboard-minus-outline"
-                    @click="showPipelineRunResult(item)"
+                    @click="openPRSDD(item)"
                     :disabled="
                       !(
                         item.xai_task.task_status === 'finished' ||
@@ -383,219 +383,223 @@
       contained
       v-model="prrsdialog"
       persistent
+      style="height: 100%"
     >
-      <v-form id="pipeline-rs-detail-form" ref="form2">
-        <v-card>
+      <v-card style="height: 100000px">
+        <v-card-title>
+          <v-card-actions>
+            <span class="text-h5"
+              >Run: {{ current_pipeline_run.pipeline_name }} on ticket:
+              {{ current_pipeline_run.pipeline_run_ticket }}</span
+            >
+            <v-spacer></v-spacer>
+            <v-btn
+              size="small"
+              variant="outlined"
+              color="red-darken-1"
+              @click="closePRSDD"
+            >
+              Close
+            </v-btn>
+          </v-card-actions>
+        </v-card-title>
+        <v-divider></v-divider>
+        <v-container style="overflow: scroll; max-height: 700px">
           <v-card-title>
-            <v-card-actions>
-              <span class="text-h5"
-                >Run: {{ current_pipeline.pipeline_name }}</span
-              >
-              <v-spacer></v-spacer>
-              <v-btn
-                size="small"
-                variant="outlined"
-                color="red-darken-1"
-                @click="closePRSDD"
-              >
-                Close
-              </v-btn>
-            </v-card-actions>
+            <span class="text-h6">XAI Task Result</span>
           </v-card-title>
+          <v-card-text>
+            <v-expansion-panels>
+              <v-expansion-panel
+                v-if="
+                  xai_task_rs.global.length == 0 &&
+                  xai_task_rs.local.length == 0
+                "
+                title="Show Result"
+                text="No Result Yet."
+              >
+              </v-expansion-panel>
+              <v-expansion-panel v-else title="Show Result">
+                <v-expansion-panel-text>
+                  <div v-if="xai_task_rs['global'].length > 0">
+                    <v-card-title>
+                      <span class="text-h6">Global Explaination</span>
+                    </v-card-title>
+                    <v-card-text>
+                      <v-expansion-panels variant="popout">
+                        <v-expansion-panel
+                          v-for="item in xai_task_rs['global']"
+                          :key="item.file_name"
+                        >
+                          <v-expansion-panel-title v-slot="{}">
+                            {{ item.file_name }}
+                          </v-expansion-panel-title>
+
+                          <v-expansion-panel-text
+                            v-if="item.file_type === 'img'"
+                            class="unselectable"
+                            style="overflow-x: auto; text-align: center"
+                          >
+                            <img
+                              :src="item.address"
+                              style="max-height: 500px"
+                            />
+                          </v-expansion-panel-text>
+                          <v-expansion-panel-text v-else>
+                            This file is not support for present.
+                          </v-expansion-panel-text>
+                        </v-expansion-panel>
+                      </v-expansion-panels>
+                    </v-card-text>
+                  </div>
+                  <v-divider></v-divider>
+                  <div v-if="xai_task_rs['local'].length > 0">
+                    <v-card-title>
+                      <span class="text-h6">Local Explaination</span>
+                    </v-card-title>
+                    <v-card-text>
+                      <v-expansion-panels variant="popout">
+                        <v-expansion-panel
+                          v-for="sample in xai_task_rs['local']"
+                          :key="sample.sample_name"
+                        >
+                          <v-expansion-panel-title v-slot="{}">
+                            {{ sample.sample_name }}
+                          </v-expansion-panel-title>
+                          <v-expansion-panel-text>
+                            <v-expansion-panels variant="popout">
+                              <v-expansion-panel
+                                v-for="item in sample.explanation_results"
+                                :key="item.file_name"
+                              >
+                                <v-expansion-panel-title v-slot="{}">
+                                  {{ item.file_name }}
+                                </v-expansion-panel-title>
+                                <v-expansion-panel-text
+                                  v-if="item.file_type === 'img'"
+                                  class="unselectable"
+                                  style="overflow-x: auto; text-align: center"
+                                >
+                                  <img
+                                    :src="item.address"
+                                    style="max-height: 500px"
+                                  />
+                                </v-expansion-panel-text>
+                                <v-expansion-panel-text
+                                  v-else
+                                  style="text-align: center"
+                                >
+                                  This file is not support for present.
+                                </v-expansion-panel-text>
+                              </v-expansion-panel>
+                            </v-expansion-panels>
+                          </v-expansion-panel-text>
+                        </v-expansion-panel>
+                      </v-expansion-panels>
+                    </v-card-text>
+                  </div>
+                </v-expansion-panel-text>
+              </v-expansion-panel>
+            </v-expansion-panels>
+          </v-card-text>
           <v-divider></v-divider>
-          <v-container style="overflow: scroll; max-height: 700px">
-            <v-card-title>
-              <span class="text-h6">XAI Task Result</span>
-            </v-card-title>
-            <v-card-text>
-              <v-container>
-                <v-expansion-panels>
-                  <v-expansion-panel
-                    v-if="current_pipeline.xai_task_status !== 'finished'"
-                    title="Show Result"
-                    text="No Result Yet."
-                  >
-                  </v-expansion-panel>
-                  <v-expansion-panel
-                    v-if="current_pipeline.xai_task_status === 'finished'"
-                    title="Show Result"
-                  >
-                    <v-expansion-panel-text
-                      style="overflow: scroll; max-height: 500px"
-                    >
-                      <v-card-title>
-                        <span class="text-h6">Global Explaination</span>
-                      </v-card-title>
-                      <v-card-text>
-                        <v-table>
-                          <colgroup>
-                            <col span="1" style="width: 30%" />
-                            <col span="1" style="width: 70%" />
-                          </colgroup>
-                          <thead>
-                            <tr>
-                              <th class="text-left font-weight-bold">
-                                File Name
-                              </th>
-                              <th class="text-left font-weight-bold">
-                                Content
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            <tr
-                              class="trHover"
-                              v-for="item in xai_task_rs['global']"
-                              :key="item.filename"
-                            >
-                              <td>{{ item.file_name }}</td>
-                              <td>
-                                <img :src="item.address" alt="" srcset="" />
-                              </td>
-                            </tr>
-                          </tbody>
-                        </v-table>
-                      </v-card-text>
 
-                      <v-divider></v-divider>
-                      <v-card-title>
-                        <span class="text-h6">Local Explaination</span>
-                      </v-card-title>
-                      <v-card-text>
-                        <v-table>
-                          <colgroup>
-                            <col span="1" style="width: 30%" />
-                            <col span="1" style="width: 70%" />
-                          </colgroup>
-                          <thead>
-                            <tr>
-                              <th class="text-left font-weight-bold">
-                                File Name
-                              </th>
-                              <th class="text-left font-weight-bold">
-                                Content
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            <tr
-                              class="trHover"
-                              v-for="item in xai_task_rs['local']"
-                              :key="item.filename"
-                            >
-                              <td>{{ item.file_name }}</td>
-                              <td>
-                                <img :src="item.address" alt="" srcset="" />
-                              </td>
-                            </tr>
-                          </tbody>
-                        </v-table>
-                      </v-card-text>
-                    </v-expansion-panel-text>
-                  </v-expansion-panel>
-                </v-expansion-panels>
-              </v-container>
-            </v-card-text>
-            <v-divider></v-divider>
-            <v-card-title>
-              <span class="text-h6">Evaluation Task Result</span>
-            </v-card-title>
-            <v-card-text>
-              <v-container>
-                <v-expansion-panels>
-                  <v-expansion-panel
-                    v-if="
-                      current_pipeline.evaluation_task_status !== 'finished'
-                    "
-                    title="Show Result"
-                    text="No Result Yet."
-                  >
-                  </v-expansion-panel>
-                  <v-expansion-panel
-                    v-if="
-                      current_pipeline.evaluation_task_status === 'finished'
-                    "
-                    title="Show Result"
-                  >
-                    <v-expansion-panel-text
-                      style="overflow: scroll; max-height: 500px"
-                    >
-                      <v-card-title>
-                        <span class="text-h6">Global Explaination</span>
-                      </v-card-title>
-                      <v-card-text>
-                        <v-table>
-                          <colgroup>
-                            <col span="1" style="width: 30%" />
-                            <col span="1" style="width: 70%" />
-                          </colgroup>
-                          <thead>
-                            <tr>
-                              <th class="text-left font-weight-bold">
-                                File Name
-                              </th>
-                              <th class="text-left font-weight-bold">
-                                Content
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            <tr
-                              class="trHover"
-                              v-for="item in evaluation_task_rs['global']"
-                              :key="item.filename"
-                            >
-                              <td>{{ item.file_name }}</td>
-                              <td>
-                                <img :src="item.address" alt="" srcset="" />
-                              </td>
-                            </tr>
-                          </tbody>
-                        </v-table>
-                      </v-card-text>
+          <!-- evaluation task result -->
+          <v-card-title>
+            <span class="text-h6">Evaluation Task Result</span>
+          </v-card-title>
+          <v-card-text>
+            <v-expansion-panels>
+              <v-expansion-panel
+                v-if="
+                  evaluation_task_rs.global.length == 0 &&
+                  evaluation_task_rs.local.length == 0
+                "
+                title="Show Result"
+                text="No Result Yet."
+              >
+              </v-expansion-panel>
+              <v-expansion-panel v-else title="Show Result">
+                <v-expansion-panel-text>
+                  <div v-if="evaluation_task_rs['global'].length > 0">
+                    <v-card-title>
+                      <span class="text-h6"
+                        >Global Explaination Evaluation</span
+                      >
+                    </v-card-title>
+                    <v-card-text>
+                      <v-expansion-panels variant="popout">
+                        <v-expansion-panel
+                          v-for="item in evaluation_task_rs['global']"
+                          :key="item.file_name"
+                        >
+                          <v-expansion-panel-title v-slot="{}">
+                            {{ item.file_name }}
+                          </v-expansion-panel-title>
 
-                      <v-divider></v-divider>
-                      <v-card-title>
-                        <span class="text-h6">Local Explaination</span>
-                      </v-card-title>
-                      <v-card-text>
-                        <v-table>
-                          <colgroup>
-                            <col span="1" style="width: 30%" />
-                            <col span="1" style="width: 70%" />
-                          </colgroup>
-                          <thead>
-                            <tr>
-                              <th class="text-left font-weight-bold">
-                                File Name
-                              </th>
-                              <th class="text-left font-weight-bold">
-                                Content
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            <tr
-                              class="trHover"
-                              v-for="item in evaluation_task_rs['local']"
-                              :key="item.filename"
-                            >
-                              <td>{{ item.file_name }}</td>
-                              <td>
-                                <img :src="item.address" alt="" srcset="" />
-                              </td>
-                            </tr>
-                          </tbody>
-                        </v-table>
-                      </v-card-text>
-                    </v-expansion-panel-text>
-                  </v-expansion-panel>
-                </v-expansion-panels>
-              </v-container>
-            </v-card-text>
-          </v-container>
-        </v-card>
-      </v-form>
+                          <v-expansion-panel-text
+                            v-if="item.file_type === 'img'"
+                            class="unselectable"
+                            style="overflow-x: auto; text-align: center"
+                          >
+                            <img :src="item.address" />
+                          </v-expansion-panel-text>
+                          <v-expansion-panel-text v-else>
+                            This file is not support for present.
+                          </v-expansion-panel-text>
+                        </v-expansion-panel>
+                      </v-expansion-panels>
+                    </v-card-text>
+                  </div>
+                  <v-divider></v-divider>
+                  <div v-if="evaluation_task_rs['local'].length > 0">
+                    <v-card-title>
+                      <span class="text-h6">Local Explaination Evaluation</span>
+                    </v-card-title>
+                    <v-card-text>
+                      <v-expansion-panels variant="popout">
+                        <v-expansion-panel
+                          v-for="sample in evaluation_task_rs['local']"
+                          :key="sample.sample_name"
+                        >
+                          <v-expansion-panel-title v-slot="{}">
+                            {{ sample.sample_name }}
+                          </v-expansion-panel-title>
+                          <v-expansion-panel-text>
+                            <v-expansion-panels variant="popout">
+                              <v-expansion-panel
+                                v-for="item in sample.explanation_results"
+                                :key="item.file_name"
+                              >
+                                <v-expansion-panel-title v-slot="{}">
+                                  {{ item.file_name }}
+                                </v-expansion-panel-title>
+                                <v-expansion-panel-text
+                                  v-if="item.file_type === 'img'"
+                                  class="unselectable"
+                                  style="overflow-x: auto; text-align: center"
+                                >
+                                  <img :src="item.address" />
+                                </v-expansion-panel-text>
+                                <v-expansion-panel-text
+                                  v-else
+                                  style="text-align: center"
+                                >
+                                  This file is not support for present.
+                                </v-expansion-panel-text>
+                              </v-expansion-panel>
+                            </v-expansion-panels>
+                          </v-expansion-panel-text>
+                        </v-expansion-panel>
+                      </v-expansion-panels>
+                    </v-card-text>
+                  </div>
+                </v-expansion-panel-text>
+              </v-expansion-panel>
+            </v-expansion-panels>
+          </v-card-text>
+        </v-container>
+      </v-card>
     </v-dialog>
   </v-card>
 </template>
@@ -628,6 +632,7 @@ export default {
     xaiTaskSheetList: [],
     evalTaskSheetList: [],
     current_pipeline_run_list: [],
+    current_pipeline_run: {},
     xai_task_rs: {
       global: [],
       local: [],
@@ -642,12 +647,8 @@ export default {
     this.fetchPipeline();
   },
   methods: {
-    showPipelineRunResult(item) {
-      console.log(item);
-    },
     fetchTaskResult(task_ticket, task_type) {
       this.trdialog = true;
-      // console.log(item);
       this.ax.get(
         "http://127.0.0.1:5006/task_publisher/task_result",
         {
@@ -655,13 +656,14 @@ export default {
         },
         {
           success: (response) => {
+            console.log(response.data);
             let localRs = [];
-            for (const i of response.data["local"]) {
-              if (i.file_type === "img") {
-                localRs.push(i);
-              }
+            for (const [key, value] of Object.entries(response.data["local"])) {
+              localRs.push({
+                sample_name: key,
+                explanation_results: value,
+              });
             }
-            localRs.sort();
             if (task_type === "xai") {
               this.xai_task_rs["local"] = localRs;
             } else {
@@ -674,7 +676,6 @@ export default {
                 globalRs.push(i);
               }
             }
-            globalRs.sort();
             if (task_type === "xai") {
               this.xai_task_rs["global"] = globalRs;
             } else {
@@ -799,16 +800,15 @@ export default {
     },
     openPRSDD(item) {
       this.prrsdialog = true;
-      this.current_pipeline = item;
-      if (this.current_pipeline.xai_task_status === "finished") {
-        this.fetchTaskResult(this.current_pipeline.xai_task_ticket, "xai");
-      }
-      if (this.current_pipeline.evaluation_task_status === "finished") {
-        this.fetchTaskResult(
-          this.current_pipeline.evaluation_task_ticket,
-          "evaluation"
-        );
-      }
+      this.current_pipeline_run = item;
+      this.fetchTaskResult(item.xai_task_ticket, "xai");
+      this.fetchTaskResult(item.evaluation_task_ticket, "evaluation");
+    },
+    closePRSDD() {
+      this.prrsdialog = false;
+      setTimeout(() => {
+        this.current_pipeline_run = {};
+      }, 500);
     },
     stopARun(item) {
       const pipeline_run_ticket = item.pipeline_run_ticket;
@@ -866,10 +866,7 @@ export default {
         ? "stopped"
         : item.task_status;
     },
-    closePRSDD() {
-      this.resetForm();
-      this.prrsdialog = false;
-    },
+
     openPRLD(item) {
       this.prldialog = true;
       this.current_pipeline = item;

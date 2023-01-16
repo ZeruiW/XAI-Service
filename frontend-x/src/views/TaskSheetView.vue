@@ -354,7 +354,7 @@
       v-model="trdialog"
       persistent
     >
-      <v-card style="height: 100000px">
+      <v-card>
         <v-card-title>
           <v-card-actions>
             <span class="text-h5">Task Result</span>
@@ -390,7 +390,7 @@
                   class="unselectable"
                   style="overflow-x: auto; text-align: center"
                 >
-                  <img :src="item.address" style="max-height: 500px" />
+                  <img :src="item.address" />
                 </v-expansion-panel-text>
                 <v-expansion-panel-text v-else>
                   This file is not support for present.
@@ -428,11 +428,7 @@
                         class="unselectable"
                         style="overflow-x: auto; text-align: center"
                       >
-                        <img
-                          lazy-src="https://picsum.photos/id/11/100/60"
-                          :src="item.address"
-                          style="max-height: 500px"
-                        />
+                        <img :src="item.address" />
                       </v-expansion-panel-text>
                       <v-expansion-panel-text v-else style="text-align: center">
                         This file is not support for present.
@@ -575,7 +571,6 @@ export default {
                 globalRs.push(i);
               }
             }
-            globalRs.sort();
             this.task_rs["global"] = globalRs;
           },
           error: () => {},

@@ -991,7 +991,7 @@ export default {
       this.ax.post(
         "http://127.0.0.1:5006/task_publisher/pipeline",
         {
-          act: "del",
+          act: "delete",
           pipeline_id: item.pipeline_id,
         },
         {

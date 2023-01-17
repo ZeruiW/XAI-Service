@@ -675,6 +675,14 @@ class TaskPipeline():
         })
 
     def delete_task_sheet(self, task_sheet_id):
+
+        tasks = self.task_publisher.mondb.find(Mongo.task_col, {
+            TaskSheet.task_sheet_id: task_sheet_id
+        })
+        
+        for task in tasks:
+            self.delete_task(task[TaskInfo.task_ticket])
+
         self.task_publisher.mondb.delete_one(Mongo.task_sheet_col, {
             TaskSheet.task_sheet_id: task_sheet_id
         })

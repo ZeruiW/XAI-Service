@@ -178,7 +178,8 @@ def pipeline():
             pipeline_info = tp.pipeline.duplicate_pipeline(pipeline_id)
             return jsonify(pipeline_info)
 
-        if act == 'del':
+        if act == 'delete':
+            # TODO: unable to delete when tasks are not deleted
             pipeline_id = form_data[Pipeline.pipeline_id]
             tp.pipeline.delete_pipeline(pipeline_id)
 
@@ -209,7 +210,8 @@ def task_sheet():
             return jsonify({
                 'task_ticket': tp.pipeline.run_task_sheet_directly(task_sheet_id, task_name)
             })
-        if act == 'del':
+        if act == 'delete':
+            # TODO: unable to delete when tasks are not deleted
             task_sheet_id = form_data[TaskSheet.task_sheet_id]
             tp.pipeline.delete_task_sheet(task_sheet_id)
             return ""

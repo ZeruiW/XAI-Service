@@ -531,7 +531,7 @@ export default {
       this.ax.post(
         "http://127.0.0.1:5006/task_publisher/task_sheet",
         {
-          act: "del",
+          act: "delete",
           task_sheet_id: item.task_sheet_id,
         },
         {

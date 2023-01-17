@@ -67,3 +67,6 @@ class Mon:
 
     def delete_one(self, col_name, filter):
         return self.col(col_name).delete_one(filter)
+
+    def deleet_many(self, col_name, filter):
+        return self.col(col_name).delete_many(filter)

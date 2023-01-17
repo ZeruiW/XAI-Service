@@ -30,7 +30,7 @@
           <th class="text-left font-weight-bold">ID</th>
           <th class="text-left font-weight-bold">Name</th>
           <th class="text-left font-weight-bold">XAI Task Sheet ID</th>
-          <th class="text-left font-weight-bold">Evaluation Task Sheet ID</th>
+          <th class="text-left font-weight-bold">Eval Task Sheet ID</th>
           <th class="text-left font-weight-bold"></th>
         </tr>
       </thead>
@@ -404,7 +404,7 @@
           </v-card-actions>
         </v-card-title>
         <v-divider></v-divider>
-        <v-container style="overflow: scroll; max-height: 700px">
+        <v-container style="overflow: scroll">
           <v-card-title>
             <span class="text-h6">XAI Task Result</span>
           </v-card-title>

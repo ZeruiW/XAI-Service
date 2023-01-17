@@ -11,7 +11,7 @@
     }"
   >
     <div style="font-size: 15px">
-      <strong>FALL2021 - Concordia University - COEN6311 Group Super</strong>
+      <strong>2023 - Concordia University - ConcordiaSAC Research Lab</strong>
     </div>
   </v-footer>
 </template>
@@ -28,10 +28,10 @@ export default {
 </script>
 
 <style scoped>
-/* .footer {
+.footer {
   position: absolute;
   bottom: 0;
   right: 0;
   left: 0;
-} */
+}
 </style>

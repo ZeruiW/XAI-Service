@@ -291,6 +291,11 @@ estree-walker@^2.0.2:
   resolved "https://registry.npmmirror.com/estree-walker/-/estree-walker-2.0.2.tgz#52f010178c2a4c117a7757cfe942adb7d2da4cac"
   integrity sha512-Rfkk/Mp/DL7JVje3u18FxFujQlTNR2q6QfMSMB7AvCBx91NGj/ba3kCfza0f6dVDbw7YlRf/nDrn7pQrCCyQ/w==
 
+events@^3.3.0:
+  version "3.3.0"
+  resolved "https://registry.npmmirror.com/events/-/events-3.3.0.tgz#31a95ad0a924e2d2c419a813aeb2c4e878ea7400"
+  integrity sha512-mQw+2fkQbALzQ7V0MY0IqdnXNOeTtP4r0lN9z7AAawCXgqea7bDii20AYrIBrFd/Hx0M2Ocz6S111CaFkUcb0Q==
+
 follow-redirects@^1.15.0:
   version "1.15.2"
   resolved "https://registry.npmmirror.com/follow-redirects/-/follow-redirects-1.15.2.tgz#b460864144ba63f2681096f274c4e57026da2c13"
@@ -314,6 +319,14 @@ function-bind@^1.1.1:
   version "1.1.1"
   resolved "https://registry.npmmirror.com/function-bind/-/function-bind-1.1.1.tgz#a56899d3ea3c9bab874bb9773b7c5ede92f4895d"
   integrity sha512-yIovAzMX49sF8Yl58fSCWJ5svSLuaibPxXQJFLmBObTuCr0Mf1KiPopGM9NiFjiYBCbfaa2Fh6breQ6ANVTI0A==
+
+graphology@^0.25.1:
+  version "0.25.1"
+  resolved "https://registry.npmmirror.com/graphology/-/graphology-0.25.1.tgz#f92b86294782522d3898ce4480e4a577c0c2568a"
+  integrity sha512-yYA7BJCcXN2DrKNQQ9Qf22zBHm/yTbyBR71T1MYBbGtywNHsv0QZtk8zaR6zxNcp2hCCZayUkHp9DyMSZCpoxQ==
+  dependencies:
+    events "^3.3.0"
+    obliterator "^2.0.2"
 
 has@^1.0.3:
   version "1.0.3"
@@ -352,6 +365,11 @@ nanoid@^3.3.4:
   version "3.3.4"
   resolved "https://registry.npmmirror.com/nanoid/-/nanoid-3.3.4.tgz#730b67e3cd09e2deacf03c027c81c9d9dbc5e8ab"
   integrity sha512-MqBkQh/OHTS2egovRtLk45wEyNXwF+cokD+1YPf9u5VfJiRdAiRwB2froX5Co9Rh20xs4siNPm8naNotSD6RBw==
+
+obliterator@^2.0.2:
+  version "2.0.4"
+  resolved "https://registry.npmmirror.com/obliterator/-/obliterator-2.0.4.tgz#fa650e019b2d075d745e44f1effeb13a2adbe816"
+  integrity sha512-lgHwxlxV1qIg1Eap7LgIeoBWIMFibOjbrYPIPJZcI1mmGAI2m3lNYpK12Y+GBdPQ0U1hRwSord7GIaawz962qQ==
 
 path-parse@^1.0.7:
   version "1.0.7"

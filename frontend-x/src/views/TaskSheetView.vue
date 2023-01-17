@@ -20,9 +20,9 @@
     <v-table>
       <colgroup>
         <col span="1" style="width: 20%" />
-        <col span="1" style="width: 40%" />
+        <col span="1" style="width: 25%" />
         <col span="1" style="width: 10%" />
-        <col span="1" style="width: 30%" />
+        <col span="1" style="width: 45%" />
       </colgroup>
       <thead>
         <tr>
@@ -371,75 +371,80 @@
             </v-btn>
           </v-card-actions>
         </v-card-title>
-        <div v-if="task_rs['global'].length > 0">
-          <v-card-title>
-            <span class="text-h6">Global Explaination</span>
-          </v-card-title>
-          <v-card-text>
-            <v-expansion-panels variant="accordion">
-              <v-expansion-panel
-                v-for="item in task_rs['global']"
-                :key="item.file_name"
-              >
-                <v-expansion-panel-title v-slot="{}">
-                  {{ item.file_name }}
-                </v-expansion-panel-title>
-
-                <v-expansion-panel-text
-                  v-if="item.file_type === 'img'"
-                  class="unselectable"
-                  style="overflow-x: auto; text-align: center"
+        <v-container style="overflow: scroll">
+          <div v-if="task_rs['global'].length > 0">
+            <v-card-title>
+              <span class="text-h6">Global Explaination</span>
+            </v-card-title>
+            <v-card-text>
+              <v-expansion-panels variant="popout">
+                <v-expansion-panel
+                  v-for="item in task_rs['global']"
+                  :key="item.file_name"
                 >
-                  <img :src="item.address" />
-                </v-expansion-panel-text>
-                <v-expansion-panel-text v-else>
-                  This file is not support for present.
-                </v-expansion-panel-text>
-              </v-expansion-panel>
-            </v-expansion-panels>
-          </v-card-text>
-        </div>
+                  <v-expansion-panel-title v-slot="{}">
+                    {{ item.file_name }}
+                  </v-expansion-panel-title>
 
-        <v-divider></v-divider>
-        <div v-if="task_rs['local'].length > 0">
-          <v-card-title>
-            <span class="text-h6">Local Explaination</span>
-          </v-card-title>
-          <v-card-text>
-            <v-expansion-panels variant="accordion">
-              <v-expansion-panel
-                v-for="sample in task_rs['local']"
-                :key="sample.sample_name"
-              >
-                <v-expansion-panel-title v-slot="{}">
-                  {{ sample.sample_name }}
-                </v-expansion-panel-title>
-                <v-expansion-panel-text>
-                  <v-expansion-panels variant="accordion">
-                    <v-expansion-panel
-                      v-for="item in sample.explanation_results"
-                      :key="item.file_name"
-                    >
-                      <v-expansion-panel-title v-slot="{}">
-                        {{ item.file_name }}
-                      </v-expansion-panel-title>
-                      <v-expansion-panel-text
-                        v-if="item.file_type === 'img'"
-                        class="unselectable"
-                        style="overflow-x: auto; text-align: center"
+                  <v-expansion-panel-text
+                    v-if="item.file_type === 'img'"
+                    class="unselectable"
+                    style="overflow-x: auto; text-align: center"
+                  >
+                    <img :src="item.address" />
+                  </v-expansion-panel-text>
+                  <v-expansion-panel-text v-else>
+                    This file is not support for present.
+                  </v-expansion-panel-text>
+                </v-expansion-panel>
+              </v-expansion-panels>
+            </v-card-text>
+          </div>
+
+          <v-divider></v-divider>
+          <div v-if="task_rs['local'].length > 0">
+            <v-card-title>
+              <span class="text-h6">Local Explaination</span>
+            </v-card-title>
+            <v-card-text>
+              <v-expansion-panels variant="popout">
+                <v-expansion-panel
+                  v-for="sample in task_rs['local']"
+                  :key="sample.sample_name"
+                >
+                  <v-expansion-panel-title v-slot="{}">
+                    {{ sample.sample_name }}
+                  </v-expansion-panel-title>
+                  <v-expansion-panel-text>
+                    <v-expansion-panels variant="popout">
+                      <v-expansion-panel
+                        v-for="item in sample.explanation_results"
+                        :key="item.file_name"
                       >
-                        <img :src="item.address" />
-                      </v-expansion-panel-text>
-                      <v-expansion-panel-text v-else style="text-align: center">
-                        This file is not support for present.
-                      </v-expansion-panel-text>
-                    </v-expansion-panel>
-                  </v-expansion-panels>
-                </v-expansion-panel-text>
-              </v-expansion-panel>
-            </v-expansion-panels>
-          </v-card-text>
-        </div>
+                        <v-expansion-panel-title v-slot="{}">
+                          {{ item.file_name }}
+                        </v-expansion-panel-title>
+                        <v-expansion-panel-text
+                          v-if="item.file_type === 'img'"
+                          class="unselectable"
+                          style="overflow-x: auto; text-align: center"
+                        >
+                          <img :src="item.address" />
+                        </v-expansion-panel-text>
+                        <v-expansion-panel-text
+                          v-else
+                          style="text-align: center"
+                        >
+                          This file is not support for present.
+                        </v-expansion-panel-text>
+                      </v-expansion-panel>
+                    </v-expansion-panels>
+                  </v-expansion-panel-text>
+                </v-expansion-panel>
+              </v-expansion-panels>
+            </v-card-text>
+          </div>
+        </v-container>
       </v-card>
     </v-dialog>
   </v-card>

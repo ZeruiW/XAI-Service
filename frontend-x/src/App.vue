@@ -1,21 +1,37 @@
 <script setup>
-import Footer from "./components/footer.vue";
+import Footer from "@/components/footer.vue";
 </script>
 
 <template>
   <v-app id="app">
     <!-- <v-navigation-drawer>...</v-navigation-drawer> -->
-    <v-app-bar title="XAI as a Service" :elevation="2"></v-app-bar>
+    <v-app-bar title="XAI as a Service" :elevation="6"></v-app-bar>
     <v-main>
-      <v-navigation-drawer permanent location="left" :elevation="2">
-        <template v-slot:prepend>
-          <v-list-item
-            lines="two"
-            prepend-avatar="https://randomuser.me/api/portraits/women/81.jpg"
-            title="Jane Smith"
-            subtitle="Logged in"
-          ></v-list-item>
-        </template>
+      <v-navigation-drawer
+        permanent
+        location="left"
+        :elevation="4"
+        :rail="rail"
+        @click="rail = false"
+        width="200"
+      >
+        <!-- <template v-slot:prepend> -->
+        <v-list-item
+          lines="two"
+          prepend-avatar="https://randomuser.me/api/portraits/women/81.jpg"
+          title="Jane Smith"
+          subtitle="Logged in"
+          nav
+        >
+          <template v-slot:append>
+            <v-btn
+              variant="text"
+              icon="mdi-chevron-left"
+              @click.stop="rail = !rail"
+            ></v-btn>
+          </template>
+        </v-list-item>
+        <!-- </template> -->
 
         <!-- <v-divider></v-divider> -->
 
@@ -36,13 +52,13 @@ import Footer from "./components/footer.vue";
         <!-- <ServiceView class="view"></ServiceView>
         <TaskSheetView class="view"></TaskSheetView>
         <PipelineView class="view"></PipelineView> -->
-        <router-view v-slot="{ Component }">
+        <router-view v-slot="{ Component }" :elevation="4">
           <transition name="fade" mode="out-in">
             <component :is="Component" />
           </transition>
         </router-view>
+        <Footer style="margin-top: 0.5em"></Footer>
       </div>
-      <!-- <Footer></Footer> -->
     </v-main>
   </v-app>
 </template>
@@ -50,17 +66,17 @@ import Footer from "./components/footer.vue";
 <script>
 const tabList = [
   {
-    icon: "mdi-home-city",
+    icon: "mdi-server",
     title: "Service",
     path: "/",
   },
   {
-    icon: "mdi-account",
+    icon: "mdi-file-table-outline",
     title: "Task Sheet",
     path: "/task_sheet",
   },
   {
-    icon: "mdi-account-group-outline",
+    icon: "mdi-pipe",
     title: "Pipeline",
     path: "/pipeline",
   },
@@ -69,6 +85,7 @@ const tabList = [
 export default {
   data: () => ({
     tabList,
+    rail: false,
     currentTab: "",
   }),
   mounted: function () {
@@ -107,9 +124,8 @@ export default {
 
 <style scoped>
 .mainPanel {
-  /* background-color: aqua; */
   height: 100%;
-  padding: 1.2em;
+  padding: 1.2em 1.2em 3em 1.2em;
 }
 
 .view {

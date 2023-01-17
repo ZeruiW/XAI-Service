@@ -256,6 +256,8 @@ class TaskPublisher(TaskComponent):
                     ExecutorRegInfo.executor_type: executor_type,
                     ExecutorRegInfo.executor_info: executor_info,
                     ExecutorRegInfo.executor_endpoint_url: executor_endpoint_url,
+                    ExecutorRegInfo.sys_info: json.loads(
+                        resp.content.decode('utf-8'))
                 }
                 self.mondb.insert_one(Mongo.executor_registration_col,
                                       executor_reg_info)
@@ -362,7 +364,7 @@ class TaskPipeline():
         if task[TaskInfo.task_type] == TaskType.xai and\
             task[TaskInfo.pipeline_id] != TaskInfo.empty and\
                 task[TaskInfo.pipeline_run_ticket] != TaskInfo.empty and\
-        task[TaskInfo.task_status] == TaskStatus.finished:
+            task[TaskInfo.task_status] == TaskStatus.finished:
 
             pipeline_run = self.task_publisher.mondb.find_one(Mongo.pipeline_run_col, {
                 PipelineRun.pipeline_run_ticket: task[TaskInfo.pipeline_run_ticket]
@@ -679,7 +681,7 @@ class TaskPipeline():
         tasks = self.task_publisher.mondb.find(Mongo.task_col, {
             TaskSheet.task_sheet_id: task_sheet_id
         })
-        
+
         for task in tasks:
             self.delete_task(task[TaskInfo.task_ticket])
 

@@ -15,6 +15,26 @@ from xai_backend_central_dev.constant import TaskSheet
 from xai_backend_central_dev.constant import TaskStatus
 from xai_backend_central_dev.task_manager import TaskComponent
 
+import platform
+import json
+import psutil
+import logging
+
+
+def getSystemInfo():
+    try:
+        info = {}
+        info['platform'] = platform.system()
+        info['platform-release'] = platform.release()
+        info['platform-version'] = platform.version()
+        info['architecture'] = platform.machine()
+        info['processor'] = platform.processor()
+        info['ram'] = str(
+            round(psutil.virtual_memory().total / (1024.0 ** 3)))+" GB"
+        return info
+    except Exception as e:
+        logging.exception(e)
+
 
 class TaskExecutor(TaskComponent):
 
@@ -80,7 +100,7 @@ class TaskExecutor(TaskComponent):
             ExecutorRegInfo.publisher_endpoint_url: publisher_endpoint_url,
         })
 
-        return self.get_executor_id()
+        return getSystemInfo()
 
     def update_task_status_to_central(self, task_ticket, task_status):
         requests.post(
@@ -257,7 +277,6 @@ class TaskExecutor(TaskComponent):
         if os.path.exists(task_rs_zip_path):
             os.remove(task_rs_zip_path)
 
-    # TODO: run the task created by executor
     def request_ticket_and_start_task(self, task_name, task_function_key, task_parameters):
         pass
 

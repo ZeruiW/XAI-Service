@@ -133,11 +133,9 @@ class ExecutorBluePrint(Blueprint):
                     endpoint_url = form_data[ExecutorRegInfo.executor_endpoint_url]
                     executor_info = form_data[ExecutorRegInfo.executor_info]
                     publisher_endpoint_url = form_data[ExecutorRegInfo.publisher_endpoint_url]
-                    executor_id = self.te.keep_reg_info(
+                    sys_info = self.te.keep_reg_info(
                         executor_id, endpoint_type, endpoint_url, executor_info, publisher_endpoint_url)
-                    return jsonify({
-                        ExecutorRegInfo.executor_id: executor_id
-                    })
+                    return jsonify(sys_info)
 
             return ""
 

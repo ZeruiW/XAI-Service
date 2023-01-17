@@ -38,6 +38,15 @@ ebp = ExecutorBluePrint(
     'azure_cog', __name__, component_path=__file__, url_prefix='/azure_cog')
 
 
+api_key_path = os.path.join(os.environ['COMPONENT_TMP_DIR'], 'api_key')
+
+if not os.path.exists(api_key_path):
+    print(f'Please provide api key at: ', api_key_path)
+    exit(1)
+
+with open(api_key_path) as f:
+    api_key = f.readlines()[0]
+
 # def get_prediction(imgs):
 #     tensor = torch.tensor(np.array([
 #         transform_image(x).numpy()
@@ -75,7 +84,7 @@ def sendRequestCV(img):
     headers = {
         # requests won't add a boundary if this header is set when you pass files=
         # 'Content-Type': 'multipart/form-data',
-        'Prediction-Key': '528135dfdd2a4ef4b883eea5952998ca',
+        'Prediction-Key': api_key,
         # requests won't add a boundary if this header is set when you pass files=
         # 'Content-type': 'application/octet-stream',
     }

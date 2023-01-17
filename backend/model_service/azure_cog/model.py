@@ -38,14 +38,14 @@ ebp = ExecutorBluePrint(
     'azure_cog', __name__, component_path=__file__, url_prefix='/azure_cog')
 
 
-api_key_path = os.path.join(os.environ['COMPONENT_TMP_DIR'], 'api_key')
+api_conf_path = os.path.join(os.environ['COMPONENT_TMP_DIR'], 'api.conf.json')
 
-if not os.path.exists(api_key_path):
-    print(f'Please provide api key at: ', api_key_path)
+if not os.path.exists(api_conf_path):
+    print(f'Please provide api key at: ', api_conf_path)
     exit(1)
 
-with open(api_key_path) as f:
-    api_key = f.readlines()[0]
+with open(api_conf_path) as f:
+    api_conf = json.load(f)
 
 # def get_prediction(imgs):
 #     tensor = torch.tensor(np.array([
@@ -78,15 +78,8 @@ with open(class_map_path, 'r') as f:
 
 
 def sendRequestCV(img):
-    # api_url = 'https://eastus.api.cognitive.microsoft.com/customvision/v3.0/Prediction/95d4b387-c987-498e-8db1-4b3208c67132/classify/iterations/Iteration1/image'
-    # api_url = 'https://eastus.api.cognitive.microsoft.com/customvision/v3.0/Prediction/d4a22cfc-8f99-4172-8409-9b9c780bfbb3/classify/iterations/Iteration1/image'
-    api_url = 'https://eastus.api.cognitive.microsoft.com/customvision/v3.0/Prediction/cfee6c8a-e2d1-467a-b559-3fe0a9db4ae5/classify/iterations/Iteration1/image'
     headers = {
-        # requests won't add a boundary if this header is set when you pass files=
-        # 'Content-Type': 'multipart/form-data',
-        'Prediction-Key': api_key,
-        # requests won't add a boundary if this header is set when you pass files=
-        # 'Content-type': 'application/octet-stream',
+        'Prediction-Key': api_conf['key'],
     }
 
     files = {
@@ -94,7 +87,7 @@ def sendRequestCV(img):
     }
 
     response = requests.post(
-        api_url,
+        api_conf['url'],
         headers=headers,
         files=files,
     )

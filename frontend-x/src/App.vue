@@ -80,6 +80,11 @@ const tabList = [
     title: "Pipeline",
     path: "/pipeline",
   },
+  {
+    icon: "mdi-graphql",
+    title: "Provenance",
+    path: "/provenance",
+  },
 ];
 
 export default {

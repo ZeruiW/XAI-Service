@@ -222,6 +222,11 @@
   resolved "https://registry.npmmirror.com/@vue/shared/-/shared-3.2.45.tgz#a3fffa7489eafff38d984e23d0236e230c818bc2"
   integrity sha512-Ewzq5Yhimg7pSztDV+RH1UDKBzmtqieXQlpTVm2AwraoRL/Rks96mvd8Vgi7Lj+h+TH8dv7mXD3FRZR3TUvbSg==
 
+"@yomguithereal/helpers@^1.1.1":
+  version "1.1.1"
+  resolved "https://registry.npmmirror.com/@yomguithereal/helpers/-/helpers-1.1.1.tgz#185dfb0f88ca2beec53d0adf6eed15c33b1c549d"
+  integrity sha512-UYvAq/XCA7xoh1juWDYsq3W0WywOB+pz8cgVnE1b45ZfdMhBvHDrgmSFG3jXeZSr2tMTYLGHFHON+ekG05Jebg==
+
 asynckit@^0.4.0:
   version "0.4.0"
   resolved "https://registry.npmmirror.com/asynckit/-/asynckit-0.4.0.tgz#c79ed97f7f34cb8f2ba1bc9790bcc366474b4b79"
@@ -320,6 +325,40 @@ function-bind@^1.1.1:
   resolved "https://registry.npmmirror.com/function-bind/-/function-bind-1.1.1.tgz#a56899d3ea3c9bab874bb9773b7c5ede92f4895d"
   integrity sha512-yIovAzMX49sF8Yl58fSCWJ5svSLuaibPxXQJFLmBObTuCr0Mf1KiPopGM9NiFjiYBCbfaa2Fh6breQ6ANVTI0A==
 
+graphology-layout-force@^0.2.4:
+  version "0.2.4"
+  resolved "https://registry.npmmirror.com/graphology-layout-force/-/graphology-layout-force-0.2.4.tgz#a9b5f2aa5c7b56985503d302dbce4c73c76b9eb3"
+  integrity sha512-NYZz0YAnDkn5pkm30cvB0IScFoWGtbzJMrqaiH070dYlYJiag12Oc89dbVfaMaVR/w8DMIKxn/ix9Bqj+Umm9Q==
+  dependencies:
+    graphology-utils "^2.4.2"
+
+graphology-layout-forceatlas2@^0.10.1:
+  version "0.10.1"
+  resolved "https://registry.npmmirror.com/graphology-layout-forceatlas2/-/graphology-layout-forceatlas2-0.10.1.tgz#741842135609d82d12db5a5fdf74672062c28205"
+  integrity sha512-ogzBeF1FvWzjkikrIFwxhlZXvD2+wlY54lqhsrWprcdPjopM2J9HoMweUmIgwaTvY4bUYVimpSsOdvDv1gPRFQ==
+  dependencies:
+    graphology-utils "^2.1.0"
+
+graphology-layout-noverlap@^0.4.2:
+  version "0.4.2"
+  resolved "https://registry.npmmirror.com/graphology-layout-noverlap/-/graphology-layout-noverlap-0.4.2.tgz#2ffa054ceeebaa31fcffe695d271fc55707cd29c"
+  integrity sha512-13WwZSx96zim6l1dfZONcqLh3oqyRcjIBsqz2c2iJ3ohgs3605IDWjldH41Gnhh462xGB1j6VGmuGhZ2FKISXA==
+  dependencies:
+    graphology-utils "^2.3.0"
+
+graphology-layout@^0.6.1:
+  version "0.6.1"
+  resolved "https://registry.npmmirror.com/graphology-layout/-/graphology-layout-0.6.1.tgz#e7c1d65c022e337b11c977e2d30abe4076a0327d"
+  integrity sha512-m9aMvbd0uDPffUCFPng5ibRkb2pmfNvdKjQWeZrf71RS1aOoat5874+DcyNfMeCT4aQguKC7Lj9eCbqZj/h8Ag==
+  dependencies:
+    graphology-utils "^2.3.0"
+    pandemonium "^2.4.0"
+
+graphology-utils@^2.1.0, graphology-utils@^2.3.0, graphology-utils@^2.4.2, graphology-utils@^2.5.0:
+  version "2.5.2"
+  resolved "https://registry.npmmirror.com/graphology-utils/-/graphology-utils-2.5.2.tgz#4d30d6e567d27c01f105e1494af816742e8d2440"
+  integrity sha512-ckHg8MXrXJkOARk56ZaSCM1g1Wihe2d6iTmz1enGOz4W/l831MBCKSayeFQfowgF8wd+PQ4rlch/56Vs/VZLDQ==
+
 graphology@^0.25.1:
   version "0.25.1"
   resolved "https://registry.npmmirror.com/graphology/-/graphology-0.25.1.tgz#f92b86294782522d3898ce4480e4a577c0c2568a"
@@ -361,15 +400,29 @@ mime-types@^2.1.12:
   dependencies:
     mime-db "1.52.0"
 
+mnemonist@^0.39.2:
+  version "0.39.5"
+  resolved "https://registry.npmmirror.com/mnemonist/-/mnemonist-0.39.5.tgz#5850d9b30d1b2bc57cc8787e5caa40f6c3420477"
+  integrity sha512-FPUtkhtJ0efmEFGpU14x7jGbTB+s18LrzRL2KgoWz9YvcY3cPomz8tih01GbHwnGk/OmkOKfqd/RAQoc8Lm7DQ==
+  dependencies:
+    obliterator "^2.0.1"
+
 nanoid@^3.3.4:
   version "3.3.4"
   resolved "https://registry.npmmirror.com/nanoid/-/nanoid-3.3.4.tgz#730b67e3cd09e2deacf03c027c81c9d9dbc5e8ab"
   integrity sha512-MqBkQh/OHTS2egovRtLk45wEyNXwF+cokD+1YPf9u5VfJiRdAiRwB2froX5Co9Rh20xs4siNPm8naNotSD6RBw==
 
-obliterator@^2.0.2:
+obliterator@^2.0.1, obliterator@^2.0.2:
   version "2.0.4"
   resolved "https://registry.npmmirror.com/obliterator/-/obliterator-2.0.4.tgz#fa650e019b2d075d745e44f1effeb13a2adbe816"
   integrity sha512-lgHwxlxV1qIg1Eap7LgIeoBWIMFibOjbrYPIPJZcI1mmGAI2m3lNYpK12Y+GBdPQ0U1hRwSord7GIaawz962qQ==
+
+pandemonium@^2.4.0:
+  version "2.4.1"
+  resolved "https://registry.npmmirror.com/pandemonium/-/pandemonium-2.4.1.tgz#bd51ca72184c6ae135f9049a33c8605bfdb9574d"
+  integrity sha512-wRqjisUyiUfXowgm7MFH2rwJzKIr20rca5FsHXCMNm1W5YPP1hCtrZfgmQ62kP7OZ7Xt+cR858aB28lu5NX55g==
+  dependencies:
+    mnemonist "^0.39.2"
 
 path-parse@^1.0.7:
   version "1.0.7"
@@ -410,6 +463,15 @@ rollup@^3.7.0:
   integrity sha512-GswCYHXftN8ZKGVgQhTFUJB/NBXxrRGgO2NCy6E8s1rwEJ4Q9/VttNqcYfEvx4dTo4j58YqdC3OVztPzlKSX8w==
   optionalDependencies:
     fsevents "~2.3.2"
+
+sigma@^2.4.0:
+  version "2.4.0"
+  resolved "https://registry.npmmirror.com/sigma/-/sigma-2.4.0.tgz#efa213c82e8561138c9237c3a87cf15c0bbaee76"
+  integrity sha512-spi4C+c3cjlhCklT+RvAxJJcarMmjRpF6RPNvBIBYDduALq8iSNm7FwSpijQNGtI+ryeZ2EfvyBNLp36OFaZiw==
+  dependencies:
+    "@yomguithereal/helpers" "^1.1.1"
+    events "^3.3.0"
+    graphology-utils "^2.5.0"
 
 source-map-js@^1.0.2:
   version "1.0.2"

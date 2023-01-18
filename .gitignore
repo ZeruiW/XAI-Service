@@ -25,3 +25,5 @@ build
 
 mongo.dev.conf
 mongo.prod.conf
+
+emissions.csv

@@ -17,11 +17,11 @@ const routes = [
     name: "Pipeline",
     component: () => import("@/views/PipelineView.vue"),
   },
-  // {
-  //   path: "*",
-  //   name: "PageNotFound",
-  //   component: () => import("@/views/PageNotFound.vue"),
-  // },
+  {
+    path: "/provenance",
+    name: "Provenance",
+    component: () => import("@/views/Provenance.vue"),
+  },
 ];
 
 const router = createRouter({

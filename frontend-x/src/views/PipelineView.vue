@@ -273,8 +273,22 @@
                           v-bind="props"
                           class="st"
                           v-if="item.xai_task.task_status === 'stopped'"
-                          icon="mdi-alert-octagon"
+                          icon="mdi-stop-circle"
+                          color="grey"
+                        ></v-icon>
+                        <v-icon
+                          v-bind="props"
+                          class="st"
+                          v-if="item.xai_task.task_status === 'error'"
+                          icon="mdi-alert-circle"
                           color="error"
+                        ></v-icon>
+                        <v-icon
+                          v-bind="props"
+                          class="st"
+                          v-if="item.xai_task.task_status === 'initialized'"
+                          icon="mdi-arrow-right-drop-circle"
+                          color="blue-grey"
                         ></v-icon>
                       </TransitionGroup>
                     </template>
@@ -1039,6 +1053,17 @@ export default {
 </script>
 
 <style>
+.fade-enter-active {
+  transition: all 0.5s ease-in;
+}
+.fade-leave-active {
+  transition: all 0.2s;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
 .stt {
   position: relative;
 }

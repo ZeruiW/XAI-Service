@@ -9,6 +9,7 @@ setup(
         "python-dotenv",
         "Flask >= 2.2",
         "flask-cors",
-        "pymongo"
+        "pymongo",
+        "codecarbon"
     ],
 )

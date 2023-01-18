@@ -1,3 +1,4 @@
+from codecarbon import EmissionsTracker
 import shutil
 import sys
 import time
@@ -19,6 +20,7 @@ import platform
 import json
 import psutil
 import logging
+import pandas as pd
 
 
 def getSystemInfo():
@@ -34,6 +36,15 @@ def getSystemInfo():
         return info
     except Exception as e:
         logging.exception(e)
+
+
+def task_fun_eng_emission_wrapper(task_func, output_dir, task_ticket, publisher_endpoint_url, task_parameters):
+    tracker = EmissionsTracker(
+        project_name=task_ticket, tracking_mode='process', output_dir=output_dir, log_level='critical')
+    tracker.start()
+    status = task_func(task_ticket, publisher_endpoint_url, task_parameters)
+    tracker.stop()
+    return status
 
 
 class TaskExecutor(TaskComponent):
@@ -102,13 +113,20 @@ class TaskExecutor(TaskComponent):
 
         return getSystemInfo()
 
-    def update_task_status_to_central(self, task_ticket, task_status):
+    def update_task_status_to_central(self, task_ticket, task_status, running_info={}):
+        emissions = pd.read_csv(os.path.join(
+            self.storage_path, 'emissions.csv'))
+        emission_info = emissions.loc[emissions['project_name'] == task_ticket].to_dict('records')[
+            0]
+        running_info['emission_info'] = emission_info
+
         requests.post(
             self.get_publisher_endpoint_url() + '/task_publisher/task',
             data={
                 'act': 'update_task_status',
                 TaskInfo.task_ticket: task_ticket,
-                TaskInfo.task_status: task_status
+                TaskInfo.task_status: task_status,
+                TaskInfo.running_info: json.dumps(running_info)
             }
         )
 
@@ -121,8 +139,12 @@ class TaskExecutor(TaskComponent):
     def error_call_back(self, err, task_ticket, process):
         process.close()
         print(f'Error occurs for task_ticket: ' + task_ticket)
-        print(''.join(traceback.TracebackException.from_exception(err).format()))
-        self.update_task_status_to_central(task_ticket, TaskStatus.error)
+        error_stack_tracking = ''.join(
+            traceback.TracebackException.from_exception(err).format())
+        print(error_stack_tracking)
+        self.update_task_status_to_central(task_ticket, TaskStatus.error, {
+            'error_stack_tracking': error_stack_tracking
+        })
 
     def __file_present__(self, rs_files, task_ticket, scope, sample=None):
         pre = []
@@ -189,8 +211,12 @@ class TaskExecutor(TaskComponent):
                 pass
             process = multiprocessing.Pool()
 
-        as_rs = process.apply_async(function, args=[
-            task_ticket, self.get_publisher_endpoint_url(), task_paramenters],
+        as_rs = process.apply_async(
+            task_fun_eng_emission_wrapper,
+            args=[
+                function, os.path.join(
+                    self.storage_path), task_ticket, self.get_publisher_endpoint_url(), task_paramenters
+            ],
             callback=lambda status: self.execution_call_back(
                 status, task_ticket, process),
             error_callback=lambda err: self.error_call_back(err, task_ticket, process))

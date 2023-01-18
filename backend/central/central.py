@@ -97,7 +97,10 @@ def task():
         if act == 'update_task_status':
             task_ticket = form_data[TaskInfo.task_ticket]
             task_status = form_data[TaskInfo.task_status]
-            tp.pipeline.update_task_status(task_ticket, task_status)
+            running_info = form_data[TaskInfo.running_info]
+            print(running_info)
+            tp.pipeline.update_task_status(
+                task_ticket, task_status, json.loads(running_info))
 
         return ""
 
@@ -215,6 +218,12 @@ def task_sheet():
             task_sheet_id = form_data[TaskSheet.task_sheet_id]
             tp.pipeline.delete_task_sheet(task_sheet_id)
             return ""
+
+
+@bp.route('/provenance', methods=['GET', 'POST'])
+def provenance():
+    if request.method == 'GET':
+        return jsonify(tp.get_provenance())
 
 
 @bp.route('/reset', methods=['GET'])

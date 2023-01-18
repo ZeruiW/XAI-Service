@@ -294,6 +294,15 @@ class TaskPublisher(TaskComponent):
         self.mondb.delete_one(Mongo.executor_registration_col, {
                               ExecutorRegInfo.executor_id: executor_id})
 
+    def get_provenance(self):
+        return {
+            'executors': self.mondb.find(Mongo.executor_registration_col, {}),
+            'task_sheets': self.mondb.find(Mongo.task_sheet_col, {}),
+            'tasks': self.mondb.find(Mongo.task_col, {}),
+            'pipelines': self.mondb.find(Mongo.pipeline_col, {}),
+            'pipeline_runs': self.mondb.find(Mongo.pipeline_run_col, {}),
+        }
+
 
 class TaskPipeline():
 
@@ -347,13 +356,14 @@ class TaskPipeline():
         task_tb.insert_one(task_sheet)
         return task_sheet[TaskSheet.task_sheet_id]
 
-    def update_task_status(self, task_ticket, task_status):
+    def update_task_status(self, task_ticket, task_status, running_info):
         self.task_publisher.mondb.update_one(Mongo.task_col, {
             TaskInfo.task_ticket: task_ticket
         }, {
             "$set": {
                 TaskInfo.task_status: task_status,
-                TaskInfo.end_time: time.time() if task_status == TaskStatus.finished else ''
+                TaskInfo.end_time: time.time() if task_status == TaskStatus.finished else '',
+                TaskInfo.running_info: running_info
             },
         })
 
@@ -364,7 +374,7 @@ class TaskPipeline():
         if task[TaskInfo.task_type] == TaskType.xai and\
             task[TaskInfo.pipeline_id] != TaskInfo.empty and\
                 task[TaskInfo.pipeline_run_ticket] != TaskInfo.empty and\
-            task[TaskInfo.task_status] == TaskStatus.finished:
+        task[TaskInfo.task_status] == TaskStatus.finished:
 
             pipeline_run = self.task_publisher.mondb.find_one(Mongo.pipeline_run_col, {
                 PipelineRun.pipeline_run_ticket: task[TaskInfo.pipeline_run_ticket]

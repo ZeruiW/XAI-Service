@@ -29,4 +29,6 @@ request_time = 'request_time'
 start_time = 'start_time'
 end_time = 'end_time'
 
+running_info = 'running_info'
+
 empty = ''

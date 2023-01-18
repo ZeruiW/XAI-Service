@@ -28,17 +28,18 @@
       <div id="search">
         <v-text-field
           clearable
-          label="Search By ID/Ticket"
+          label="Search by ID/Ticket"
           prepend-icon="mdi-magnify"
           variant="underlined"
           density="compact"
-          hide-details="auto"
+          hint="(fuzzy on lower case & startswith)"
+          persistent-hint
           v-model="searching"
-          @keypress="searchNode"
+          @keydown="searchNode"
         ></v-text-field>
       </div>
       <div id="legend" class="unselectable">
-        <div v-for="item in legend" :key="item.title">
+        <div v-for="[key, item] of Object.entries(legend)" :key="key">
           <v-icon :color="item.color" icon="mdi-checkbox-blank"></v-icon>
           <div class="legendTitle">
             {{ item.title }}
@@ -116,28 +117,28 @@ import { circular, random, circlepack } from "graphology-layout";
 import forceAtlas2 from "graphology-layout-forceatlas2";
 import FA2Layout from "graphology-layout-forceatlas2/worker";
 
-const legend = [
-  {
-    color: "#0000ff",
+const legend = {
+  executor: {
+    color: "#52ccce",
     title: "Service",
   },
-  {
-    color: "#808080",
+  tasksheet: {
+    color: "#b2a296",
     title: "TaskSheet",
   },
-  {
-    color: "#ff0000",
+  pipeline: {
+    color: "#ef3e5b",
     title: "Pipeline",
   },
-  {
-    color: "#800080",
+  pipeline_run: {
+    color: "#4b256d",
     title: "PipelineRun",
   },
-  {
-    color: "#008001",
+  task: {
+    color: "#95d47a",
     title: "Task",
   },
-];
+};
 
 export default {
   data: () => ({
@@ -150,8 +151,9 @@ export default {
     graph: undefined,
     currentNode: undefined,
     currentFocusNodeKey: [],
-    currentFocusNodeUpperKeys: new Set([]),
+    currentFocusNodePackKeys: new Set([]),
     searching: "",
+    hoveredEdge: undefined,
     legend,
   }),
   methods: {
@@ -163,12 +165,19 @@ export default {
         } else {
           this.removeNodeFocus();
         }
+        this.renderer.refresh();
       }
     },
     getNodeByKey(node_key) {
+      if (node_key === "") {
+        return undefined;
+      }
       var get = undefined;
       this.graph.forEachNode((node, attributes) => {
-        if (node === node_key) {
+        if (
+          node === node_key ||
+          node.toLowerCase().startsWith(node_key.toLowerCase())
+        ) {
           get = {
             key: node,
             attributes,
@@ -210,6 +219,8 @@ export default {
     renderCamara() {
       const camera = this.renderer.getCamera();
 
+      const thiz = this;
+
       // Bind zoom manipulation buttons
       document.getElementById("zinbtn").addEventListener("click", () => {
         camera.animatedZoom({ duration: 300 });
@@ -218,7 +229,8 @@ export default {
         camera.animatedUnzoom({ duration: 300 });
       });
       document.getElementById("rsbtn").addEventListener("click", () => {
-        camera.animatedReset({ duration: 300 });
+        thiz.removeNodeFocus();
+        camera.animatedReset({ duration: 500 });
       });
     },
     getRelatedNodeType(currentNodeType, focusNodeType) {
@@ -344,12 +356,34 @@ export default {
         }
       }
 
-      this.currentFocusNodeUpperKeys = trace;
+      this.currentFocusNodePackKeys = trace;
+
+      var xSum = 0;
+      var ySum = 0;
+      var n = 0;
+
+      for (const nodeInPack of trace) {
+        const nodePosition = this.renderer.getNodeDisplayData(nodeInPack);
+        xSum += nodePosition.x;
+        ySum += nodePosition.y;
+        n += 1;
+      }
+
+      // Move the camera to center it on the selected node:
+      var centroid = {
+        x: xSum / n + (xSum / n) * 0.1,
+        y: ySum / n - (ySum / n) * 0.1,
+      };
+      this.renderer.getCamera().animate(centroid, {
+        duration: 500,
+      });
+
       this.showNodeDetails();
     },
     removeNodeFocus() {
       this.currentFocusNodeKey = undefined;
-      this.currentFocusNodeUpperKeys = new Set([]);
+      this.currentFocusNodePackKeys = new Set([]);
+      this.renderer.refresh();
       this.hideNodeDetails();
     },
     renderNodeEvents() {
@@ -380,6 +414,17 @@ export default {
         });
       });
     },
+    renderEdgeEvents() {
+      const thiz = this;
+      this.renderer.on("enterEdge", ({ edge }) => {
+        thiz.hoveredEdge = edge;
+        thiz.renderer.refresh();
+      });
+      this.renderer.on("leaveEdge", ({ edge }) => {
+        thiz.hoveredEdge = null;
+        thiz.renderer.refresh();
+      });
+    },
     createNodesAndEdges() {
       // Create a sample graph
       const graph = new Graph();
@@ -389,7 +434,7 @@ export default {
       for (const executor of executors) {
         delete executor._id;
         graph.addNode(`${executor.executor_id}`, {
-          color: "blue",
+          color: this.legend.executor.color,
           size: 15,
           label: `Service: ${executor.executor_endpoint_url}`,
           info: executor,
@@ -402,7 +447,7 @@ export default {
       for (const tasksheet of taskSheets) {
         delete tasksheet._id;
         graph.addNode(`${tasksheet.task_sheet_id}`, {
-          color: "grey",
+          color: this.legend.tasksheet.color,
           size: 10,
           label: `Task Sheet: ${tasksheet.task_sheet_id.slice(0, 4)}`,
           info: tasksheet,
@@ -445,7 +490,7 @@ export default {
         delete task._id;
 
         graph.addNode(`${task.task_ticket}`, {
-          color: "green",
+          color: this.legend.task.color,
           size: 10,
           label: `Task: ${task.task_ticket.slice(0, 4)}`,
           info: task,
@@ -467,7 +512,7 @@ export default {
         delete pipeline._id;
 
         graph.addNode(`${pipeline.pipeline_id}`, {
-          color: "red",
+          color: this.legend.pipeline.color,
           size: 20,
           label: `Pipeline: ${pipeline.pipeline_id.slice(0, 4)}`,
           info: pipeline,
@@ -493,7 +538,7 @@ export default {
         delete pipeline_run._id;
 
         graph.addNode(`${pipeline_run.pipeline_run_ticket}`, {
-          color: "purple",
+          color: this.legend.pipeline_run.color,
           size: 20,
           label: `Pipeline Run: ${pipeline_run.pipeline_run_ticket.slice(
             0,
@@ -584,17 +629,23 @@ export default {
       // Create the sigma
       const thiz = this;
       this.renderer = new Sigma(graph, box, {
+        enableEdgeHoverEvents: "debounce",
         renderEdgeLabels: true,
+        labelFont: "console",
+        edgeLabelFont: "console",
+        labelWeight: 600,
+        edgeLabelWeight: 400,
       });
 
       this.renderCamara();
       this.renderNodeEvents();
+      this.renderEdgeEvents();
 
       this.renderer.setSetting("nodeReducer", (node, data) => {
         const res = { ...data };
         if (
-          this.currentFocusNodeUpperKeys.size > 0 &&
-          !this.currentFocusNodeUpperKeys.has(node) &&
+          this.currentFocusNodePackKeys.size > 0 &&
+          !this.currentFocusNodePackKeys.has(node) &&
           this.currentFocusNodeKey !== node
         ) {
           res.label = "";
@@ -610,13 +661,18 @@ export default {
         const res = { ...data };
 
         if (
-          this.currentFocusNodeUpperKeys.size > 0 &&
+          this.currentFocusNodePackKeys.size > 0 &&
           !(
-            this.currentFocusNodeUpperKeys.has(thiz.graph.target(edge)) &&
-            this.currentFocusNodeUpperKeys.has(thiz.graph.source(edge))
+            this.currentFocusNodePackKeys.has(thiz.graph.target(edge)) &&
+            this.currentFocusNodePackKeys.has(thiz.graph.source(edge))
           )
         ) {
           res.hidden = true;
+        }
+
+        if (edge === thiz.hoveredEdge) {
+          res.color = "#cc1100";
+          res.size = 10;
         }
 
         return res;

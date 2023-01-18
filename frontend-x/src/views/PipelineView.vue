@@ -104,6 +104,7 @@
                   :rules="[(v) => !!v || 'Name is required']"
                   :readonly="disabled"
                   required
+                  density="compact"
                 ></v-text-field>
               </v-row>
               <!-- xai -->
@@ -119,6 +120,7 @@
                   ref="current_xai_task_sheet_id"
                   :readonly="disabled"
                   hide-details
+                  density="compact"
                 ></v-select>
               </v-row>
 
@@ -135,6 +137,7 @@
                   ref="current_evaluation_task_sheet_id"
                   :readonly="disabled"
                   hide-details
+                  density="compact"
                 ></v-select>
               </v-row>
             </v-container>

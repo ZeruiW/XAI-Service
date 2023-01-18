@@ -73,6 +73,7 @@
                   name="url"
                   :rules="urlRules"
                   required
+                  density="compact"
                 ></v-text-field>
               </v-row>
               <v-row>
@@ -82,6 +83,7 @@
                   :rules="[(v) => !!v || 'Service type is required']"
                   name="type"
                   required
+                  density="compact"
                 ></v-select>
               </v-row>
               <v-row>
@@ -90,6 +92,7 @@
                   label="Service Info"
                   :rules="infoRules"
                   model-value='{"exp_name": "name"}'
+                  density="compact"
                 ></v-textarea>
               </v-row>
             </v-container>

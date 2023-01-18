@@ -75,7 +75,7 @@
       style="height: 100%"
       persistent
     >
-      <v-card style="height: 100000px">
+      <v-card>
         <v-form
           id="task-sheet-create-form"
           ref="form"
@@ -97,6 +97,7 @@
                   v-model="task_sheet_name"
                   :rules="[(v) => !!v || 'Name is required']"
                   required
+                  density="compact"
                 ></v-text-field>
               </v-row>
               <v-row>
@@ -107,6 +108,7 @@
                   name="task_type"
                   v-model="task_type"
                   required
+                  density="compact"
                 ></v-select>
               </v-row>
               <v-row>
@@ -119,6 +121,7 @@
                   name="db_service_executor_id"
                   v-model="db_service_executor_id"
                   required
+                  density="compact"
                 ></v-select>
               </v-row>
               <v-row>
@@ -131,6 +134,7 @@
                   name="model_service_executor_id"
                   v-model="model_service_executor_id"
                   required
+                  density="compact"
                 ></v-select>
               </v-row>
               <v-row>
@@ -143,6 +147,7 @@
                   name="xai_service_executor_id"
                   v-model="xai_service_executor_id"
                   required
+                  density="compact"
                 ></v-select>
               </v-row>
               <v-row>
@@ -155,6 +160,7 @@
                   name="evaluation_service_executor_id"
                   v-model="evaluation_service_executor_id"
                   required
+                  density="compact"
                 ></v-select>
               </v-row>
               <!-- <v-row v-if="task_type === 'Evaluation'">
@@ -172,6 +178,7 @@
                   v-model="task_parameters"
                   label="Task Parameters"
                   :rules="infoRules"
+                  density="compact"
                 ></v-textarea>
               </v-row>
             </v-container>
@@ -214,6 +221,7 @@
               v-model="new_task_name"
               :rules="[(v) => !!v || 'This field is required']"
               style="width: 300px"
+              density="compact"
             ></v-text-field>
 
             <v-btn

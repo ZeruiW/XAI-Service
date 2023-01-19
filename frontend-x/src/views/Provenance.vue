@@ -458,28 +458,28 @@ export default {
           graph.addEdge(
             tasksheet.task_sheet_id,
             tasksheet.model_service_executor_id,
-            { type: "arrow", label: "usesModelExecutor", size: 5 }
+            { type: "arrow", label: "usesModelExecutor", size: 3 }
           );
         }
         if (tasksheet.db_service_executor_id !== "") {
           graph.addEdge(
             tasksheet.task_sheet_id,
             tasksheet.db_service_executor_id,
-            { type: "arrow", label: "usesDBExecutor", size: 5 }
+            { type: "arrow", label: "usesDBExecutor", size: 3 }
           );
         }
         if (tasksheet.xai_service_executor_id !== "") {
           graph.addEdge(
             tasksheet.task_sheet_id,
             tasksheet.xai_service_executor_id,
-            { type: "arrow", label: "usesXAIExecutor", size: 5 }
+            { type: "arrow", label: "usesXAIExecutor", size: 3 }
           );
         }
         if (tasksheet.evaluation_service_executor_id !== "") {
           graph.addEdge(
             tasksheet.task_sheet_id,
             tasksheet.evaluation_service_executor_id,
-            { type: "arrow", label: "usesEvaluationExecutor", size: 5 }
+            { type: "arrow", label: "usesEvaluationExecutor", size: 3 }
           );
         }
       }
@@ -501,7 +501,7 @@ export default {
           graph.addEdge(task.task_sheet_id, task.task_ticket, {
             type: "arrow",
             label: "hasDirectlyTask",
-            size: 5,
+            size: 3,
           });
         }
       }
@@ -522,13 +522,13 @@ export default {
         graph.addEdge(pipeline.pipeline_id, pipeline.xai_task_sheet_id, {
           type: "arrow",
           label: "hasXAITaskSheet",
-          size: 5,
+          size: 3,
         });
 
         graph.addEdge(pipeline.pipeline_id, pipeline.evaluation_task_sheet_id, {
           type: "arrow",
           label: "hasEvaluationTaskSheet",
-          size: 5,
+          size: 3,
         });
       }
 
@@ -564,7 +564,7 @@ export default {
           {
             type: "arrow",
             label: "hasXAIResult",
-            size: 5,
+            size: 3,
           }
         );
 
@@ -584,7 +584,7 @@ export default {
           {
             type: "arrow",
             label: "hasEvalResult",
-            size: 5,
+            size: 3,
           }
         );
 
@@ -594,7 +594,7 @@ export default {
           {
             type: "arrow",
             label: "hasRun",
-            size: 5,
+            size: 3,
           }
         );
       }
@@ -755,8 +755,9 @@ export default {
 
 .legendTitle {
   float: right;
-  height: 21px;
-  line-height: 21px;
+  height: 21.73px;
+  line-height: 21.73px;
   margin-left: 5px;
+  width: 80px;
 }
 </style>

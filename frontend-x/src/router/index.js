@@ -22,6 +22,11 @@ const routes = [
     name: "Provenance",
     component: () => import("@/views/Provenance.vue"),
   },
+  {
+    path: "/statistic",
+    name: "Statistic",
+    component: () => import("@/views/Statistic.vue"),
+  },
 ];
 
 const router = createRouter({

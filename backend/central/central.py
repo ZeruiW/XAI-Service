@@ -84,6 +84,8 @@ def task():
 
         if task_sheet_id != None:
             return jsonify(tp.get_task_info_by_task_sheet_id(task_sheet_id))
+
+        return jsonify(tp.get_all_task())
     else:
         form_data = request.form
         act = form_data['act']

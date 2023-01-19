@@ -166,6 +166,9 @@ class TaskPublisher(TaskComponent):
 
         return rs[TaskInfo.task_status]
 
+    def get_all_task(self):
+        return self.mondb.find(Mongo.task_col, {})
+
     def get_task_info_by_task_sheet_id(self, task_sheet_id):
         tasks = self.mondb.find(Mongo.task_col, {
             TaskInfo.task_sheet_id: task_sheet_id

@@ -85,6 +85,11 @@ const tabList = [
     title: "Provenance",
     path: "/provenance",
   },
+  {
+    icon: "mdi-chart-bar-stacked",
+    title: "Statistic",
+    path: "/statistic",
+  },
 ];
 
 export default {

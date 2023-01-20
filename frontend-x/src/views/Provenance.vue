@@ -431,6 +431,7 @@ export default {
 
       const executors = this.provenance.executors;
 
+      // TODO: split to 4 types of node
       for (const executor of executors) {
         delete executor._id;
         graph.addNode(`${executor.executor_id}`, {
@@ -444,6 +445,7 @@ export default {
 
       const taskSheets = this.provenance.task_sheets;
 
+      // TODO: split to xai and eval
       for (const tasksheet of taskSheets) {
         delete tasksheet._id;
         graph.addNode(`${tasksheet.task_sheet_id}`, {

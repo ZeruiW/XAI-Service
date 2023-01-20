@@ -4,7 +4,7 @@ from flask import (
     request, jsonify
 )
 from xai_backend_central_dev.flask_manager import ExecutorBluePrint
-from . import azure_blob_helper
+from xai_backend_central_dev import azure_blob_helper
 
 from tqdm import tqdm
 
@@ -23,23 +23,18 @@ def blob_data():
 @bp.route('/', methods=['GET', 'POST'])
 def blob():
     if request.method == 'GET':
-        sample_data_set = request.args.get('sample_data_set')
-        sample_group = request.args.get('sample_group')
+        data_set_name = request.args.get('data_set_name')
+        data_set_group_name = request.args.get('data_set_group_name')
+        with_content = request.args.get('with_content')
 
-        return jsonify(az.list_blobs(sample_data_set, sample_group))
+        return jsonify(az.get_blobs(data_set_name, data_set_group_name, with_content != None))
 
     if request.method == 'POST':
         files = request.files
         samples = files.getlist('samples')
-        sample_data_set = request.form.get('sample_data_set')
-        sample_group = request.form.get('sample_group')
+        data_set_name = request.form.get('data_set_name')
+        data_set_group_name = request.form.get('data_set_group_name')
         sample_metadata = files.get('sample_metadata')
-
-        sample_save_tmp_path = os.path.join(
-            os.environ['COMPONENT_TMP_DIR'], sample_data_set, sample_group)
-
-        if not os.path.exists(sample_save_tmp_path):
-            os.makedirs(sample_save_tmp_path, exist_ok=True)
 
         # read sample metadata
         read_sample_metadata = {}
@@ -49,14 +44,11 @@ def blob():
         # upload sample to blob
         for i in tqdm(range(len(samples))):
             sample = samples[i]
-            sample_save_path = os.path.join(
-                sample_save_tmp_path, sample.filename)
-            sample.save(sample_save_path)
 
             blob_file_name = os.path.join(
-                sample_data_set, sample_group, sample.filename)
+                data_set_name, data_set_group_name, sample.filename)
 
-            az.upload_blob(blob_file_name, sample_save_path,
+            az.upload_blob(sample.stream, blob_file_name,
                            read_sample_metadata.get(sample.filename))
 
     return ""

@@ -16,6 +16,7 @@ import os
 import matplotlib.pyplot as plt
 from xai_backend_central_dev.constant import TaskInfo
 from xai_backend_central_dev.constant import TaskStatus
+from tqdm import tqdm
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -36,8 +37,9 @@ def cam_task(task_ticket, publisher_endpoint_url, task_parameters):
     print('# get image data')
     response = requests.get(
         task_parameters[TaskInfo.db_service_url], params={
-            'img_group': task_parameters['data_set_group_name'],
-            'with_img_data': 1,
+            'data_set_name': task_parameters['data_set_name'],
+            'data_set_group_name': task_parameters['data_set_group_name'],
+            'with_content': 1,
         })
     # print(response)
     img_data = json.loads(response.content.decode('utf-8'))
@@ -81,15 +83,15 @@ def cam_task(task_ticket, publisher_endpoint_url, task_parameters):
     if not os.path.isdir(local_exp_save_dir):
         os.makedirs(local_exp_save_dir, exist_ok=True)
 
-    for imgd in img_data:
-        file_name = imgd[1]
-        print(i, file_name)
+    for i in tqdm(range(len(img_data))):
+        imgd = img_data[i]
+        file_name = imgd['name']
         sample_exp_path = os.path.join(local_exp_save_dir, file_name)
         if not os.path.isdir(sample_exp_path):
             os.makedirs(sample_exp_path, exist_ok=True)
 
         i += 1
-        rgb_img = bytes_to_pil_image(imgd[2])
+        rgb_img = bytes_to_pil_image(imgd['content'])
 
         input_tensor = torch.tensor(np.array([
             preprocessing(x).numpy()
@@ -111,12 +113,11 @@ def cam_task(task_ticket, publisher_endpoint_url, task_parameters):
                             eigen_smooth=False)[0]
 
         np.save(os.path.join(sample_exp_path,
-                f'{imgd[1]}.npy'), grayscale_cam)
+                f'{file_name}.npy'), grayscale_cam)
         plt.imsave(os.path.join(sample_exp_path,
-                   f'{imgd[1]}.png'), grayscale_cam)
+                   f'{file_name}.png'), grayscale_cam)
 
-    # TODO: keep this at static for now
-    # shutil.rmtree(local_exp_save_dir)
+    print("# cam gen done")
 
     return TaskStatus.finished
 

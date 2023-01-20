@@ -5,3 +5,4 @@ numpy
 grad-cam
 matplotlib
 flask-cors
+tqdm

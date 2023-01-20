@@ -13,6 +13,7 @@ import torch
 import numpy as np
 import cv2
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 from xai_backend_central_dev.constant import TaskStatus
 
@@ -141,38 +142,41 @@ def eval_task(task_ticket, publisher_endpoint_url, task_parameters):
     #       data_set_name, data_set_group_name)
 
     print('# get exp from cam')
-    exp_zip_path = os.path.join(
-        tmpdir, f"{explanation_task_ticket}_for_eval.zip")
-
     explanation_keep_path = os.path.join(
         staticdir, 'rs', task_ticket, f'exp_{explanation_task_ticket}')
 
-    if not os.path.exists(explanation_keep_path):
-        print('# exp not exist, fetch from xai service')
-        response = requests.get(
-            xai_service_url + '/task_result',
-            params={
-                'task_ticket': explanation_task_ticket
-            })
-        with open(exp_zip_path, "wb") as f:
-            f.write(response.content)
+    r1 = requests.get(
+        publisher_endpoint_url + '/task_publisher/az_blob',
+        params={
+            'data_set_name': 'task_execution',
+            'data_set_group_name': f'result/{explanation_task_ticket}',
+            'with_content': 1
+        })
 
-        with zipfile.ZipFile(exp_zip_path, 'r') as zip_ref:
-            zip_ref.extractall(explanation_keep_path)
-        os.remove(exp_zip_path)
+    exp_data = json.loads(r1.content.decode('utf-8'))
+
+    exp_data_map = {}
+
+    for ed in exp_data:
+        exp_data_map[ed['name'].split('/')[-1]] = ed
 
     def get_cam_data(img_name):
-        # print(os.path.join(tmpdir, task_name, f'{img_name}.npy'))
-        with open(os.path.join(explanation_keep_path, 'local', img_name, f'{img_name}.npy'), 'rb') as f:
-            d = np.load(f)
-            # print(d.shape)
-            return d
+        decoded_str = str(exp_data_map[f'{img_name}.npy']['content'])
+        return np.load(io.BytesIO(
+            base64.b64decode(decoded_str)), allow_pickle=True)
 
-    print('# get image data')
+    def get_cam_heatmap(img_name):
+        decoded_str = str(exp_data_map[f'{img_name}.png']['content'])
+        return np.frombuffer(
+            base64.b64decode(decoded_str), np.uint8)
+
+    print(
+        f'# get image data {db_service_url} {data_set_name} {data_set_group_name}')
     response = requests.get(
         db_service_url, params={
-            'with_img_data': 1,
-            'img_group': data_set_group_name,
+            'data_set_name': data_set_name,
+            'data_set_group_name': data_set_group_name,
+            'with_content': 1,
         })
     # print(response)
     img_data = json.loads(response.content.decode('utf-8'))
@@ -200,24 +204,25 @@ def eval_task(task_ticket, publisher_endpoint_url, task_parameters):
     print('# get original pred for each img')
     original_pred = {}
     i = 0
-    for img in img_data:
-        sys.stdout.write(f'\r{i + 1} / {len(img_data)}')
+    for i in tqdm(range(len(img_data))):
+        img = img_data[i]
 
-        img_name = img[1]
+        img_name = img['name']
         sample_exp_path = os.path.join(local_eval_keep_path, img_name)
         if not os.path.isdir(sample_exp_path):
             os.makedirs(sample_exp_path, exist_ok=True)
 
-        imgg = Image.open(io.BytesIO(base64.b64decode(img[2]))).convert('RGB')
+        imgg = Image.open(io.BytesIO(
+            base64.b64decode(img['content']))).convert('RGB')
         # imgg.show()
         imgg.save(os.path.join(
             sample_exp_path, f'{img_name}_original.png'))
         rs = predict_one_img(imgg)
 
-        original_pred[img[1]] = rs
+        original_pred[img_name] = rs
         i += 1
 
-    print('\r\n# do mask pred for each img')
+    print('# do mask pred for each img')
 
     pred_data = {}
 
@@ -225,13 +230,12 @@ def eval_task(task_ticket, publisher_endpoint_url, task_parameters):
 
     for cam_method in cam_method_name:
         pred_data[cam_method] = []
-        for i in range(len(img_data)):
+        for i in tqdm(range(len(img_data))):
             img = img_data[i]
-            sys.stdout.write(f'\r{i + 1} / {len(img_data)}')
-            img_name = img[1]
-            ground_truth_label_idx = int(img[4])
+            img_name = img['name']
+            ground_truth_label_idx = int(img['metadata']['label'])
             imgg = Image.open(io.BytesIO(
-                base64.b64decode(img[2]))).convert('RGB')
+                base64.b64decode(img['content']))).convert('RGB')
 
             # imgg.show()
 
@@ -359,15 +363,17 @@ def eval_task(task_ticket, publisher_endpoint_url, task_parameters):
 
     # Image save
     # local evaluation result
-    for img in img_data:
-        img_name = img[1]
+    print("# save local result")
+    for i in tqdm(range(len(img_data))):
+        img = img_data[i]
+        img_name = img['name']
 
         sample_exp_path = os.path.join(local_eval_keep_path, img_name)
         if not os.path.isdir(sample_exp_path):
             os.makedirs(sample_exp_path, exist_ok=True)
 
-        heatmap = cv2.imread(os.path.join(
-            explanation_keep_path, 'local',  img_name, f'{img_name}.png'))
+        heatmap_np = get_cam_heatmap(img_name)
+        heatmap = cv2.imdecode(heatmap_np, cv2.IMREAD_COLOR)
         original = cv2.imread(os.path.join(
             sample_exp_path, f'{img_name}_original.png'))
         masked = cv2.imread(os.path.join(
@@ -376,5 +382,7 @@ def eval_task(task_ticket, publisher_endpoint_url, task_parameters):
         im_concat = cv2.vconcat([original, heatmap, masked])
         cv2.imwrite(os.path.join(
             sample_exp_path, f'{img_name}_concat.png'), im_concat)
+
+    print("# evaluation done")
 
     return TaskStatus.finished

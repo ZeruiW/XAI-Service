@@ -691,6 +691,7 @@ export default {
     closeTaskDialog() {
       this.tldialog = false;
       this.current_task_sheet_id = "";
+      this.tasks = [];
       clearInterval(this.taskListIntv);
     },
     async showTaskSheetDetail(item) {

@@ -15,7 +15,7 @@ from xai_backend_central_dev.constant import ExecutorRegInfo
 from xai_backend_central_dev.constant import PipelineRun
 from xai_backend_central_dev.constant import Mongo
 
-from xai_backend_central_dev.pipeline_db_helper import PipelineDB
+from xai_backend_central_dev.azure_blob_helper import AZ
 
 
 class TaskPublisher(TaskComponent):
@@ -36,6 +36,8 @@ class TaskPublisher(TaskComponent):
         central_info = self.central_info_tb.all()
         if len(central_info) == 1:
             self.publisher_endpoint_url = central_info[0]['publisher_endpoint_url']
+
+        self.az = AZ()
 
     def is_activated(self):
         return self.publisher_endpoint_url != None
@@ -377,7 +379,7 @@ class TaskPipeline():
         if task[TaskInfo.task_type] == TaskType.xai and\
             task[TaskInfo.pipeline_id] != TaskInfo.empty and\
                 task[TaskInfo.pipeline_run_ticket] != TaskInfo.empty and\
-        task[TaskInfo.task_status] == TaskStatus.finished:
+            task[TaskInfo.task_status] == TaskStatus.finished:
 
             pipeline_run = self.task_publisher.mondb.find_one(Mongo.pipeline_run_col, {
                 PipelineRun.pipeline_run_ticket: task[TaskInfo.pipeline_run_ticket]
@@ -483,6 +485,9 @@ class TaskPipeline():
             self.task_publisher.mondb.delete_one(Mongo.task_col, {
                 TaskInfo.task_ticket: task_ticket
             })
+
+            self.task_publisher.az.delete_blobs(
+                f'task_execution/result/{task_ticket}')
 
     def __run_pipeline_with_pipeline__(self, pipeline):
         xai_task_sheet_id = pipeline[Pipeline.xai_task_sheet_id]
@@ -640,26 +645,31 @@ class TaskPipeline():
                 self.stop_a_task(task[TaskInfo.task_ticket])
 
     def get_task_presentation(self, task_ticket):
-        task = self.task_publisher.mondb.find_one(Mongo.task_col, {
-            TaskInfo.task_ticket: task_ticket
-        })
-        executor_endpoint_url = task[TaskInfo.executor_endpoint_url]
-        response = requests.get(
-            executor_endpoint_url +
-            '/task_result_present',
-            params={
-                TaskInfo.task_ticket: task_ticket,
+        blobs = self.task_publisher.az.get_blobs(
+            'task_execution', f'result/{task_ticket}')
+
+        pre = {
+            'global': [],
+            'local': {},
+        }
+
+        for blob in blobs:
+            blob_name = blob['name']
+            ext = blob_name.split('.')[-1]
+            file_name = blob_name.replace('global/', '').replace('local/', '')
+            p = {
+                'address': blob['address'],
+                'content': 'todo',
+                'file_name': file_name,
+                'file_type': 'img' if ext.lower() in ['png', 'jpeg'] else 'npy',
             }
-        )
-
-        pre = json.loads(response.content.decode('utf-8'))
-
-        for sample_name, fs in pre['local'].items():
-            for f in fs:
-                f['address'] = executor_endpoint_url + f['address']
-
-        for f in pre['global']:
-            f['address'] = executor_endpoint_url + f['address']
+            if blob_name.startswith('global'):
+                pre['global'].append(p)
+            if blob_name.startswith('local'):
+                sample_name = blob_name.replace('local/', '').split('/')[0]
+                if pre['local'].get(sample_name) == None:
+                    pre['local'][sample_name] = []
+                pre['local'][sample_name].append(p)
 
         return pre
 

@@ -10,6 +10,7 @@ from xai_backend_central_dev.constant import PipelineRun
 from xai_backend_central_dev.constant import TaskInfo
 from xai_backend_central_dev.constant import TaskSheet
 from xai_backend_central_dev.constant import ExecutorRegInfo
+from tqdm import tqdm
 
 bp = Blueprint('central', __name__,
                url_prefix='/task_publisher')
@@ -100,7 +101,6 @@ def task():
             task_ticket = form_data[TaskInfo.task_ticket]
             task_status = form_data[TaskInfo.task_status]
             running_info = form_data[TaskInfo.running_info]
-            print(running_info)
             tp.pipeline.update_task_status(
                 task_ticket, task_status, json.loads(running_info))
 
@@ -231,4 +231,43 @@ def provenance():
 @bp.route('/reset', methods=['GET'])
 def reset():
     tp.reset_all_data()
+    return ""
+
+
+@bp.route('/az_blob', methods=['GET', 'POST'])
+def blob():
+    if request.method == 'GET':
+        data_set_name = request.args.get('data_set_name')
+        data_set_group_name = request.args.get('data_set_group_name')
+        with_content = request.args.get('with_content')
+
+        return jsonify(tp.az.get_blobs(data_set_name, data_set_group_name, with_content != None))
+
+    if request.method == 'POST':
+        act = request.form.get('act')
+        if act == 'delete':
+            name_starts_with = request.form.get('name_starts_with')
+            tp.az.delete_blobs(name_starts_with)
+        if act == 'upload':
+            files = request.files
+            samples = files.getlist('samples')
+            data_set_name = request.form.get('data_set_name')
+            data_set_group_name = request.form.get('data_set_group_name')
+            sample_metadata = files.get('sample_metadata')
+
+            # read sample metadata
+            read_sample_metadata = {}
+            if sample_metadata != None and sample_metadata.content_type == 'application/json':
+                read_sample_metadata = json.load(sample_metadata)
+
+            # upload sample to blob
+            for i in tqdm(range(len(samples))):
+                sample = samples[i]
+
+                blob_file_name = os.path.join(
+                    data_set_name, data_set_group_name, sample.filename)
+
+                tp.az.upload_blob(sample.stream, blob_file_name,
+                                  read_sample_metadata.get(sample.filename))
+
     return ""

@@ -1,4 +1,3 @@
-from codecarbon import EmissionsTracker
 import shutil
 import sys
 import time
@@ -9,12 +8,15 @@ import os
 from tinydb import TinyDB, Query
 import torch.multiprocessing
 import traceback
+import glob
+
 
 from xai_backend_central_dev.constant import ExecutorRegInfo
 from xai_backend_central_dev.constant import TaskInfo
 from xai_backend_central_dev.constant import TaskSheet
 from xai_backend_central_dev.constant import TaskStatus
 from xai_backend_central_dev.task_manager import TaskComponent
+from xai_backend_central_dev.task_func import task_fun_eng_emission_wrapper
 
 import platform
 import json
@@ -38,15 +40,6 @@ def getSystemInfo():
         logging.exception(e)
 
 
-def task_fun_eng_emission_wrapper(task_func, output_dir, task_ticket, publisher_endpoint_url, task_parameters):
-    tracker = EmissionsTracker(
-        project_name=task_ticket, tracking_mode='process', output_dir=output_dir, log_level='critical')
-    tracker.start()
-    status = task_func(task_ticket, publisher_endpoint_url, task_parameters)
-    tracker.stop()
-    return status
-
-
 class TaskExecutor(TaskComponent):
 
     # TODO: executor process db
@@ -60,6 +53,7 @@ class TaskExecutor(TaskComponent):
 
         # this keep the task and function mapping in memory
         self.task_func_map = {}
+        self.em_tracker = {}
 
     def get_executor_info(self):
         executor_reg_info = self.executor_reg_info_tb.all()
@@ -114,11 +108,41 @@ class TaskExecutor(TaskComponent):
         return getSystemInfo()
 
     def update_task_status_to_central(self, task_ticket, task_status, running_info={}):
+
+        task_result_save_path = os.path.join(
+            self.static_path, 'rs', task_ticket)
+
+        if os.path.exists(task_result_save_path):
+            files = []
+            for filename in glob.iglob(task_result_save_path + '**/**', recursive=True):
+                if os.path.isfile(filename):
+                    just_file_name = filename.replace(
+                        os.path.join(self.static_path, 'rs') + '/', '')
+                    files.append((
+                        'samples', (just_file_name, open(
+                            filename, 'rb'), 'application/octet-stream')
+                    ))
+
+            resp = requests.post(
+                self.get_publisher_endpoint_url() + '/task_publisher/az_blob',
+                data={
+                    'act': 'upload',
+                    'data_set_name': 'task_execution',
+                    'data_set_group_name': 'result',
+                },
+                files=files
+            )
+
+            if resp.status_code == 200:
+                shutil.rmtree(task_result_save_path)
+
         emissions = pd.read_csv(os.path.join(
             self.storage_path, 'emissions.csv'))
-        emission_info = emissions.loc[emissions['project_name'] == task_ticket].to_dict('records')[
-            0]
-        running_info['emission_info'] = emission_info
+        emission_info = emissions.loc[emissions['project_name'] == task_ticket].to_dict(
+            'records')
+
+        if len(emission_info) > 0:
+            running_info['emission_info'] = emission_info
 
         requests.post(
             self.get_publisher_endpoint_url() + '/task_publisher/task',
@@ -133,8 +157,6 @@ class TaskExecutor(TaskComponent):
     def execution_call_back(self, task_status, task_ticket, process):
         process.close()
         self.update_task_status_to_central(task_ticket, task_status)
-
-        # TODO: a callback to send task result to central db
 
     def error_call_back(self, err, task_ticket, process):
         process.close()

@@ -7,6 +7,13 @@ COPY ./db_service/image_net_1000 .
 COPY ./central_dev /central_dev
 COPY ./docker_setup.sh /
 
+RUN apt-get update && \
+    apt-get -y install gcc mono-mcs && \
+    rm -rf /var/lib/apt/lists/*
+    
+RUN python -m pip install --upgrade pip \
+    && pip install -r requirements.txt
+
 RUN pip install /central_dev
 
 # RUN apt-get update \

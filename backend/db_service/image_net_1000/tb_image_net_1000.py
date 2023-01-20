@@ -3,7 +3,7 @@ import io
 import os
 import flask
 from flask import (
-    Blueprint, request, jsonify, g
+    Blueprint, request, jsonify
 )
 from PIL import Image
 from . import db_helper

@@ -4,5 +4,4 @@ Pillow
 numpy
 requests
 pandas
-grad-cam
 flask-cors

@@ -6,17 +6,16 @@ COPY ./xai_service/pytorch_cam .
 COPY ./central_dev /central_dev
 COPY ./docker_setup.sh /
 
-RUN pip install /central_dev
-
-RUN apt-get update \
+RUN apt-get update && \
+    apt-get -y install gcc mono-mcs && \
     && apt-get install -y ffmpeg libsm6 libxext6 \
-    && python -m pip install --upgrade pip \
-    
+    && python -m pip install --upgrade pip \    
     && pip install -r requirements.txt \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get -qq autoremove \
     && apt-get -qq clean
 
+RUN pip install /central_dev
 # RUN python -m pip install --upgrade pip \
 #     && pip install -r requirements.txt
 

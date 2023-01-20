@@ -5,11 +5,14 @@ COPY ./model_service/resnet50 .
 COPY ./central_dev /central_dev
 COPY ./docker_setup.sh /
 
-RUN pip install /central_dev
-
+RUN apt-get update && \
+    apt-get -y install gcc mono-mcs && \
+    rm -rf /var/lib/apt/lists/*
+    
 RUN python -m pip install --upgrade pip \
     && pip install -r requirements.txt
 
+RUN pip install /central_dev
 
 # from compose args
 ARG ENV 

@@ -10,6 +10,9 @@ setup(
         "Flask >= 2.2",
         "flask-cors",
         "pymongo",
-        "codecarbon"
+        "codecarbon",
+        "torch",
+        "torchvision",
+        "torchaudio"
     ],
 )

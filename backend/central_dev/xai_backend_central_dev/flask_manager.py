@@ -41,12 +41,12 @@ def set_app(app: Flask):
 
 class ExecutorBluePrint(Blueprint):
 
-    def __init__(self, name, import_name, component_path, *args, **kwargs) -> None:
+    def __init__(self, name, import_name, component_path, *args, mongo=True, **kwargs) -> None:
 
         self.context_path = kwargs['url_prefix']
 
         self.te = TaskExecutor(
-            executor_name=name, component_path=component_path, context_path=self.context_path)
+            executor_name=name, component_path=component_path, context_path=self.context_path, mongo=mongo)
 
         super().__init__(name, import_name, *args, **kwargs)
 

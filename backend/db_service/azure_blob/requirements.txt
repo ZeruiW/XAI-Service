@@ -1,0 +1,8 @@
+Flask == 2.2.2
+numpy
+requests
+pandas
+flask-cors
+azure-storage-blob 
+azure-identity
+tqdm

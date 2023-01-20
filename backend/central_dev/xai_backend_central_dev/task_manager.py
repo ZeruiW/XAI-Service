@@ -17,7 +17,7 @@ def __get_random_string_no_low__(length):
 
 class TaskComponent():
 
-    def __init__(self, component_name: str, component_path: str, context_path: str) -> None:
+    def __init__(self, component_name: str, component_path: str, context_path: str, mongo=True) -> None:
         self.context_path = context_path
 
         self.component_name = component_name
@@ -53,4 +53,5 @@ class TaskComponent():
         os.environ['COMPONENT_STATIC_DIR'] = self.static_path
         os.environ['CONTEXT_PATH'] = self.context_path
 
-        self.mondb = Mon()
+        if mongo:
+            self.mondb = Mon()

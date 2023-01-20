@@ -54,6 +54,15 @@ conn_str=<<your mongodb url str>>
 
 
 
+### Azure Blob Service
+
+Please have the `az_blob_connection_str.json`  under the backend folder:
+
+1. `backend/central/central_storage/tmp/az_blob_connection_str.json`;
+2. `backend/db_service/azure_blob/azure_blob_storage/tmp/az_blob_connection_str.json`
+
+The file is private, if you need them, please contact JUN. Or you can deploy your own Azure Blob Service.
+
 ### Run In Different Env Mode
 
 Please use:

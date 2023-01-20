@@ -2,28 +2,32 @@ version: "3"
 services:
     central:
         build:
+            dockerfile: ./central/Dockerfile
             args:
                 ENV: prod
         networks:
             xainet:
                 ipv4_address: 172.16.10.6
-    model_service_rn50_1:
+    model_service:
         build:
+            dockerfile: ./model_service/azure_cog/Dockerfile
             args:
                 ENV: prod
         networks:
             xainet:
                 ipv4_address: 172.16.10.2
-    db_service_imgnet_1000:
+    db_service:
         build:
+            dockerfile: ./db_service/image_net_1000/Dockerfile
             args:
                 ENV: prod
         networks:
             xainet:
                 ipv4_address: 172.16.10.3
 
-    xai_service_pytorch_cam:
+    xai_service:
         build:
+            dockerfile: ./xai_service/Dockerfile.pytorch
             args:
                 ENV: prod
         networks:
@@ -32,6 +36,7 @@ services:
 
     evaluation_service:
         build:
+            dockerfile: ./evaluation_service/Dockerfile
             args:
                 ENV: prod
         networks:

@@ -13,6 +13,7 @@
 pipeline_id = 'pipeline_id'
 create_at = 'create_at'
 pipeline_name = 'pipeline_name'
+pipeline_run_name = 'pipeline_run_name'
 
 xai_task_sheet_id = 'xai_task_sheet_id'
 evaluation_task_sheet_id = 'evaluation_task_sheet_id'

@@ -18,8 +18,8 @@ import Footer from "@/components/footer.vue";
         <!-- <template v-slot:prepend> -->
         <v-list-item
           lines="two"
-          prepend-avatar="https://randomuser.me/api/portraits/women/81.jpg"
-          title="Jane Smith"
+          prepend-avatar="https://randomuser.me/api/portraits/lego/8.jpg"
+          title="Test User"
           subtitle="Logged in"
           nav
         >

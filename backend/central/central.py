@@ -167,12 +167,6 @@ def pipeline():
             pipeline_info = tp.pipeline.create_pipeline(
                 pipeline_name, xai_task_sheet_id, evaluation_task_sheet_id)
             return jsonify(pipeline_info)
-        if act == 'add_task':
-            pipeline_id = form_data[Pipeline.pipeline_id]
-            task_name = form_data[TaskInfo.task_name]
-            task_sheet_id = form_data[TaskSheet.task_sheet_id]
-            tp.pipeline.add_task_to_pipeline(
-                pipeline_id, task_name, task_sheet_id)
         if act == 'run':
             pipeline_id = form_data[Pipeline.pipeline_id]
             pipeline_info = tp.pipeline.run_pipeline(pipeline_id)
@@ -210,10 +204,8 @@ def task_sheet():
             })
         if act == 'run':
             task_sheet_id = form_data[TaskSheet.task_sheet_id]
-            task_name = form_data[TaskInfo.task_name]
-
             return jsonify({
-                'task_ticket': tp.pipeline.run_task_sheet_directly(task_sheet_id, task_name)
+                'task_ticket': tp.pipeline.run_task_sheet_directly(task_sheet_id)
             })
         if act == 'delete':
             # TODO: unable to delete when tasks are not deleted

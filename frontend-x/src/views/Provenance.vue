@@ -437,7 +437,7 @@ export default {
         graph.addNode(`${executor.executor_id}`, {
           color: this.legend.executor.color,
           size: 15,
-          label: `Service: ${executor.executor_endpoint_url}`,
+          label: `Service: ${executor.executor_info.exp_name}`,
           info: executor,
           node_type: "executor",
         });
@@ -451,7 +451,7 @@ export default {
         graph.addNode(`${tasksheet.task_sheet_id}`, {
           color: this.legend.tasksheet.color,
           size: 10,
-          label: `Task Sheet: ${tasksheet.task_sheet_id.slice(0, 4)}`,
+          label: `Task Sheet: ${tasksheet.task_sheet_name}`,
           info: tasksheet,
           node_type: "tasksheet",
         });
@@ -494,7 +494,7 @@ export default {
         graph.addNode(`${task.task_ticket}`, {
           color: this.legend.task.color,
           size: 10,
-          label: `Task: ${task.task_ticket.slice(0, 4)}`,
+          label: `Task: ${task.task_name}`,
           info: task,
           node_type: "task",
         });
@@ -516,7 +516,7 @@ export default {
         graph.addNode(`${pipeline.pipeline_id}`, {
           color: this.legend.pipeline.color,
           size: 20,
-          label: `Pipeline: ${pipeline.pipeline_id.slice(0, 4)}`,
+          label: `Pipeline: ${pipeline.pipeline_name}`,
           info: pipeline,
           node_type: "pipeline",
         });
@@ -542,10 +542,7 @@ export default {
         graph.addNode(`${pipeline_run.pipeline_run_ticket}`, {
           color: this.legend.pipeline_run.color,
           size: 20,
-          label: `Pipeline Run: ${pipeline_run.pipeline_run_ticket.slice(
-            0,
-            4
-          )}`,
+          label: `Pipeline Run: ${pipeline_run.pipeline_run_name}`,
           info: pipeline_run,
           node_type: "pipeline_run",
         });
@@ -625,7 +622,7 @@ export default {
         settings: sensibleSettings,
       });
 
-      // layout.start();
+      layout.start();
       this.layout = layout;
 
       // Create the sigma

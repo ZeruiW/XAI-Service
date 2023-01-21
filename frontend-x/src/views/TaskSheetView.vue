@@ -213,16 +213,6 @@
             <span class="text-h5">Task List</span>
 
             <v-spacer></v-spacer>
-            <v-text-field
-              ref="new_task_name"
-              variant="underlined"
-              label="New Task Name"
-              class="mr-3"
-              v-model="new_task_name"
-              :rules="[(v) => !!v || 'This field is required']"
-              style="width: 300px"
-              density="compact"
-            ></v-text-field>
 
             <v-btn
               size="small"
@@ -231,7 +221,7 @@
               form="task-sheet-create-form"
               @click="runTaskFromTaskSheet"
             >
-              Run a New Task
+              Run
             </v-btn>
             <v-btn
               size="small"
@@ -525,7 +515,6 @@ export default {
     evaluation_service_executor_id: "",
     task_parameters: "{}",
     current_task_sheet_id: "",
-    new_task_name: "",
     taskListIntv: undefined,
   }),
   methods: {
@@ -625,30 +614,23 @@ export default {
     },
     runTaskFromTaskSheet() {
       console.log(this.current_task_sheet_id);
-      this.$refs.new_task_name.validate().then((v) => {
-        if (v[0] === undefined) {
-          // valid
-          this.ax.post(
-            "http://127.0.0.1:5006/task_publisher/task_sheet",
-            {
-              act: "run",
-              task_sheet_id: this.current_task_sheet_id,
-              task_name: this.new_task_name,
-            },
-            {
-              success: (response) => {
-                console.log(response.data);
-              },
-              error: () => {},
-              final: () => {
-                this.fetchTaskList(this.current_task_sheet_id);
-                // this.closeTaskDialog();
-                this.new_task_name = "";
-              },
-            }
-          );
+      this.ax.post(
+        "http://127.0.0.1:5006/task_publisher/task_sheet",
+        {
+          act: "run",
+          task_sheet_id: this.current_task_sheet_id,
+        },
+        {
+          success: (response) => {
+            console.log(response.data);
+          },
+          error: () => {},
+          final: () => {
+            this.fetchTaskList(this.current_task_sheet_id);
+            // this.closeTaskDialog();
+          },
         }
-      });
+      );
     },
     fetchTaskList(task_sheet_id) {
       console.log("fetch task list");

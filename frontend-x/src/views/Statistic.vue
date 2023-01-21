@@ -4,6 +4,7 @@
       <h2>Time Consumption Statistic</h2>
     </div>
     <v-card-text>
+      <!-- Overall XAI Task Time Consumption -->
       <v-card class="mb-10" :elevation="6">
         <template v-slot:title>
           <div class="clearfix">
@@ -16,6 +17,7 @@
         </v-card-text>
       </v-card>
 
+      <!-- XAI Task Time Consumption for each Task Sheet -->
       <v-card class="mb-10" :elevation="6">
         <template v-slot:title>
           <div class="text-h6" style="float: left; line-height: 60px">
@@ -25,7 +27,9 @@
             style="width: 500px; float: right"
             label="Select Task Sheet"
             hide-details
-            :items="Object.keys(xaiTaskTimeForEachSheet)"
+            :items="getTaskSheetTimeSelection(xaiTaskTimeForEachSheet)"
+            item-title="task_sheet_name"
+            item-value="task_sheet_id"
             v-model="focusXAITaskSheetForTime"
             variant="underlined"
           ></v-select>
@@ -36,6 +40,7 @@
         </v-card-text>
       </v-card>
 
+      <!-- Overall Evaluation Task Time Consumption -->
       <v-card class="mb-10" :elevation="6">
         <template v-slot:title>
           <div class="clearfix">
@@ -48,6 +53,7 @@
         </v-card-text>
       </v-card>
 
+      <!-- Evaluation Task Time Consumption for each Task Sheet -->
       <v-card class="mb-10" :elevation="6">
         <template v-slot:title>
           <div class="text-h6" style="float: left; line-height: 60px">
@@ -57,7 +63,9 @@
             style="width: 500px; float: right"
             label="Select Task Sheet"
             hide-details
-            :items="Object.keys(evalTaskTimeForEachSheet)"
+            :items="getTaskSheetTimeSelection(evalTaskTimeForEachSheet)"
+            item-title="task_sheet_name"
+            item-value="task_sheet_id"
             v-model="focusEvalTaskSheetForTime"
             variant="underlined"
           ></v-select>
@@ -73,6 +81,7 @@
       <h2>Power & Carbon Emission Statistic</h2>
     </div>
     <v-card-text>
+      <!-- Global Carbon Emission -->
       <v-card class="mb-10" :elevation="6">
         <template v-slot:title>
           <div class="text-h6">
@@ -85,6 +94,7 @@
           <v-container class="mt-3" id="wmap"> </v-container>
         </v-card-text>
       </v-card>
+      <!-- XAI Task Time Power & Carbon Emission -->
       <v-card class="mb-10" :elevation="6">
         <template v-slot:title>
           <div class="text-h6" style="float: left; line-height: 60px">
@@ -94,7 +104,9 @@
             style="width: 500px; float: right"
             label="Select Task Sheet"
             hide-details
-            :items="Object.keys(xaiTaskSheetFinishedTaskEm)"
+            :items="getTaskSheetTimeSelection(xaiTaskSheetFinishedTaskEm)"
+            item-title="task_sheet_name"
+            item-value="task_sheet_id"
             v-model="focusXAITaskSheetForEm"
             variant="underlined"
           ></v-select>
@@ -171,7 +183,9 @@
             style="width: 500px; float: right"
             label="Select Task Sheet"
             hide-details
-            :items="Object.keys(evalTaskSheetFinishedTaskEm)"
+            :items="getTaskSheetTimeSelection(evalTaskSheetFinishedTaskEm)"
+            item-title="task_sheet_name"
+            item-value="task_sheet_id"
             v-model="focusEvalTaskSheetForEm"
             variant="underlined"
           ></v-select>
@@ -284,6 +298,16 @@ export default {
     },
   },
   methods: {
+    getTaskSheetTimeSelection(taskTimeForEachSheet) {
+      const arr = [];
+      for (const task_sheet_id of Object.keys(taskTimeForEachSheet)) {
+        arr.push({
+          task_sheet_name: taskTimeForEachSheet[task_sheet_id].task_sheet_name,
+          task_sheet_id: task_sheet_id,
+        });
+      }
+      return arr;
+    },
     getFocusXAITaskSheetForEmSt() {
       const st = {
         host: "nowhere",
@@ -295,7 +319,7 @@ export default {
       if (this.focusXAITaskSheetForEm !== undefined) {
         for (const em of this.xaiTaskSheetFinishedTaskEm[
           this.focusXAITaskSheetForEm
-        ]) {
+        ].tasks) {
           st.carbonEmOfAllTask += em.em.emissions;
           st.powerOfAllTask += em.em.energy_consumed;
           st.host = em.em.country_iso_code;
@@ -317,7 +341,7 @@ export default {
       if (this.focusEvalTaskSheetForEm !== undefined) {
         for (const em of this.evalTaskSheetFinishedTaskEm[
           this.focusEvalTaskSheetForEm
-        ]) {
+        ].tasks) {
           st.carbonEmOfAllTask += em.em.emissions;
           st.powerOfAllTask += em.em.energy_consumed;
           st.host = em.em.country_iso_code;
@@ -346,11 +370,13 @@ export default {
               if (task.task_status === "finished") {
                 var t = Number((task.end_time - task.start_time).toFixed(2));
                 var d = {
-                  task_sheet_id: task.task_sheet_id.slice(0, 6) + "...",
+                  task_sheet_id: task.task_sheet_id,
+                  task_name: task.task_name,
                   time: t,
                 };
                 var d2 = {
-                  ticket: task.task_ticket.slice(0, 4) + "...",
+                  ticket: task.task_ticket,
+                  task_name: task.task_name,
                   time: t,
                 };
                 if (
@@ -370,19 +396,25 @@ export default {
                   xaiData.push(d);
 
                   if (xaiTimeDataPerSheet[task.task_sheet_id] === undefined) {
-                    xaiTimeDataPerSheet[task.task_sheet_id] = [];
+                    xaiTimeDataPerSheet[task.task_sheet_id] = {
+                      task_sheet_name: task.task_sheet_name,
+                      tasks: [],
+                    };
                   }
-                  xaiTimeDataPerSheet[task.task_sheet_id].push(d2);
+                  xaiTimeDataPerSheet[task.task_sheet_id].tasks.push(d2);
 
                   if (
                     "running_info" in task &&
                     "emission_info" in task.running_info
                   ) {
                     if (xaiEmDataPerSheet[task.task_sheet_id] === undefined) {
-                      xaiEmDataPerSheet[task.task_sheet_id] = [];
+                      xaiEmDataPerSheet[task.task_sheet_id] = {
+                        task_sheet_name: task.task_sheet_name,
+                        tasks: [],
+                      };
                     }
-                    xaiEmDataPerSheet[task.task_sheet_id].push({
-                      ticket: task.task_ticket.slice(0, 4) + "...",
+                    xaiEmDataPerSheet[task.task_sheet_id].tasks.push({
+                      ticket: task.task_ticket,
                       em: task.running_info.emission_info,
                     });
                   }
@@ -391,19 +423,25 @@ export default {
                   evalData.push(d);
 
                   if (evalTimeDataPerSheet[task.task_sheet_id] === undefined) {
-                    evalTimeDataPerSheet[task.task_sheet_id] = [];
+                    evalTimeDataPerSheet[task.task_sheet_id] = {
+                      task_sheet_name: task.task_sheet_name,
+                      tasks: [],
+                    };
                   }
-                  evalTimeDataPerSheet[task.task_sheet_id].push(d2);
+                  evalTimeDataPerSheet[task.task_sheet_id].tasks.push(d2);
 
                   if (
                     "running_info" in task &&
                     "emission_info" in task.running_info
                   ) {
                     if (evalEmDataPerSheet[task.task_sheet_id] === undefined) {
-                      evalEmDataPerSheet[task.task_sheet_id] = [];
+                      evalEmDataPerSheet[task.task_sheet_id] = {
+                        task_sheet_name: task.task_sheet_name,
+                        tasks: [],
+                      };
                     }
-                    evalEmDataPerSheet[task.task_sheet_id].push({
-                      ticket: task.task_ticket.slice(0, 4) + "...",
+                    evalEmDataPerSheet[task.task_sheet_id].tasks.push({
+                      ticket: task.task_ticket,
                       em: task.running_info.emission_info,
                     });
                   }
@@ -424,6 +462,7 @@ export default {
             }
 
             this.xaiTaskTimeForEachSheet = xaiTimeDataPerSheet;
+            console.log(xaiTimeDataPerSheet);
             this.evalTaskTimeForEachSheet = evalTimeDataPerSheet;
 
             this.xaiTaskSheetFinishedTaskTime = xaiData;
@@ -474,13 +513,18 @@ export default {
         this.linex.destroy();
       }
       this.linex = new Line("xaiTaskTimeForEachSheet", {
-        data: this.xaiTaskTimeForEachSheet[taskSheetId],
+        data: this.xaiTaskTimeForEachSheet[taskSheetId].tasks,
         padding: "auto",
         xField: "ticket",
         yField: "time",
         xAxis: {
           title: {
             text: "XAI Task Ticket (only 4 characters show)",
+          },
+          label: {
+            formatter: (v) => {
+              return v.slice(0, 4) + "...";
+            },
           },
         },
         yAxis: {
@@ -498,13 +542,18 @@ export default {
         this.linee.destroy();
       }
       this.linee = new Line("evalTaskTimeForEachSheet", {
-        data: this.evalTaskTimeForEachSheet[taskSheetId],
+        data: this.evalTaskTimeForEachSheet[taskSheetId].tasks,
         padding: "auto",
         xField: "ticket",
         yField: "time",
         xAxis: {
           title: {
             text: "Evaluation Task Ticket (only 4 characters show)",
+          },
+          label: {
+            formatter: (v) => {
+              return v.slice(0, 4) + "...";
+            },
           },
         },
         yAxis: {
@@ -530,6 +579,11 @@ export default {
           title: {
             text: "XAI Task Sheet ID (only 6 characters show)",
           },
+          label: {
+            formatter: (v) => {
+              return v.slice(0, 6) + "...";
+            },
+          },
         },
       });
       const firstXaiTaskSheet = Object.keys(this.xaiTaskTimeForEachSheet)[0];
@@ -548,6 +602,11 @@ export default {
         xAxis: {
           title: {
             text: "Evaluation Task Sheet ID (only 6 characters show)",
+          },
+          label: {
+            formatter: (v) => {
+              return v.slice(0, 6) + "...";
+            },
           },
         },
       });

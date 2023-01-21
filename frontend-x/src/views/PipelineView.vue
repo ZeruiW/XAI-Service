@@ -197,14 +197,16 @@
         <v-card-text>
           <v-table>
             <colgroup>
-              <col span="1" style="width: 30%" />
-              <col span="1" style="width: 30%" />
+              <col span="1" style="width: 10%" />
+              <col span="1" style="width: 25%" />
+              <col span="1" style="width: 25%" />
               <col span="1" style="width: 10%" />
               <col span="1" style="width: 10%" />
               <col span="1" style="width: 20%" />
             </colgroup>
             <thead>
               <tr>
+                <th class="text-left font-weight-bold">Run Name</th>
                 <th class="text-left font-weight-bold">Run Ticket</th>
                 <th class="text-left font-weight-bold">Task Tickets</th>
                 <th class="text-center font-weight-bold">XAI Task Status</th>
@@ -218,6 +220,7 @@
                 v-for="item in current_pipeline_run_list"
                 :key="item.pipeline_run_ticket"
               >
+                <td>{{ item.pipeline_run_name }}</td>
                 <td>{{ item.pipeline_run_ticket }}</td>
                 <td>
                   <tr>
@@ -709,90 +712,6 @@ export default {
         this.current_pipeline.xai_task_status === "initialized" ||
         this.current_pipeline.evaluation_task_status === "initialized"
       );
-    },
-    addEvaluationTaskSheet() {
-      console.log(this.current_pipeline);
-      this.$refs.current_evaluation_task_sheet_id.validate().then((v) => {
-        if (v[0] === undefined) {
-          console.log(this.current_evaluation_task_sheet_id);
-          this.$refs.current_evaluation_task_name.validate().then((v) => {
-            if (v[0] === undefined) {
-              console.log(this.current_evaluation_task_name);
-              // valid
-              this.ax.post(
-                "http://127.0.0.1:5006/task_publisher/pipeline",
-                {
-                  act: "add_task",
-                  pipeline_id: this.current_pipeline.pipeline_id,
-                  task_name: this.current_evaluation_task_name,
-                  task_sheet_id: this.current_evaluation_task_sheet_id,
-                },
-                {
-                  success: (response) => {
-                    console.log(response.data);
-                  },
-                  error: () => {},
-                  final: () => {
-                    this.fetchPipeline(() => {
-                      for (const p of this.pipelines) {
-                        if (
-                          p.pipeline_id === this.current_pipeline.pipeline_id
-                        ) {
-                          this.current_pipeline = p;
-                        }
-                      }
-                    });
-                    // this.closeTaskDialog();
-                  },
-                }
-              );
-            }
-          });
-        }
-      });
-    },
-    addXAITaskSheetSheet() {
-      console.log(this.current_pipeline);
-      this.$refs.current_xai_task_sheet_id.validate().then((v) => {
-        if (v[0] === undefined) {
-          console.log(this.current_xai_task_sheet_id);
-          this.$refs.current_xai_task_name.validate().then((v) => {
-            if (v[0] === undefined) {
-              console.log(this.current_xai_task_name);
-              // valid
-              this.ax.post(
-                "http://127.0.0.1:5006/task_publisher/pipeline",
-                {
-                  act: "add_task",
-                  pipeline_id: this.current_pipeline.pipeline_id,
-                  task_name: this.current_xai_task_name,
-                  task_sheet_id: this.current_xai_task_sheet_id,
-                },
-                {
-                  success: (response) => {
-                    console.log(response.data);
-                    this.fetchTaskSheetList();
-                  },
-                  error: () => {},
-                  final: () => {
-                    this.fetchPipeline(() => {
-                      for (const p of this.pipelines) {
-                        if (
-                          p.pipeline_id === this.current_pipeline.pipeline_id
-                        ) {
-                          this.current_pipeline = p;
-                        }
-                      }
-                    });
-
-                    // this.closeTaskDialog();
-                  },
-                }
-              );
-            }
-          });
-        }
-      });
     },
     showSheetListForPipeline(id, list) {
       if (id === "") {

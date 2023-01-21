@@ -12,7 +12,7 @@
           </div>
         </template>
         <v-divider></v-divider>
-        <v-card-text>
+        <v-card-text style="height: 432px">
           <div id="xaiTaskSheetFinishedTaskTimeViolin"></div>
         </v-card-text>
       </v-card>
@@ -35,7 +35,7 @@
           ></v-select>
         </template>
         <v-divider></v-divider>
-        <v-card-text>
+        <v-card-text style="height: 432px">
           <div id="xaiTaskTimeForEachSheet"></div>
         </v-card-text>
       </v-card>
@@ -48,7 +48,7 @@
           </div>
         </template>
         <v-divider></v-divider>
-        <v-card-text>
+        <v-card-text style="height: 432px">
           <div id="evalTaskSheetFinishedTaskTimeViolin"></div>
         </v-card-text>
       </v-card>
@@ -71,7 +71,7 @@
           ></v-select>
         </template>
         <v-divider></v-divider>
-        <v-card-text>
+        <v-card-text style="height: 432px">
           <div id="evalTaskTimeForEachSheet"></div>
         </v-card-text>
       </v-card>
@@ -462,7 +462,6 @@ export default {
             }
 
             this.xaiTaskTimeForEachSheet = xaiTimeDataPerSheet;
-            console.log(xaiTimeDataPerSheet);
             this.evalTaskTimeForEachSheet = evalTimeDataPerSheet;
 
             this.xaiTaskSheetFinishedTaskTime = xaiData;

@@ -113,30 +113,52 @@
 <script>
 import Graph from "graphology";
 import Sigma from "sigma";
-import { circular, random, circlepack } from "graphology-layout";
+import { circlepack } from "graphology-layout";
 import forceAtlas2 from "graphology-layout-forceatlas2";
-import FA2Layout from "graphology-layout-forceatlas2/worker";
+// import FA2Layout from "graphology-layout-forceatlas2/worker";
+import forceLayout from "graphology-layout-force";
+// import ForceSupervisor from "graphology-layout-force/worker";
 
 const legend = {
-  executor: {
-    color: "#52ccce",
-    title: "Service",
+  xai_executor: {
+    color: "#FFBE0B",
+    title: "XAI Service",
   },
-  tasksheet: {
-    color: "#b2a296",
-    title: "TaskSheet",
+  model_executor: {
+    color: "#FB5607",
+    title: "Model Service",
+  },
+  db_executor: {
+    color: "#FF006E",
+    title: "DB Service",
+  },
+  evaluation_executor: {
+    color: "#8338EC",
+    title: "Evaluation Service",
+  },
+  xai_tasksheet: {
+    color: "#3A86FF",
+    title: "XAI TaskSheet",
+  },
+  evaluation_tasksheet: {
+    color: "#F79256",
+    title: "Evaluation TaskSheet",
   },
   pipeline: {
-    color: "#ef3e5b",
+    color: "#FBD1A2",
     title: "Pipeline",
   },
   pipeline_run: {
-    color: "#4b256d",
+    color: "#7DCFB6",
     title: "PipelineRun",
   },
-  task: {
-    color: "#95d47a",
-    title: "Task",
+  xai_task: {
+    color: "#00B2CA",
+    title: "XAI Task",
+  },
+  evaluation_task: {
+    color: "#1D4E89",
+    title: "Evaluation Task",
   },
 };
 
@@ -233,7 +255,7 @@ export default {
         camera.animatedReset({ duration: 500 });
       });
     },
-    getRelatedNodeType(currentNodeType, focusNodeType) {
+    getRelatedComponentType(currentNodeType, focusNodeType) {
       const upper = [
         "task",
         "pipeline_run",
@@ -321,13 +343,13 @@ export default {
 
       for (const nbKey of curentNodeNb) {
         const nbNode = this.getNodeByKey(nbKey);
-        const relatedNodeType = this.getRelatedNodeType(
-          currentNode.attributes.node_type,
-          focusNode.attributes.node_type
+        const relatedComponentType = this.getRelatedComponentType(
+          currentNode.attributes.component_type,
+          focusNode.attributes.component_type
         );
         if (
           currentNodeKey === focusNodeKey ||
-          relatedNodeType.indexOf(nbNode.attributes.node_type) > -1
+          relatedComponentType.indexOf(nbNode.attributes.component_type) > -1
         ) {
           relatedNodeKeys.push(nbKey);
         }
@@ -431,29 +453,29 @@ export default {
 
       const executors = this.provenance.executors;
 
-      // TODO: split to 4 types of node
       for (const executor of executors) {
         delete executor._id;
         graph.addNode(`${executor.executor_id}`, {
-          color: this.legend.executor.color,
+          color: this.legend[`${executor.executor_type}_executor`].color,
           size: 15,
-          label: `Service: ${executor.executor_info.exp_name}`,
+          label: `${executor.executor_info.exp_name}`,
           info: executor,
-          node_type: "executor",
+          node_type: `${executor.executor_type}_executor`,
+          component_type: `executor`,
         });
       }
 
       const taskSheets = this.provenance.task_sheets;
 
-      // TODO: split to xai and eval
       for (const tasksheet of taskSheets) {
         delete tasksheet._id;
         graph.addNode(`${tasksheet.task_sheet_id}`, {
-          color: this.legend.tasksheet.color,
+          color: this.legend[`${tasksheet.task_type}_tasksheet`].color,
           size: 10,
-          label: `Task Sheet: ${tasksheet.task_sheet_name}`,
+          label: `${tasksheet.task_sheet_name}`,
           info: tasksheet,
-          node_type: "tasksheet",
+          node_type: `${tasksheet.task_type}_tasksheet`,
+          component_type: `tasksheet`,
         });
 
         if (tasksheet.model_service_executor_id !== "") {
@@ -492,11 +514,12 @@ export default {
         delete task._id;
 
         graph.addNode(`${task.task_ticket}`, {
-          color: this.legend.task.color,
+          color: this.legend[`${task.task_type}_task`].color,
           size: 10,
-          label: `Task: ${task.task_name}`,
+          label: `${task.task_name}`,
           info: task,
-          node_type: "task",
+          node_type: `${task.task_type}_task`,
+          component_type: `task`,
         });
 
         if (task.pipeline_id === "") {
@@ -516,9 +539,10 @@ export default {
         graph.addNode(`${pipeline.pipeline_id}`, {
           color: this.legend.pipeline.color,
           size: 20,
-          label: `Pipeline: ${pipeline.pipeline_name}`,
+          label: `${pipeline.pipeline_name}`,
           info: pipeline,
           node_type: "pipeline",
+          component_type: "pipeline",
         });
 
         graph.addEdge(pipeline.pipeline_id, pipeline.xai_task_sheet_id, {
@@ -542,9 +566,10 @@ export default {
         graph.addNode(`${pipeline_run.pipeline_run_ticket}`, {
           color: this.legend.pipeline_run.color,
           size: 20,
-          label: `Pipeline Run: ${pipeline_run.pipeline_run_name}`,
+          label: `${pipeline_run.pipeline_run_name}`,
           info: pipeline_run,
           node_type: "pipeline_run",
+          component_type: "pipeline_run",
         });
 
         // graph.addEdge(
@@ -613,17 +638,23 @@ export default {
       // circular.assign(graph);
 
       const sensibleSettings = forceAtlas2.inferSettings(graph);
+      forceLayout.assign(graph, {
+        maxIterations: 100,
+        settings: sensibleSettings,
+      });
+
       forceAtlas2.assign(graph, {
         iterations: 100,
         settings: sensibleSettings,
       });
 
-      const layout = new FA2Layout(graph, {
-        settings: sensibleSettings,
-      });
+      // const layout = new FA2Layout(graph, {
+      //   iterations: 500,
+      //   settings: sensibleSettings,
+      // });
 
       // layout.start();
-      this.layout = layout;
+      // this.layout = layout;
 
       // Create the sigma
       const thiz = this;
@@ -690,8 +721,10 @@ export default {
   unmounted: function () {
     // console.log("unmount prov");
     try {
-      this.layout.stop();
-      this.layout.kill();
+      if (this.layout) {
+        this.layout.stop();
+        this.layout.kill();
+      }
       this.renderer.clear();
       // prevent Too many active WebGL contexts. Oldest context will be lost.
       this.renderer.kill();
@@ -744,12 +777,18 @@ export default {
   top: 120px;
   width: 300px;
   background-color: white;
+  border: 1px #00000026 solid;
+  padding: 6px 6px 10px 6px;
+  border-radius: 10px;
 }
 #legend {
   position: absolute;
   left: 1em;
   top: 76px;
   background-color: white;
+  border: 1px #00000026 solid;
+  padding: 6px;
+  border-radius: 10px;
 }
 
 .legendTitle {
@@ -757,6 +796,6 @@ export default {
   height: 21.73px;
   line-height: 21.73px;
   margin-left: 5px;
-  width: 80px;
+  width: 150px;
 }
 </style>

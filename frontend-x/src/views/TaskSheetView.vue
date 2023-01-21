@@ -450,6 +450,10 @@
 
 <script>
 import { TransitionGroup } from "vue";
+import * as dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import advancedFormat from "dayjs/plugin/advancedFormat";
+dayjs.extend(utc).extend(advancedFormat);
 
 const typeMap = {
   db: "Database",
@@ -522,7 +526,11 @@ export default {
       if (ts === "" || ts === undefined) {
         return "";
       }
-      return ts;
+      return dayjs
+        .unix(ts)
+        .utc()
+        .local()
+        .format("HH:mm:ss, ddd, MMM-Do, YYYY ");
     },
     getTaskStatus(item) {
       return item.start_time !== undefined && item.task_status === "initialized"

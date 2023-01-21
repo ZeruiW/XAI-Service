@@ -142,7 +142,7 @@ class TaskExecutor(TaskComponent):
             'records')
 
         if len(emission_info) > 0:
-            running_info['emission_info'] = emission_info
+            running_info['emission_info'] = emission_info[0]
 
         requests.post(
             self.get_publisher_endpoint_url() + '/task_publisher/task',

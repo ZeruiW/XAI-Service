@@ -18,13 +18,15 @@
     <v-table>
       <colgroup>
         <col span="1" style="width: 15%" />
-        <col span="1" style="width: 40%" />
+        <col span="1" style="width: 15%" />
+        <col span="1" style="width: 25%" />
         <col span="1" style="width: 15%" />
         <col span="1" style="width: 30%" />
       </colgroup>
       <thead>
         <tr>
           <th class="text-left font-weight-bold">ID</th>
+          <th class="text-left font-weight-bold">Name</th>
           <th class="text-left font-weight-bold">Url</th>
           <th class="text-left font-weight-bold">Service Type</th>
           <th class="text-left font-weight-bold"></th>
@@ -33,6 +35,7 @@
       <tbody>
         <tr class="trHover" v-for="item in services" :key="item.executor_id">
           <td>{{ item.executor_id }}</td>
+          <td>{{ item.executor_info.exp_name }}</td>
           <td>{{ item.executor_endpoint_url }}</td>
           <td>{{ typeMap[item.executor_type] }}</td>
           <td style="text-align: right">

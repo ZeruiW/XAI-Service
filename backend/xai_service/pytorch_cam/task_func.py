@@ -60,13 +60,20 @@ def cam_task(task_ticket, publisher_endpoint_url, task_parameters):
     # load model
     # TODO: generalize this part for different models
 
-    model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
+    if task_parameters['model_name'].startswith('resnet'):
+        print('  use resnet50')
+        model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
+        target_layers = [model.layer4]
+    if task_parameters['model_name'].startswith('densenet'):
+        print('  use densenet121')
+        model = models.densenet121(
+            weights=models.DenseNet121_Weights.IMAGENET1K_V1)
+        target_layers = [model.features[-1]]
+
     model.eval()
     model.to(device)
 
     model.load_state_dict(torch.load(model_pt_path))
-
-    target_layers = [model.layer4]
 
     preprocessing = T.Compose([
         T.ToTensor(),

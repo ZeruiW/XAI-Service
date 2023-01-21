@@ -1,32 +1,16 @@
-import zipfile
 import io
 import os
 import time
 import base64
 import json
-import sys
 from PIL import Image
 import requests
-import torchvision.transforms as T
-from torchvision import models
-import torch
 import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
 from xai_backend_central_dev.constant import TaskStatus
-
-#device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-# print(device)
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-if torch.backends.mps.is_built() and torch.backends.mps.is_available():
-    device = torch.device("mps")
-
-print("Pytorch device: ")
-print(device)
 
 
 def image_to_byte_array(image: Image) -> bytes:
@@ -39,25 +23,6 @@ def image_to_byte_array(image: Image) -> bytes:
     return imgByteArr
 
 # ANCHOR: this method is discard
-
-
-def resnet50_prediction(model, img):
-    img_transforms = T.Compose(
-        [
-            T.ToTensor()]
-    )
-    img = img_transforms(img)
-    with torch.no_grad():
-        mean = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
-        std = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
-        img = img.float()
-        img = img.unsqueeze(0).sub_(mean).div_(std)
-
-    batch = torch.cat(
-        [img]
-    ).to(device)
-
-    return model(batch)
 
 
 def plot(all_data, save_fig_name, xl='', yl='', xa=['Grad-CAM']):

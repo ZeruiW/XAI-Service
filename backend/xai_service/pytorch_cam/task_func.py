@@ -1,5 +1,16 @@
 # device = torch.device("cpu")
-from pytorch_grad_cam import GradCAM
+from pytorch_grad_cam import GradCAM, \
+    HiResCAM, \
+    ScoreCAM, \
+    GradCAMPlusPlus, \
+    AblationCAM, \
+    XGradCAM, \
+    EigenCAM, \
+    EigenGradCAM, \
+    LayerCAM, \
+    FullGrad, \
+    GradCAMElementWise
+
 from PIL import Image
 import torchvision.transforms as T
 import torch
@@ -90,6 +101,49 @@ def cam_task(task_ticket, publisher_endpoint_url, task_parameters):
     if not os.path.isdir(local_exp_save_dir):
         os.makedirs(local_exp_save_dir, exist_ok=True)
 
+    cam_method = os.environ['cam_method']
+
+    cam_kws = {
+        'model': model,
+        'target_layers': target_layers,
+        'use_cuda': torch.cuda.is_available()
+    }
+
+    if cam_method == None or cam_method == 'grad-cam':
+        cam = GradCAM(**cam_kws)
+
+    if cam_method == 'hirescam':
+        cam = HiResCAM(**cam_kws)
+
+    if cam_method == 'scorecam':
+        cam = ScoreCAM(**cam_kws)
+
+    if cam_method == 'grad-campp':
+        cam = GradCAMPlusPlus(**cam_kws)
+
+    if cam_method == 'ablationcam':
+        cam = AblationCAM(**cam_kws)
+
+    if cam_method == 'xgrad-cam':
+        cam = XGradCAM(**cam_kws)
+
+    if cam_method == 'eigencam':
+        cam = EigenCAM(**cam_kws)
+
+    if cam_method == 'eigengrad-cam':
+        cam = EigenGradCAM(**cam_kws)
+
+    if cam_method == 'layercam':
+        cam = LayerCAM(**cam_kws)
+
+    if cam_method == 'fullgrad':
+        cam = FullGrad(**cam_kws)
+
+    if cam_method == 'grad-camew':
+        cam = GradCAMElementWise(**cam_kws)
+
+    cam.batch_size = 32
+
     for i in tqdm(range(len(img_data))):
         imgd = img_data[i]
         file_name = imgd['name']
@@ -104,13 +158,6 @@ def cam_task(task_ticket, publisher_endpoint_url, task_parameters):
             preprocessing(x).numpy()
             for x in [rgb_img]
         ])).to(device)
-
-        # TODO: generalize this part for different cam method
-        cam = GradCAM(model=model,
-                      target_layers=target_layers,
-                      use_cuda=torch.cuda.is_available())
-
-        cam.batch_size = 32
 
         # AblationCAM and ScoreCAM have batched implementations.
         # You can override the internal batch size for faster computation.

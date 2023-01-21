@@ -622,14 +622,14 @@ export default {
         settings: sensibleSettings,
       });
 
-      layout.start();
+      // layout.start();
       this.layout = layout;
 
       // Create the sigma
       const thiz = this;
       this.renderer = new Sigma(graph, box, {
         enableEdgeHoverEvents: "debounce",
-        renderEdgeLabels: true,
+        // renderEdgeLabels: true,
         labelFont: "console",
         edgeLabelFont: "console",
         labelWeight: 600,

@@ -465,8 +465,11 @@
                               style="max-height: 500px"
                             />
                           </v-expansion-panel-text>
-                          <v-expansion-panel-text v-else>
-                            This file is not support for present.
+                          <v-expansion-panel-text
+                            v-else
+                            style="text-align: center"
+                          >
+                            <a :href="item.address"> Download</a>
                           </v-expansion-panel-text>
                         </v-expansion-panel>
                       </v-expansion-panels>
@@ -564,8 +567,11 @@
                           >
                             <img :src="item.address" />
                           </v-expansion-panel-text>
-                          <v-expansion-panel-text v-else>
-                            This file is not support for present.
+                          <v-expansion-panel-text
+                            style="text-align: center"
+                            v-else
+                          >
+                            <a :href="item.address"> Download</a>
                           </v-expansion-panel-text>
                         </v-expansion-panel>
                       </v-expansion-panels>
@@ -692,9 +698,7 @@ export default {
 
             let globalRs = [];
             for (const i of response.data["global"]) {
-              if (i.file_type === "img") {
-                globalRs.push(i);
-              }
+              globalRs.push(i);
             }
             if (task_type === "xai") {
               this.xai_task_rs["global"] = globalRs;

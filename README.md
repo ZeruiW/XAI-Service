@@ -117,20 +117,86 @@ docker compose -f backend/docker-compose.yml -f backend/docker-compose-dev.yml u
 
 
 
-## Basic Work Flow
+## Critical Update
 
-### Case 1. ResNet50 & GradCAM
+### Jan 20th 
 
-API Document: https://documenter.getpostman.com/view/2019955/2s8YzUw1he
+1. Azure Blob Service;
 
-1. Register four services to central;
-2. Upload Dataset;
-3. Execute CAM task;
-4. Once CAM task finished, execute Evaluation task;
+2. Densenet121 service:
 
+   ``` bash
+   flask --app backend/model_service/densenet121 run -p 5010
+   ```
 
+3. multiple cam method support
 
+   To start grad-cam:
 
+   ``` bash
+   flask --app 'backend/xai_service/pytorch_cam:create_app(cam_method="grad-cam")' run -p 5003
+   ```
+
+   or just
+
+   ``` bash
+   flask --app backend/xai_service/pytorch_cam run -p 5003
+   ```
+
+   Then the service endpoint is same as before:
+
+   http://127.0.0.1:5003/xai/pt_cam
+
+   To start other cams, like `grad-camew`:
+
+   ``` bash
+   flask --app 'backend/xai_service/pytorch_cam:create_app(cam_method="grad-camew")' run -p 5011
+   ```
+
+   The service endpoint will be:
+
+   http://127.0.0.1:5011/xai/pt_cam/grad-camew
+
+   Cam method List:
+
+   ``` python
+   if cam_method == None or cam_method == 'grad-cam':
+       cam = GradCAM(**cam_kws)
+   
+   if cam_method == 'hirescam':
+       cam = HiResCAM(**cam_kws)
+   
+   if cam_method == 'scorecam':
+       cam = ScoreCAM(**cam_kws)
+   
+   if cam_method == 'grad-campp':
+       cam = GradCAMPlusPlus(**cam_kws)
+   
+   if cam_method == 'ablationcam':
+       cam = AblationCAM(**cam_kws)
+   
+   if cam_method == 'xgrad-cam':
+       cam = XGradCAM(**cam_kws)
+   
+   if cam_method == 'eigencam':
+       cam = EigenCAM(**cam_kws)
+   
+   if cam_method == 'eigengrad-cam':
+       cam = EigenGradCAM(**cam_kws)
+   
+   if cam_method == 'layercam':
+       cam = LayerCAM(**cam_kws)
+   
+   if cam_method == 'fullgrad':
+       cam = FullGrad(**cam_kws)
+   
+   if cam_method == 'grad-camew':
+       cam = GradCAMElementWise(**cam_kws)
+   ```
+
+   
+
+​	
 
 ## Requirements
 

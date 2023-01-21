@@ -372,7 +372,7 @@
         <v-container style="overflow: scroll">
           <div v-if="task_rs['global'].length > 0">
             <v-card-title>
-              <span class="text-h6">Global Explaination</span>
+              <span class="text-h6">Global Result</span>
             </v-card-title>
             <v-card-text>
               <v-expansion-panels variant="popout">
@@ -402,7 +402,7 @@
           <v-divider></v-divider>
           <div v-if="task_rs['local'].length > 0">
             <v-card-title>
-              <span class="text-h6">Local Explaination</span>
+              <span class="text-h6">Local Result</span>
             </v-card-title>
             <v-card-text>
               <v-expansion-panels variant="popout">

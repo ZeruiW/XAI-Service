@@ -4,8 +4,8 @@ from flask import Flask
 import xai_backend_central_dev.flask_manager as fm
 
 
-def create_app(mode='dev'):
-    fm.load_env(mode)
+def create_app(mode='dev', **kwargs):
+    fm.load_env(mode, **kwargs)
 
     from . import xai_cam
     context_path = os.environ['CONTEXT_PATH']

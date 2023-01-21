@@ -21,12 +21,15 @@ def create_tmp_dir(service_init_path):
         os.mkdir(tmpdir)
 
 
-def load_env(mode):
+def load_env(mode, **kwargs):
     os.environ['ENV'] = mode
     print('App Mode: ', os.environ['ENV'])
     env_file = f".env.{os.environ['ENV']}"
     for f in glob.glob(os.path.join(os.getcwd(), '**', env_file), recursive=True):
         env_file = f
+
+    for k, v in kwargs.items():
+        os.environ[k] = v
 
     config = dotenv_values(env_file)
     for k in config.keys():

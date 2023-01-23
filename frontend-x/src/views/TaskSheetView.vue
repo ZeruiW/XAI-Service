@@ -43,7 +43,7 @@
               size="x-small"
               prepend-icon="mdi-television"
               @click="showTaskSheetDetail(item)"
-              >Detials</v-btn
+              >Detail</v-btn
             >
             <v-btn
               style="margin-left: 0.5em"
@@ -115,7 +115,7 @@
                 <v-select
                   label="DB Service*"
                   :items="dbSrviceList"
-                  item-title="executor_endpoint_url"
+                  item-title="display_name"
                   item-value="executor_id"
                   :rules="[(v) => !!v || 'Task type is required']"
                   name="db_service_executor_id"
@@ -128,7 +128,7 @@
                 <v-select
                   label="Model Service*"
                   :items="modelSrviceList"
-                  item-title="executor_endpoint_url"
+                  item-title="display_name"
                   item-value="executor_id"
                   :rules="[(v) => !!v || 'Task type is required']"
                   name="model_service_executor_id"
@@ -141,7 +141,7 @@
                 <v-select
                   label="XAI Service*"
                   :items="xaiSrviceList"
-                  item-title="executor_endpoint_url"
+                  item-title="display_name"
                   item-value="executor_id"
                   :rules="[(v) => !!v || 'Task type is required']"
                   name="xai_service_executor_id"
@@ -154,7 +154,7 @@
                 <v-select
                   label="Evaluation Service*"
                   :items="evaluationSrviceList"
-                  item-title="executor_endpoint_url"
+                  item-title="display_name"
                   item-value="executor_id"
                   :rules="[(v) => !!v || 'Task type is required']"
                   name="evaluation_service_executor_id"
@@ -391,8 +391,8 @@
                   >
                     <img :src="item.address" />
                   </v-expansion-panel-text>
-                  <v-expansion-panel-text v-else>
-                    This file is not support for present.
+                  <v-expansion-panel-text v-else style="text-align: center">
+                    <a :href="item.address"> Download</a>
                   </v-expansion-panel-text>
                 </v-expansion-panel>
               </v-expansion-panels>
@@ -433,7 +433,7 @@
                           v-else
                           style="text-align: center"
                         >
-                          This file is not support for present.
+                          <a :href="item.address"> Download</a>
                         </v-expansion-panel-text>
                       </v-expansion-panel>
                     </v-expansion-panels>
@@ -577,9 +577,7 @@ export default {
             this.task_rs["local"] = localRs;
             let globalRs = [];
             for (const i of response.data["global"]) {
-              if (i.file_type === "img") {
-                globalRs.push(i);
-              }
+              globalRs.push(i);
             }
             this.task_rs["global"] = globalRs;
           },
@@ -707,6 +705,7 @@ export default {
             const newModelList = [];
             const newEvaluationList = [];
             for (const item of response.data) {
+              item.display_name = `${item.executor_info.exp_name}`;
               if (item.executor_type === "db") {
                 newDBList.push(item);
               }
@@ -725,7 +724,9 @@ export default {
             this.modelSrviceList = newModelList;
             this.evaluationSrviceList = newEvaluationList;
           },
-          error: () => {},
+          error: (e) => {
+            console.error(e);
+          },
           final: () => {},
         }
       );

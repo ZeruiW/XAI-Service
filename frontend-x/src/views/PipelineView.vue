@@ -50,7 +50,7 @@
               size="x-small"
               prepend-icon="mdi-television"
               @click="openD(item)"
-              >Detials</v-btn
+              >Detail</v-btn
             >
             <v-btn
               style="margin-left: 0.5em"

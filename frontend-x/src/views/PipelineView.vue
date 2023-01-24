@@ -836,11 +836,11 @@ export default {
       }, 300);
     },
     openD(item) {
+      this.fetchTaskSheetList();
       if (item != undefined) {
         this.disabled = true;
         this.current_pipeline = item;
       } else {
-        this.fetchTaskSheetList();
         this.disabled = false;
       }
       this.dialog = true;

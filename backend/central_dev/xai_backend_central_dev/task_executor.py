@@ -110,14 +110,17 @@ class TaskExecutor(TaskComponent):
     def update_task_status_to_central(self, task_ticket, task_status, running_info={}):
 
         task_result_save_path = os.path.join(
-            self.static_path, 'rs', task_ticket)
+            self.tmp_path, 'rs', task_ticket)
+
+        task_tmp_save_path = os.path.join(
+            self.tmp_path, task_ticket)
 
         if os.path.exists(task_result_save_path):
             files = []
             for filename in glob.iglob(task_result_save_path + '**/**', recursive=True):
                 if os.path.isfile(filename):
                     just_file_name = filename.replace(
-                        os.path.join(self.static_path, 'rs') + '/', '')
+                        os.path.join(self.tmp_path, 'rs') + '/', '')
                     files.append((
                         'samples', (just_file_name, open(
                             filename, 'rb'), 'application/octet-stream')
@@ -135,6 +138,8 @@ class TaskExecutor(TaskComponent):
 
             if resp.status_code == 200:
                 shutil.rmtree(task_result_save_path)
+                if os.path.exists(task_tmp_save_path):
+                    shutil.rmtree(task_tmp_save_path)
 
         emissions = pd.read_csv(os.path.join(
             self.storage_path, 'emissions.csv'))

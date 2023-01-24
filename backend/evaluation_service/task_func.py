@@ -1,5 +1,6 @@
 import io
 import os
+import gc
 import time
 import base64
 import json
@@ -77,15 +78,14 @@ def plot(all_data, save_fig_name, xl='', yl='', xa=['Grad-CAM']):
 def eval_task(task_ticket, publisher_endpoint_url, task_parameters):
 
     tmpdir = os.environ.get('COMPONENT_TMP_DIR')
-    staticdir = os.environ.get('COMPONENT_STATIC_DIR')
 
-    local_eval_keep_path = os.path.join(staticdir, 'rs', task_ticket, 'local')
+    local_eval_keep_path = os.path.join(tmpdir, 'rs', task_ticket, 'local')
 
     if not os.path.exists(local_eval_keep_path):
         os.makedirs(local_eval_keep_path, exist_ok=True)
 
     global_eval_keep_path = os.path.join(
-        staticdir, 'rs', task_ticket, 'global')
+        tmpdir, 'rs', task_ticket, 'global')
 
     if not os.path.exists(global_eval_keep_path):
         os.makedirs(global_eval_keep_path, exist_ok=True)
@@ -106,10 +106,19 @@ def eval_task(task_ticket, publisher_endpoint_url, task_parameters):
     # print(task_time, model_name, method_name,
     #       data_set_name, data_set_group_name)
 
-    print('# get exp from cam')
     explanation_keep_path = os.path.join(
-        staticdir, 'rs', task_ticket, f'exp_{explanation_task_ticket}')
+        tmpdir, task_ticket, f'exp_{explanation_task_ticket}')
 
+    if not os.path.exists(explanation_keep_path):
+        os.makedirs(explanation_keep_path, exist_ok=True)
+
+    sample_keep_path = os.path.join(
+        tmpdir, task_ticket, f'sam_{explanation_task_ticket}')
+
+    if not os.path.exists(sample_keep_path):
+        os.makedirs(sample_keep_path, exist_ok=True)
+
+    print('# get exp from cam')
     r1 = requests.get(
         publisher_endpoint_url + '/task_publisher/az_blob',
         params={
@@ -120,20 +129,27 @@ def eval_task(task_ticket, publisher_endpoint_url, task_parameters):
 
     exp_data = json.loads(r1.content.decode('utf-8'))
 
-    exp_data_map = {}
-
     for ed in exp_data:
-        exp_data_map[ed['name'].split('/')[-1]] = ed
+        decoded_str = str(ed['content'])
+        sample_name, exp_file_name = ed['name'].split('/')[-2:]
+        exp_of_sample_save_path = os.path.join(
+            explanation_keep_path, sample_name)
+        if not os.path.exists(exp_of_sample_save_path):
+            os.makedirs(exp_of_sample_save_path, exist_ok=True)
+
+        with open(os.path.join(exp_of_sample_save_path, exp_file_name), 'wb') as f:
+            f.write(base64.b64decode(decoded_str))
+
+    del exp_data
+    gc.collect()
+
+    print('# saved exp at: ', explanation_keep_path)
 
     def get_cam_data(img_name):
-        decoded_str = str(exp_data_map[f'{img_name}.npy']['content'])
-        return np.load(io.BytesIO(
-            base64.b64decode(decoded_str)), allow_pickle=True)
+        return np.load(os.path.join(explanation_keep_path, img_name, f'{img_name}.npy'))
 
     def get_cam_heatmap(img_name):
-        decoded_str = str(exp_data_map[f'{img_name}.png']['content'])
-        return np.frombuffer(
-            base64.b64decode(decoded_str), np.uint8)
+        return cv2.imread(os.path.join(explanation_keep_path, img_name, f'{img_name}.png'))
 
     print(
         f'# get image data {db_service_url} {data_set_name} {data_set_group_name}')
@@ -146,6 +162,17 @@ def eval_task(task_ticket, publisher_endpoint_url, task_parameters):
     # print(response)
     img_data = json.loads(response.content.decode('utf-8'))
 
+    for ed in img_data:
+        decoded_str = str(ed['content'])
+        sample_file_name = ed['name']
+
+        with open(os.path.join(sample_keep_path, sample_file_name), 'wb') as f:
+            f.write(base64.b64decode(decoded_str))
+
+        del ed['content']
+
+    gc.collect()
+
     # ANCHOR: evaluation doesn't have to do with the model structure
     # print('# get model pt')
     # model_pt_path = os.path.join(tmpdir, f"{model_name}.pth")
@@ -153,6 +180,7 @@ def eval_task(task_ticket, publisher_endpoint_url, task_parameters):
     #     model_service_url)
 
     # ANCHOR: generalize this part for different models
+
     def predict_one_img(img):
         # img.show()
         payload = {}
@@ -177,8 +205,8 @@ def eval_task(task_ticket, publisher_endpoint_url, task_parameters):
         if not os.path.isdir(sample_exp_path):
             os.makedirs(sample_exp_path, exist_ok=True)
 
-        imgg = Image.open(io.BytesIO(
-            base64.b64decode(img['content']))).convert('RGB')
+        imgg = Image.open(os.path.join(
+            sample_keep_path, img_name)).convert('RGB')
         # imgg.show()
         imgg.save(os.path.join(
             sample_exp_path, f'{img_name}_original.png'))
@@ -199,8 +227,8 @@ def eval_task(task_ticket, publisher_endpoint_url, task_parameters):
             img = img_data[i]
             img_name = img['name']
             ground_truth_label_idx = int(img['metadata']['label'])
-            imgg = Image.open(io.BytesIO(
-                base64.b64decode(img['content']))).convert('RGB')
+            imgg = Image.open(os.path.join(
+                sample_keep_path, img_name)).convert('RGB')
 
             # imgg.show()
 
@@ -337,8 +365,7 @@ def eval_task(task_ticket, publisher_endpoint_url, task_parameters):
         if not os.path.isdir(sample_exp_path):
             os.makedirs(sample_exp_path, exist_ok=True)
 
-        heatmap_np = get_cam_heatmap(img_name)
-        heatmap = cv2.imdecode(heatmap_np, cv2.IMREAD_COLOR)
+        heatmap = get_cam_heatmap(img_name)
         original = cv2.imread(os.path.join(
             sample_exp_path, f'{img_name}_original.png'))
         masked = cv2.imread(os.path.join(

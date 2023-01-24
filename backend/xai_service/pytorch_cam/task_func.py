@@ -21,6 +21,7 @@ import numpy as np
 
 import json
 import io
+import gc
 import time
 import base64
 import os
@@ -40,7 +41,6 @@ print(device)
 
 def cam_task(task_ticket, publisher_endpoint_url, task_parameters):
     tmpdir = os.environ.get('COMPONENT_TMP_DIR')
-    staticdir = os.environ.get('COMPONENT_STATIC_DIR')
 
     # print(task_ticket, publisher_endpoint_url)
     # print(task_parameters)
@@ -96,7 +96,7 @@ def cam_task(task_ticket, publisher_endpoint_url, task_parameters):
     i = 0
 
     # explanation save dir
-    local_exp_save_dir = os.path.join(staticdir, 'rs', task_ticket, 'local')
+    local_exp_save_dir = os.path.join(tmpdir, 'rs', task_ticket, 'local')
 
     if not os.path.isdir(local_exp_save_dir):
         os.makedirs(local_exp_save_dir, exist_ok=True)
@@ -170,6 +170,12 @@ def cam_task(task_ticket, publisher_endpoint_url, task_parameters):
                 f'{file_name}.npy'), grayscale_cam)
         plt.imsave(os.path.join(sample_exp_path,
                    f'{file_name}.png'), grayscale_cam)
+
+        del input_tensor
+        del grayscale_cam
+
+        gc.collect()
+        torch.cuda.empty_cache()
 
     print("# cam gen done")
 

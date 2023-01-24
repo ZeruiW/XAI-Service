@@ -101,7 +101,7 @@
             <div>XAI Task Time Power & Carbon Emission</div>
           </div>
           <v-select
-            style="width: 500px; float: right"
+            style="width: 300px; float: right"
             label="Select Task Sheet"
             hide-details
             :items="getTaskSheetTimeSelection(xaiTaskSheetFinishedTaskEm)"
@@ -180,7 +180,7 @@
             <div>Evaluation Task Time Power & Carbon Emission</div>
           </div>
           <v-select
-            style="width: 500px; float: right"
+            style="width: 300px; float: right"
             label="Select Task Sheet"
             hide-details
             :items="getTaskSheetTimeSelection(evalTaskSheetFinishedTaskEm)"

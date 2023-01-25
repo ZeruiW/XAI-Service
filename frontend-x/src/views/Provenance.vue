@@ -115,9 +115,9 @@ import Graph from "graphology";
 import Sigma from "sigma";
 import { circlepack } from "graphology-layout";
 import forceAtlas2 from "graphology-layout-forceatlas2";
-// import FA2Layout from "graphology-layout-forceatlas2/worker";
+import FA2Layout from "graphology-layout-forceatlas2/worker";
 import forceLayout from "graphology-layout-force";
-// import ForceSupervisor from "graphology-layout-force/worker";
+import ForceSupervisor from "graphology-layout-force/worker";
 
 const legend = {
   xai_executor: {
@@ -539,7 +539,7 @@ export default {
         graph.addNode(`${pipeline.pipeline_id}`, {
           color: this.legend.pipeline.color,
           size: 20,
-          label: `${pipeline.pipeline_name}`,
+          // label: `${pipeline.pipeline_name}`,
           info: pipeline,
           node_type: "pipeline",
           component_type: "pipeline",

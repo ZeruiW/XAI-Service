@@ -71,15 +71,18 @@ def cam_task(task_ticket, publisher_endpoint_url, task_parameters):
     # load model
     # TODO: generalize this part for different models
 
-    if task_parameters['model_name'].startswith('resnet'):
+    if task_parameters['model_name'].lower().startswith('resnet'):
         print('  use resnet50')
         model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
         target_layers = [model.layer4]
-    if task_parameters['model_name'].startswith('densenet'):
+    if task_parameters['model_name'].lower().startswith('densenet'):
         print('  use densenet121')
         model = models.densenet121(
             weights=models.DenseNet121_Weights.IMAGENET1K_V1)
         target_layers = [model.features[-1]]
+
+    if model == None:
+        raise Exception("Not support model: ", task_parameters['model_name'])
 
     model.eval()
     model.to(device)

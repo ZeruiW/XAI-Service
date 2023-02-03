@@ -7,7 +7,7 @@
     <template v-slot:title>
       <div class="clearfix">
         <div style="width: 50%; float: left; padding: 0.1em">
-          Provenance Graph
+          Provenance Data Graph
         </div>
       </div>
     </template>
@@ -122,19 +122,19 @@ import ForceSupervisor from "graphology-layout-force/worker";
 const legend = {
   xai_executor: {
     color: "#FFBE0B",
-    title: "XAI Service",
+    title: "XAI Microservice",
   },
   model_executor: {
     color: "#FB5607",
-    title: "Model Service",
+    title: "Model Microservice",
   },
   db_executor: {
     color: "#FF006E",
-    title: "DB Service",
+    title: "DB Microservice",
   },
   evaluation_executor: {
     color: "#8338EC",
-    title: "Evaluation Service",
+    title: "Evaluation Microservice",
   },
   xai_tasksheet: {
     color: "#3A86FF",
@@ -150,15 +150,15 @@ const legend = {
   },
   pipeline_run: {
     color: "#7DCFB6",
-    title: "PipelineRun",
+    title: "Pipeline Execution",
   },
   xai_task: {
     color: "#00B2CA",
-    title: "XAI Task",
+    title: "XAI Task Execution",
   },
   evaluation_task: {
     color: "#1D4E89",
-    title: "Evaluation Task",
+    title: "Evaluation Task Execution",
   },
 };
 
@@ -516,7 +516,7 @@ export default {
         graph.addNode(`${task.task_ticket}`, {
           color: this.legend[`${task.task_type}_task`].color,
           size: 10,
-          label: `${task.task_name}`,
+          // label: `${task.task_name}`,
           info: task,
           node_type: `${task.task_type}_task`,
           component_type: `task`,
@@ -539,7 +539,7 @@ export default {
         graph.addNode(`${pipeline.pipeline_id}`, {
           color: this.legend.pipeline.color,
           size: 20,
-          // label: `${pipeline.pipeline_name}`,
+          label: `${pipeline.pipeline_name}`,
           info: pipeline,
           node_type: "pipeline",
           component_type: "pipeline",
@@ -784,7 +784,7 @@ export default {
 #legend {
   position: absolute;
   left: 1em;
-  top: 76px;
+  bottom: 14px;
   background-color: white;
   border: 1px #00000026 solid;
   padding: 6px;
@@ -796,6 +796,6 @@ export default {
   height: 21.73px;
   line-height: 21.73px;
   margin-left: 5px;
-  width: 150px;
+  width: 180px;
 }
 </style>

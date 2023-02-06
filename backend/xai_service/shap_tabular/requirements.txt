@@ -1,0 +1,9 @@
+Flask >= 2.2.2
+mysql-connector-python
+Pillow
+numpy
+matplotlib
+shap
+omnixai
+flask-cors
+tqdm

@@ -8,6 +8,8 @@ Backup_model/
 
 *.pt
 *.pth
+*.sav
+*.data
 .env
 **tmp**
 

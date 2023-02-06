@@ -1,0 +1,1 @@
+#CMD ["sh", "/docker_setup.sh", "/model_service/xgb", "5008"]

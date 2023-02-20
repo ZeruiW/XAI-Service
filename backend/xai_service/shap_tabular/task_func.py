@@ -141,8 +141,8 @@ def shap_task(task_ticket, publisher_endpoint_url, task_parameters):
         index_range = range(len(test_instances))
     elif isinstance(index, int):
         index_range = [index]
-
-    for index in index_range:
+    index_bar = tqdm(index_range)
+    for index in index_bar:
         test_x = test_instances[index]
         explanations = explainer.explain(test_x)
 

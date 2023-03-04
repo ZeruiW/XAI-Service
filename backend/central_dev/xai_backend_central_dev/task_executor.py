@@ -115,31 +115,31 @@ class TaskExecutor(TaskComponent):
         task_tmp_save_path = os.path.join(
             self.tmp_path, task_ticket)
 
-        if os.path.exists(task_result_save_path):
-            files = []
-            for filename in glob.iglob(task_result_save_path + '**/**', recursive=True):
-                if os.path.isfile(filename):
-                    just_file_name = filename.replace(
-                        os.path.join(self.tmp_path, 'rs') + '/', '')
-                    files.append((
-                        'samples', (just_file_name, open(
-                            filename, 'rb'), 'application/octet-stream')
-                    ))
+        # if os.path.exists(task_result_save_path):
+        #     files = []
+        #     for filename in glob.iglob(task_result_save_path + '**/**', recursive=True):
+        #         if os.path.isfile(filename):
+        #             just_file_name = filename.replace(
+        #                 os.path.join(self.tmp_path, 'rs') + '/', '')
+        #             files.append((
+        #                 'samples', (just_file_name, open(
+        #                     filename, 'rb'), 'application/octet-stream')
+        #             ))
 
-            resp = requests.post(
-                self.get_publisher_endpoint_url() + '/task_publisher/az_blob',
-                data={
-                    'act': 'upload',
-                    'data_set_name': 'task_execution',
-                    'data_set_group_name': 'result',
-                },
-                files=files
-            )
+            # resp = requests.post(
+            #     self.get_publisher_endpoint_url() + '/task_publisher/az_blob',
+            #     data={
+            #         'act': 'upload',
+            #         'data_set_name': 'task_execution',
+            #         'data_set_group_name': 'result',
+            #     },
+            #     files=files
+            # )
 
-            if resp.status_code == 200:
-                shutil.rmtree(task_result_save_path)
-                if os.path.exists(task_tmp_save_path):
-                    shutil.rmtree(task_tmp_save_path)
+            # if resp.status_code == 200:
+            #     shutil.rmtree(task_result_save_path)
+            #     if os.path.exists(task_tmp_save_path):
+            #         shutil.rmtree(task_tmp_save_path)
 
         emissions = pd.read_csv(os.path.join(
             self.storage_path, 'emissions.csv'))

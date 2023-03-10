@@ -29,6 +29,7 @@ import matplotlib.pyplot as plt
 from xai_backend_central_dev.constant import TaskInfo
 from xai_backend_central_dev.constant import TaskStatus
 from tqdm import tqdm
+from GPUtil import showUtilization as gpu_usage
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -37,6 +38,9 @@ if torch.backends.mps.is_built() and torch.backends.mps.is_available():
 
 print("Pytorch device: ")
 print(device)
+torch.cuda.empty_cache()
+torch.cuda.set_per_process_memory_fraction(0.9, device=0)
+gpu_usage()
 
 
 def cam_task(task_ticket, publisher_endpoint_url, task_parameters):
@@ -145,7 +149,41 @@ def cam_task(task_ticket, publisher_endpoint_url, task_parameters):
     if cam_method == 'grad-camew':
         cam = GradCAMElementWise(**cam_kws)
 
-    cam.batch_size = 32
+    cam.batch_size = 8
+
+    # batch_size = 3
+    # for batch_idx in tqdm(range(0, len(img_data), batch_size)):
+    # # process one batch at a time
+    #     batch_data = img_data[batch_idx:batch_idx + batch_size]
+
+    #     for imgd in batch_data:
+    #         file_name = imgd['name']
+    #         sample_exp_path = os.path.join(local_exp_save_dir, file_name)
+    #         if not os.path.isdir(sample_exp_path):
+    #             os.makedirs(sample_exp_path, exist_ok=True)
+
+    #         rgb_img = bytes_to_pil_image(imgd['content'])
+
+    #         input_tensor = torch.tensor(np.array([
+    #             preprocessing(x).numpy()
+    #             for x in [rgb_img]
+    #         ])).to(device)
+
+    #         grayscale_cam = cam(input_tensor=input_tensor,
+    #                             targets=None,
+    #                             aug_smooth=True,
+    #                             eigen_smooth=False)[0]
+
+    #         np.save(os.path.join(sample_exp_path,
+    #                 f'{file_name}.npy'), grayscale_cam)
+    #         plt.imsave(os.path.join(sample_exp_path,
+    #                 f'{file_name}.png'), grayscale_cam)
+
+    #         del input_tensor
+    #         del grayscale_cam
+
+    #         gc.collect()
+    #         torch.cuda.empty_cache()
 
     for i in tqdm(range(len(img_data))):
         imgd = img_data[i]
@@ -178,6 +216,7 @@ def cam_task(task_ticket, publisher_endpoint_url, task_parameters):
         del grayscale_cam
 
         gc.collect()
+        gpu_usage()
         torch.cuda.empty_cache()
 
     print("# cam gen done")

@@ -24,6 +24,12 @@ build
 .vscode/
 
 **/static/rs/
+**/tmp/
+alibaba.json
+googlecloud.json
+api.conf.json
+amazon.json
+
 
 mongo.dev.conf
 mongo.prod.conf

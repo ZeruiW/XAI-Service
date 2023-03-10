@@ -203,12 +203,8 @@ def pred():
                 location="us-central1",
                 file_content=img,
             )
-            print(p)
             scores = get_pred_score(p)
             prediction.append(scores)
-
-        print(prediction)
-
         rs = {}
         for i in range(len(file_name)):
             rs[file_name[i]] = [round(d, 6) for d in prediction[i]]

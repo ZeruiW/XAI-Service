@@ -42,6 +42,10 @@ It is hosted on [Vercel](https://vercel.com).
 
 # XAI Service Backend
 
+### Example XAI task setting
+{"method_name":"hirescam","data_set_name":"azure_cog","data_set_group_name":"1500","model_name":"resnet50"}
+### Example evaluation task setting
+{"explanation_task_ticket":"CRx1G9HCKKsh4Qs.9OF7NXAJSL"}
 ## Local Dev
 
 ### MongoDB

@@ -5,3 +5,4 @@ numpy
 omnixai
 kaleido
 plotly
+xgboost

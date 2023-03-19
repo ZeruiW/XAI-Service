@@ -6,3 +6,4 @@ grad-cam
 matplotlib
 flask-cors
 tqdm
+gputil

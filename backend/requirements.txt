@@ -3,3 +3,5 @@ mysql-connector-python
 Pillow
 numpy
 flask-cors
+psutil
+radon

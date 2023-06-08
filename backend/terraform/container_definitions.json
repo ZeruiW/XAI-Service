@@ -1,0 +1,29 @@
+{
+  "name": "central",
+  "image": "central",
+  "cpu": 0,
+  "portMappings": [
+    {
+      "name": "central-5006-tcp",
+      "containerPort": 5006,
+      "hostPort": 5006,
+      "protocol": "tcp",
+      "appProtocol": "http"
+    }
+  ],
+  "essential": true,
+  "environment": [],
+  "environmentFiles": [],
+  "mountPoints": [],
+  "volumesFrom": [],
+  "ulimits": [],
+  "logConfiguration": {
+    "logDriver": "awslogs",
+    "options": {
+      "awslogs-create-group": "true",
+      "awslogs-group": "/ecs/td-xai-central-amd",
+      "awslogs-region": "us-east-1",
+      "awslogs-stream-prefix": "ecs"
+    }
+  }
+}

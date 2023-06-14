@@ -32,5 +32,5 @@ ENV CAM_METHOD=grad-cam
 RUN ["chmod", "+x", "/docker_setup.sh"]
 
 EXPOSE 5003
-CMD ["flask", "--app", "/xai_service/pytorch_cam:create_app(cam_method='grad-cam')", "run", "-p", "5003"]
+CMD ["flask", "--app", "/xai_service/pytorch_cam:create_app(cam_method='grad-cam')", "run", "--host=0.0.0.0", "-p", "5003"]
 # CMD ["/docker_setup.sh", "xai_service/pytorch_cam:create_app(cam_method="$CAM_METHOD")", "5003"]

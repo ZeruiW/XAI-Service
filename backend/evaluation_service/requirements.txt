@@ -8,3 +8,4 @@ torchvision
 torchaudio
 flask-cors
 tqdm
+opencv-python

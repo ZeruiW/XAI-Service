@@ -99,88 +99,101 @@ resource "aws_ecs_service" "service-xai-central" {
 
 }
 
-# resource "aws_launch_configuration" "ecs_launch_config" {
-#   name                 = "ecs-launch-config"
-#   image_id             = "ami-0bcaab066c3611e2a"
-#   instance_type        = "g3s.xlarge"
-#   iam_instance_profile = aws_iam_instance_profile.ecs_instance_profile.name
-#   security_groups      = [aws_security_group.ecs_security_group.id]
-#   key_name             = "ec2-test"
-# }
 
-# resource "aws_autoscaling_group" "ecs_autoscaling_group" {
-#   name                 = "ecs-autoscaling-group"
-#   launch_configuration = aws_launch_configuration.ecs_launch_config.name
-#   min_size             = 1
-#   max_size             = 3
-#   desired_capacity     = 2
-#   vpc_zone_identifier  = [aws_subnet.PublicSubnetOne.id]
-# }
+resource "aws_launch_configuration" "ecs_launch_config" {
+  name                 = "ecs-launch-config"
+  image_id             = "ami-0bcaab066c3611e2a"
+  instance_type        = "g3s.xlarge"
+  iam_instance_profile = aws_iam_instance_profile.ecs_instance_profile.name
+  security_groups      = [aws_security_group.ecs_security_group.id]
+  key_name             = "ec2-test"
+  lifecycle {
+    create_before_destroy = true
+  }
+  user_data = <<-SCRIPT
+    #!/bin/bash
+    echo "ECS_CLUSTER=${aws_ecs_cluster.ec2-cluster.id}" >> /etc/ecs/ecs.config
+    SCRIPT
+}
+
+resource "aws_autoscaling_group" "ecs_autoscaling_group" {
+  name                 = "ecs-autoscaling-group"
+  launch_configuration = aws_launch_configuration.ecs_launch_config.name
+  min_size             = 1
+  max_size             = 2
+  desired_capacity     = 1
+  vpc_zone_identifier  = [aws_subnet.PublicSubnetOne.id, aws_subnet.PublicSubnetTwo.id]
+  force_delete         = true
+}
 
 
-# resource "aws_ecs_cluster" "ec2-cluster" {
-#   name = "${var.name_prefix}-ec2-cluster"
-# }
+resource "aws_ecs_cluster" "ec2-cluster" {
+  name = "${var.name_prefix}-ec2-cluster"
+  setting {
+    name  = "containerInsights"
+    value = "enabled"
+  }
+}
 
-# resource "aws_ecs_task_definition" "td-xai-grad-cam-ec2" {
-#   family                   = "td-xai-grad-cam-ec2"
-#   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
-#   requires_compatibilities = ["EC2"]
-#   cpu                      = "256"
-#   memory                   = "512"
-#   container_definitions = jsonencode([
-#         {
-#             "name": "xai-grad-cam-ec2",
-#             "image": "979458579914.dkr.ecr.us-east-1.amazonaws.com/xai-grad-cam:latest",
-#             "cpu": 0,
-#             "portMappings": [
-#                 {
-#                     "name": "xai-grad-cam-ec2-5003-tcp",
-#                     "containerPort": 5003,
-#                     "hostPort": 5003,
-#                     "protocol": "tcp",
-#                     "appProtocol": "http"
-#                 }
-#             ],
-#             "essential": true,
-#             "environment": [],
-#             "mountPoints": [],
-#             "volumesFrom": [],
-#             "logConfiguration": {
-#                 "logDriver": "awslogs",
-#                 "options": {
-#                     "awslogs-create-group": "true",
-#                     "awslogs-group": "xai-central",
-#                     "awslogs-region": "us-east-1",
-#                     "awslogs-stream-prefix": "firelens"
-#                 }
-#             }
-#         }
-#     ])
-#     runtime_platform {
-#     operating_system_family = "LINUX"
-#     cpu_architecture        = "X86_64"
-#   }
-# }
+resource "aws_ecs_task_definition" "td-xai-grad-cam-ec2" {
+  family                   = "td-xai-grad-cam-ec2"
+  execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
+  requires_compatibilities = ["EC2"]
+  cpu                      = "256"
+  memory                   = "512"
+  container_definitions = jsonencode([
+        {
+            "name": "xai-grad-cam-ec2",
+            "image": "979458579914.dkr.ecr.us-east-1.amazonaws.com/xai-grad-cam:latest",
+            "cpu": 0,
+            "portMappings": [
+                {
+                    "name": "xai-grad-cam-ec2-5003-tcp",
+                    "containerPort": 5003,
+                    "hostPort": 5003,
+                    "protocol": "tcp",
+                    "appProtocol": "http"
+                }
+            ],
+            "essential": true,
+            "environment": [],
+            "mountPoints": [],
+            "volumesFrom": [],
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-create-group": "true",
+                    "awslogs-group": "xai-central",
+                    "awslogs-region": "us-east-1",
+                    "awslogs-stream-prefix": "firelens"
+                }
+            }
+        }
+    ])
+    runtime_platform {
+    operating_system_family = "LINUX"
+    cpu_architecture        = "X86_64"
+  }
+}
 
-# resource "aws_ecs_service" "service-xai-grad-cam" {
-#   name            = "xai-grad-cam"
-#   cluster         = aws_ecs_cluster.ec2-cluster.id
-#   task_definition = aws_ecs_task_definition.td-xai-grad-cam-ec2.arn
-#   desired_count   = 1
-#   launch_type     = "EC2"
+resource "aws_ecs_service" "service-xai-grad-cam" {
+  name            = "xai-grad-cam"
+  cluster         = aws_ecs_cluster.ec2-cluster.id
+  task_definition = aws_ecs_task_definition.td-xai-grad-cam-ec2.arn
+  desired_count   = 1
+  launch_type     = "EC2"
 
-#   deployment_minimum_healthy_percent = 100
-#   deployment_maximum_percent         = 200
+  deployment_minimum_healthy_percent = 100
+  deployment_maximum_percent         = 200
 
-#   deployment_controller {
-#     type = "ECS"
-#   }
+  deployment_controller {
+    type = "ECS"
+  }
 
-# }
+}
 
-# # Output ECS cluster ARN
-# output "ecs_cluster_arn" {
-#   value = aws_ecs_cluster.ec2-cluster.arn
-# }
+# Output ECS cluster ARN
+output "ecs_cluster_arn" {
+  value = aws_ecs_cluster.ec2-cluster.arn
+}
 

@@ -16,8 +16,8 @@ RUN pip install /central_dev
 
 # from compose args
 ARG ENV 
-ENV ENV=${ENV}
-COPY ./.env.${ENV} .env.${ENV}
+ENV ENV=prod
+COPY ./.env.prod .env.prod
 
 RUN ["chmod", "+x", "/docker_setup.sh"]
 

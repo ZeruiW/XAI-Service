@@ -52,6 +52,14 @@ resource "aws_security_group" "ecs_security_group" {
       cidr_blocks = ["0.0.0.0/0"]
   }
 
+  ingress {
+      description = "Custom TCP"
+      from_port   = 5007
+      to_port     = 5007
+      protocol    = "tcp"
+      cidr_blocks = ["0.0.0.0/0"]
+  }
+
    ingress {
     from_port   = 22
     to_port     = 22

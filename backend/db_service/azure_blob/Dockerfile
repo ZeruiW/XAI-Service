@@ -13,6 +13,7 @@ RUN python -m pip install --upgrade pip \
     && pip install -r requirements.txt
 
 RUN pip install /central_dev
+RUN pip install prometheus_client
 
 # from compose args
 ARG ENV
@@ -21,5 +22,6 @@ COPY ./.env.prod .env.prod
 
 RUN ["chmod", "+x", "/docker_setup.sh"]
 
-EXPOSE 5007
-CMD ["sh", "/docker_setup.sh", "/db_service/azure_blob", "5009"]
+EXPOSE 5009
+#CMD ["sh", "/docker_setup.sh", "/db_service/azure_blob", "5009"]
+CMD ["flask", "--app", "/db_service/azure_blob", "run", "--host=0.0.0.0", "-p", "5009"]

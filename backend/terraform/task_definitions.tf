@@ -1,3 +1,44 @@
+resource "aws_ecs_task_definition" "td-xai-grad-cam-ec2" {
+  family                   = "td-xai-grad-cam-ec2"
+  execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
+  requires_compatibilities = ["EC2"]
+  cpu                      = "1024"
+  memory                   = "3072"
+  container_definitions = jsonencode([
+        {
+            "name": "xai_service_pytorch_cam",
+            "image": "979458579914.dkr.ecr.us-east-1.amazonaws.com/backend-xai_service_pytorch_cam",
+            "cpu": 0,
+            "portMappings": [
+                {
+                    "name": "xai_service_pytorch_cam-5003-tcp",
+                    "containerPort": 5003,
+                    "hostPort": 5003,
+                    "protocol": "tcp",
+                    "appProtocol": "http"
+                }
+            ],
+            "essential": true,
+            "environment": [],
+            "mountPoints": [],
+            "volumesFrom": [],
+             "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-create-group": "true",
+                    "awslogs-group": "xai/grad-cam",
+                    "awslogs-region": "us-east-1",
+                    "awslogs-stream-prefix": "xai-service"
+                }
+            }
+        }
+    ])
+    runtime_platform {
+    operating_system_family = "LINUX"
+    cpu_architecture        = "X86_64"
+  }
+}
+
 resource "aws_ecs_task_definition" "td-xai-central-ec2" {
   family                   = "td-xai-central-ec2"
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
@@ -6,13 +47,13 @@ resource "aws_ecs_task_definition" "td-xai-central-ec2" {
   memory                   = "512"
   container_definitions = jsonencode([ {
       "name": "xai-central-ec2",
-      "image": aws_ecr_repository.xai-ecr-repository-backend-central.repository_url,
+      "image": "979458579914.dkr.ecr.us-east-1.amazonaws.com/backend-central",
       "cpu": 0,
       "portMappings": [
         {
-          "name": "central-5009-tcp",
-          "containerPort": 5009,
-          "hostPort": 5009,
+          "name": "central-5006-tcp",
+          "containerPort": 5006,
+          "hostPort": 5006,
           "protocol": "tcp",
           "appProtocol": "http"
         }
@@ -27,53 +68,12 @@ resource "aws_ecs_task_definition" "td-xai-central-ec2" {
         "logDriver": "awslogs",
         "options": {
           "awslogs-create-group": "true",
-          "awslogs-group": "/ecs/test",
+          "awslogs-group": "xai/central",
           "awslogs-region": "us-east-1",
-          "awslogs-stream-prefix": "ecs"
+          "awslogs-stream-prefix": "xai-service"
         }
       }
     }])
-    runtime_platform {
-    operating_system_family = "LINUX"
-    cpu_architecture        = "X86_64"
-  }
-}
-
-resource "aws_ecs_task_definition" "td-xai-grad-cam-ec2" {
-  family                   = "td-xai-grad-cam-ec2"
-  execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
-  requires_compatibilities = ["EC2"]
-  cpu                      = "256"
-  memory                   = "512"
-  container_definitions = jsonencode([
-        {
-            "name": "xai-grad-cam-ec2",
-            "image": aws_ecr_repository.xai-ecr-repository-backend-xai_service_pytorch_cam.repository_url,
-            "cpu": 0,
-            "portMappings": [
-                {
-                    "name": "xai-grad-cam-ec2-5003-tcp",
-                    "containerPort": 5003,
-                    "hostPort": 5003,
-                    "protocol": "tcp",
-                    "appProtocol": "http"
-                }
-            ],
-            "essential": true,
-            "environment": [],
-            "mountPoints": [],
-            "volumesFrom": [],
-            "logConfiguration": {
-                "logDriver": "awslogs",
-                "options": {
-                    "awslogs-create-group": "true",
-                    "awslogs-group": "xai-central",
-                    "awslogs-region": "us-east-1",
-                    "awslogs-stream-prefix": "firelens"
-                }
-            }
-        }
-    ])
     runtime_platform {
     operating_system_family = "LINUX"
     cpu_architecture        = "X86_64"
@@ -89,7 +89,7 @@ resource "aws_ecs_task_definition" "td-xai-azure-blob-ec2" {
   container_definitions = jsonencode([
         {
             "name": "xai-grad-cam-ec2",
-            "image": aws_ecr_repository.xai-ecr-repository-azure-blob.repository_url,
+            "image": "979458579914.dkr.ecr.us-east-1.amazonaws.com/backend-azure-blob",
             "cpu": 0,
             "portMappings": [
                 {
@@ -108,9 +108,9 @@ resource "aws_ecs_task_definition" "td-xai-azure-blob-ec2" {
                 "logDriver": "awslogs",
                 "options": {
                     "awslogs-create-group": "true",
-                    "awslogs-group": "xai-central",
+                    "awslogs-group": "xai/azure-blob",
                     "awslogs-region": "us-east-1",
-                    "awslogs-stream-prefix": "firelens"
+                    "awslogs-stream-prefix": "xai-service"
                 }
             }
         }
@@ -130,7 +130,7 @@ resource "aws_ecs_task_definition" "td-xai-model_service_rn50_1-ec2" {
   container_definitions = jsonencode([
         {
             "name": "xai-model_service_rn50_1-ec2",
-            "image": aws_ecr_repository.xai-ecr-repository-backend-model_service_rn50_1.repository_url,
+            "image": "979458579914.dkr.ecr.us-east-1.amazonaws.com/backend-model_service_rn50_1",
             "cpu": 0,
             "portMappings": [
                 {
@@ -145,13 +145,14 @@ resource "aws_ecs_task_definition" "td-xai-model_service_rn50_1-ec2" {
             "environment": [],
             "mountPoints": [],
             "volumesFrom": [],
+            "ulimits": [],
             "logConfiguration": {
                 "logDriver": "awslogs",
                 "options": {
                     "awslogs-create-group": "true",
-                    "awslogs-group": "xai-central",
+                    "awslogs-group": "xai/restnet50",
                     "awslogs-region": "us-east-1",
-                    "awslogs-stream-prefix": "firelens"
+                    "awslogs-stream-prefix": "xai-service"
                 }
             }
         }
@@ -162,6 +163,7 @@ resource "aws_ecs_task_definition" "td-xai-model_service_rn50_1-ec2" {
   }
 }
 
+
 resource "aws_ecs_task_definition" "td-xai-azure-cog-ec2" {
   family                   = "td-xai-azure-cog-ec2"
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
@@ -171,7 +173,7 @@ resource "aws_ecs_task_definition" "td-xai-azure-cog-ec2" {
   container_definitions = jsonencode([
         {
             "name": "xai-azure-cog-ec2",
-            "image": aws_ecr_repository.xai-ecr-repository-azure-cog.repository_url,
+            "image": "979458579914.dkr.ecr.us-east-1.amazonaws.com/backend-azure-cog",
             "cpu": 0,
             "portMappings": [
                 {
@@ -190,9 +192,9 @@ resource "aws_ecs_task_definition" "td-xai-azure-cog-ec2" {
                 "logDriver": "awslogs",
                 "options": {
                     "awslogs-create-group": "true",
-                    "awslogs-group": "xai-central",
+                    "awslogs-group": "xai/azure-cog",
                     "awslogs-region": "us-east-1",
-                    "awslogs-stream-prefix": "firelens"
+                    "awslogs-stream-prefix": "xai-service"
                 }
             }
         }
@@ -212,7 +214,7 @@ resource "aws_ecs_task_definition" "td-xai-evaluation_service-ec2" {
   container_definitions = jsonencode([
         {
             "name": "xai-evaluation_service-ec2",
-            "image": aws_ecr_repository.xai-ecr-repository-backend-evaluation_service.repository_url,
+            "image": "979458579914.dkr.ecr.us-east-1.amazonaws.com/backend-evaluation_service",
             "cpu": 0,
             "portMappings": [
                 {
@@ -227,13 +229,14 @@ resource "aws_ecs_task_definition" "td-xai-evaluation_service-ec2" {
             "environment": [],
             "mountPoints": [],
             "volumesFrom": [],
+            "ulimits": [],
             "logConfiguration": {
                 "logDriver": "awslogs",
                 "options": {
                     "awslogs-create-group": "true",
-                    "awslogs-group": "xai-central",
+                    "awslogs-group": "xai/evaluation-service",
                     "awslogs-region": "us-east-1",
-                    "awslogs-stream-prefix": "firelens"
+                    "awslogs-stream-prefix": "xai-service"
                 }
             }
         }

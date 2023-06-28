@@ -18,8 +18,10 @@ RUN pip install /central_dev
 ARG ENV 
 ENV ENV=prod
 COPY ./.env.prod .env.prod
+COPY ./mongo.dev.conf mongo.dev.conf
 
 RUN ["chmod", "+x", "/docker_setup.sh"]
 
 EXPOSE 5001
-CMD ["sh", "/docker_setup.sh", "/model_service/resnet50", "5001"]
+#CMD ["sh", "/docker_setup.sh", "/model_service/resnet50", "5001"]
+CMD ["flask", "--app", "/model_service/resnet50", "run", "--host=0.0.0.0", "-p", "5001"]

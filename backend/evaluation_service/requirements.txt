@@ -9,3 +9,5 @@ torchaudio
 flask-cors
 tqdm
 opencv-python
+matplotlib
+prometheus_client

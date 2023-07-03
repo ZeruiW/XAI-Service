@@ -6,8 +6,13 @@ terraform {
     }
     aws = {
       source = "hashicorp/aws"
-
     }
+  }
+  backend "s3" {
+    bucket         = "xai-tfstate"
+    key            = "state-file/terraform.tfstate"
+    region         = "us-east-1"
+    encrypt        = true
   }
 }
 

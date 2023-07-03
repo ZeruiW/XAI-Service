@@ -7,3 +7,4 @@ matplotlib
 flask-cors
 tqdm
 gputil
+prometheus-client

@@ -15,7 +15,6 @@ RUN python -m pip install --upgrade pip \
     && pip install -r requirements.txt
 
 RUN pip install /central_dev
-RUN pip install prometheus-client
 # from compose args
 ARG ENV
 ENV ENV=prod

@@ -1,3 +1,5 @@
+data "aws_caller_identity" "current" {}
+
 resource "aws_ecs_task_definition" "td-xai-grad-cam-ec2" {
   family                   = "td-xai-grad-cam-ec2"
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
@@ -7,7 +9,7 @@ resource "aws_ecs_task_definition" "td-xai-grad-cam-ec2" {
   container_definitions = jsonencode([
         {
             "name": "xai_service_pytorch_cam",
-            "image": "979458579914.dkr.ecr.us-east-1.amazonaws.com/backend-xai_service_pytorch_cam",
+            "image": "${data.aws_caller_identity.current.account_id}.dkr.ecr.us-east-1.amazonaws.com/backend-xai_service_pytorch_cam",
             "cpu": 0,
             "portMappings": [
                 {
@@ -47,7 +49,7 @@ resource "aws_ecs_task_definition" "td-xai-central-ec2" {
   memory                   = "512"
   container_definitions = jsonencode([ {
       "name": "xai-central-ec2",
-      "image": "979458579914.dkr.ecr.us-east-1.amazonaws.com/backend-central",
+      "image": "${data.aws_caller_identity.current.account_id}.dkr.ecr.us-east-1.amazonaws.com/backend-central",
       "cpu": 0,
       "portMappings": [
         {
@@ -89,7 +91,7 @@ resource "aws_ecs_task_definition" "td-xai-azure-blob-ec2" {
   container_definitions = jsonencode([
         {
             "name": "xai-grad-cam-ec2",
-            "image": "979458579914.dkr.ecr.us-east-1.amazonaws.com/backend-azure-blob",
+            "image": "${data.aws_caller_identity.current.account_id}.dkr.ecr.us-east-1.amazonaws.com/backend-azure-blob",
             "cpu": 0,
             "portMappings": [
                 {
@@ -130,7 +132,7 @@ resource "aws_ecs_task_definition" "td-xai-model_service_rn50_1-ec2" {
   container_definitions = jsonencode([
         {
             "name": "xai-model_service_rn50_1-ec2",
-            "image": "979458579914.dkr.ecr.us-east-1.amazonaws.com/backend-model_service_rn50_1",
+            "image": "${data.aws_caller_identity.current.account_id}.dkr.ecr.us-east-1.amazonaws.com/backend-model_service_rn50_1",
             "cpu": 0,
             "portMappings": [
                 {
@@ -173,7 +175,7 @@ resource "aws_ecs_task_definition" "td-xai-azure-cog-ec2" {
   container_definitions = jsonencode([
         {
             "name": "xai-azure-cog-ec2",
-            "image": "979458579914.dkr.ecr.us-east-1.amazonaws.com/backend-azure-cog",
+            "image": "${data.aws_caller_identity.current.account_id}.dkr.ecr.us-east-1.amazonaws.com/backend-azure-cog",
             "cpu": 0,
             "portMappings": [
                 {
@@ -214,7 +216,7 @@ resource "aws_ecs_task_definition" "td-xai-evaluation_service-ec2" {
   container_definitions = jsonencode([
         {
             "name": "xai-evaluation_service-ec2",
-            "image": "979458579914.dkr.ecr.us-east-1.amazonaws.com/backend-evaluation_service",
+            "image": "${data.aws_caller_identity.current.account_id}.dkr.ecr.us-east-1.amazonaws.com/backend-evaluation_service",
             "cpu": 0,
             "portMappings": [
                 {

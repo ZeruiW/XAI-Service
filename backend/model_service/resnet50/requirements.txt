@@ -6,3 +6,4 @@ torch
 torchvision 
 torchaudio
 flask-cors
+prometheus-client

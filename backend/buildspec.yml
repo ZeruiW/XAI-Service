@@ -86,19 +86,7 @@ phases:
 
   post_build:
     commands:
-      - echo "Executing post-build commands..."
-      # Delay execution for 30 minutes (1800 seconds)
-      - |
-        python -c '
-        import time
-        for i in range(1, 1801):
-            time.sleep(1)
-        print("30-minute delay complete.")
-        '
-      - echo "slept for 3600ms"
-
-      # Perform Terraform destroy
-      - terraform destroy -auto-approve
+      - echo "Application deployed!"
 
 artifacts:
   files:

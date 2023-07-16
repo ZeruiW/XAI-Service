@@ -80,7 +80,7 @@ phases:
       - docker tag backend-azure-blob $(aws sts get-caller-identity --query Account --output text).dkr.ecr.us-east-1.amazonaws.com/backend-azure-blob
       - docker push $(aws sts get-caller-identity --query Account --output text).dkr.ecr.us-east-1.amazonaws.com/backend-azure-blob
 
-      - cd terraform
+      - cd terraform/aws
       - terraform init
       - terraform apply -auto-approve
 

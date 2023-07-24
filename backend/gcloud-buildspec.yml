@@ -1,0 +1,63 @@
+version: 0.2
+
+phases:
+  install:
+    commands:
+      # Install Google Cloud SDK
+      - curl -sSL https://sdk.cloud.google.com | bash
+      - source $HOME/google-cloud-sdk/path.bash.inc
+      - gcloud version
+
+      # Adding mongo connection string
+      - cd backend
+      - MONGO_CONN_STR=$(aws ssm get-parameter --name mongo-dev --with-decryption --query "Parameter.Value" --output text)
+      - echo "$MONGO_CONN_STR" > mongo.dev.conf
+
+      # Adding azure connection string
+      - cd central
+      - mkdir -p central_storage/tmp
+      - cd central_storage/tmp
+      - CONN_STR=$(aws ssm get-parameter --name azure-con-str --with-decryption --query "Parameter.Value" --output text)
+      - echo "$CONN_STR" > az_blob_connection_str.json
+      - cd ../../../db_service/azure_blob
+      - mkdir -p azure_blob_storage/tmp
+      - cd azure_blob_storage/tmp
+      - echo "$CONN_STR" > az_blob_connection_str.json
+      - cd ../../../../
+      - cd model_service/azure_cog
+      - mkdir -p azure_cog_storage/tmp
+      - cd azure_cog_storage/tmp
+      - echo "$CONN_STR" > api.conf.json
+      - cat api.conf.json
+      - ls
+      - cd ../../../../
+
+  pre_build:
+    commands:
+      # Install Google Cloud SDK
+      - echo "Executing pre-build commands..."
+      # Authenticate with Google Cloud
+      - echo $GCLOUD_SERVICE_KEY > gcloud-service-key.json
+      - gcloud auth activate-service-account --key-file=gcloud-service-key.json
+      - gcloud config set project xai-service
+      - echo $DOCKER_PASSWORD | docker login --username $DOCKER_USERNAME --password-stdin
+      - gcloud auth configure-docker -q
+      # Delete existing images
+      - (gcloud container images describe gcr.io/xai-service/backendcentral:latest >/dev/null 2>&1 && gcloud container images delete gcr.io/xai-service/backendcentral:latest --force-delete-tags -q) || echo "Image does not exist."
+
+  build:
+    commands:
+      - docker compose build
+      - docker tag backend-central gcr.io/xai-service/backendcentral
+      - docker push gcr.io/xai-service/backendcentral
+      # Run kubectl commands
+      - gcloud components install gke-gcloud-auth-plugin -q
+      - gcloud container clusters describe backendcentral --location=us-central1 &> /dev/null || gcloud container clusters create-auto backendcentral --location=us-central1
+      - gcloud container clusters get-credentials backendcentral --location=us-central1
+      - kubectl get deployment backendcentral --no-headers=true --output=name 2>/dev/null | xargs -I {} kubectl delete deployment {}
+      - kubectl create deployment backendcentral --image=gcr.io/xai-service/backendcentral:latest
+      - kubectl expose deployment backendcentral --type LoadBalancer --port 5006 --target-port 5006
+
+artifacts:
+  files:
+    - "**/*"

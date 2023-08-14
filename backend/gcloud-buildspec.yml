@@ -44,12 +44,34 @@ phases:
       - gcloud auth configure-docker -q
       # Delete existing images
       - (gcloud container images describe gcr.io/xai-service/backendcentral:latest >/dev/null 2>&1 && gcloud container images delete gcr.io/xai-service/backendcentral:latest --force-delete-tags -q) || echo "Image does not exist."
+      - (gcloud container images describe gcr.io/xai-service/backendazureblob:latest >/dev/null 2>&1 && gcloud container images delete gcr.io/xai-service/backendazureblob:latest --force-delete-tags -q) || echo "Image does not exist."
+      - (gcloud container images describe gcr.io/xai-service/backendazurecog:latest >/dev/null 2>&1 && gcloud container images delete gcr.io/xai-service/backendazurecog:latest --force-delete-tags -q) || echo "Image does not exist."
+      - (gcloud container images describe gcr.io/xai-service/backendevaluationservice:latest >/dev/null 2>&1 && gcloud container images delete gcr.io/xai-service/backendevaluationservice:latest --force-delete-tags -q) || echo "Image does not exist."
+      - (gcloud container images describe gcr.io/xai-service/backendrestnet50:latest >/dev/null 2>&1 && gcloud container images delete gcr.io/xai-service/backendrestnet50:latest --force-delete-tags -q) || echo "Image does not exist."
+      - (gcloud container images describe gcr.io/xai-service/backendgradcam:latest >/dev/null 2>&1 && gcloud container images delete gcr.io/xai-service/backendgradcam:latest --force-delete-tags -q) || echo "Image does not exist."
+
 
   build:
     commands:
       - docker compose build
+
       - docker tag backend-central gcr.io/xai-service/backendcentral
       - docker push gcr.io/xai-service/backendcentral
+
+      - docker tag backend-azureblob gcr.io/xai-service/backendazureblob
+      - docker push gcr.io/xai-service/backendazureblob
+
+      - docker tag backend-azurecog gcr.io/xai-service/backendazurecog
+      - docker push gcr.io/xai-service/backendazurecog
+
+      - docker tag backend-evaluationservice gcr.io/xai-service/backendevaluationservice
+      - docker push gcr.io/xai-service/backendevaluationservice
+
+      - docker tag backend-restnet50 gcr.io/xai-service/backendrestnet50
+      - docker push gcr.io/xai-service/backendrestnet50
+
+      - docker tag backend-gradcam gcr.io/xai-service/backendgradcam
+      - docker push gcr.io/xai-service/backendgradcam
       # Run kubectl commands
       - gcloud components install gke-gcloud-auth-plugin -q
       - gcloud container clusters describe backendcentral --location=us-central1 &> /dev/null || gcloud container clusters create-auto backendcentral --location=us-central1
@@ -57,6 +79,37 @@ phases:
       - kubectl get deployment backendcentral --no-headers=true --output=name 2>/dev/null | xargs -I {} kubectl delete deployment {}
       - kubectl create deployment backendcentral --image=gcr.io/xai-service/backendcentral:latest
       - kubectl expose deployment backendcentral --type LoadBalancer --port 5006 --target-port 5006
+
+
+      - gcloud container clusters describe backendazureblob --location=us-central1 &> /dev/null || gcloud container clusters create-auto backendazureblob --location=us-central1
+      - gcloud container clusters get-credentials backendazureblob --location=us-central1
+      - kubectl get deployment backendazureblob --no-headers=true --output=name 2>/dev/null | xargs -I {} kubectl delete deployment {}
+      - kubectl create deployment backendazureblob --image=gcr.io/xai-service/backendazureblob:latest
+      - kubectl expose deployment backendazureblob --type LoadBalancer --port 5009 --target-port 5009
+
+      - gcloud container clusters describe backendazurecog --location=us-central1 &> /dev/null || gcloud container clusters create-auto backendazurecog --location=us-central1
+      - gcloud container clusters get-credentials backendazurecog --location=us-central1
+      - kubectl get deployment backendazurecog --no-headers=true --output=name 2>/dev/null | xargs -I {} kubectl delete deployment {}
+      - kubectl create deployment backendazurecog --image=gcr.io/xai-service/backendazurecog:latest
+      - kubectl expose deployment backendazurecog --type LoadBalancer --port 5007 --target-port 5007
+
+      - gcloud container clusters describe backendevaluationservice --location=us-central1 &> /dev/null || gcloud container clusters create-auto backendevaluationservice --location=us-central1
+      - gcloud container clusters get-credentials backendevaluationservice --location=us-central1
+      - kubectl get deployment backendevaluationservice --no-headers=true --output=name 2>/dev/null | xargs -I {} kubectl delete deployment {}
+      - kubectl create deployment backendevaluationservice --image=gcr.io/xai-service/backendevaluationservice:latest
+      - kubectl expose deployment backendevaluationservice --type LoadBalancer --port 5004 --target-port 5004
+
+      - gcloud container clusters describe backendrestnet50 --location=us-central1 &> /dev/null || gcloud container clusters create-auto backendrestnet50 --location=us-central1
+      - gcloud container clusters get-credentials backendrestnet50 --location=us-central1
+      - kubectl get deployment backendrestnet50 --no-headers=true --output=name 2>/dev/null | xargs -I {} kubectl delete deployment {}
+      - kubectl create deployment backendrestnet50 --image=gcr.io/xai-service/backendrestnet50:latest
+      - kubectl expose deployment backendrestnet50 --type LoadBalancer --port 5001 --target-port 5001
+
+      - gcloud container clusters describe backendgradcam --location=us-central1 &> /dev/null || gcloud container clusters create-auto backendgradcam --location=us-central1
+      - gcloud container clusters get-credentials backendgradcam --location=us-central1
+      - kubectl get deployment backendgradcam --no-headers=true --output=name 2>/dev/null | xargs -I {} kubectl delete deployment {}
+      - kubectl create deployment backendgradcam --image=gcr.io/xai-service/backendgradcam:latest
+      - kubectl expose deployment backendgradcam --type LoadBalancer --port 5003 --target-port 5003
 
 artifacts:
   files:

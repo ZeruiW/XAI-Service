@@ -10,6 +10,8 @@ from radon.complexity import cc_rank, cc_visit
 from radon.raw import analyze
 from flask import make_response
 from functools import wraps
+from codecarbon import EmissionsTracker
+from codecarbon.core.emissions import Emissions
 
 api_call_count = 0
 
@@ -30,7 +32,8 @@ def performance_metrics(f):
     def wrapper(*args, **kwargs):
         global api_call_count
         api_call_count += 1
-
+        tracker = EmissionsTracker()
+        tracker.start()
         # 获取开始时的资源占用和系统状态
         start_time = time.time()
         start_memory = psutil.virtual_memory().used
@@ -52,44 +55,39 @@ def performance_metrics(f):
         end_net_io = psutil.net_io_counters()
         end_gpu_memory = torch.cuda.memory_allocated()
 
+        emissions = tracker.stop()
+
         # 计算操作复杂度
         with open(__file__, 'r') as source_code_file:
             source_code = source_code_file.read()
             complexity = get_code_complexity(source_code)
         
-        # Get the path of the calling function's file
-        calling_file_path = os.path.abspath(f.__globals__['__file__'])
-        calling_directory = os.path.dirname(calling_file_path)
-        calling_filename = os.path.splitext(os.path.basename(calling_file_path))[0]
+        function_name = f.__name__  # 获取被装饰函数的名称
 
+        local_variables = f.__code__.co_varnames
+        variable_values = {}
+        for var_name in ['data_set_name', 'data_set_group_name', 'task_ticket', 'task_parameters']:
+            if var_name in local_variables:
+                variable_values[var_name] = locals().get(var_name)
 
         performance_data = {
+            'function_name': function_name,
             'response_time': response_time,
+            'carbon_emissions': emissions,
             'memory_delta': end_memory - start_memory,
             'api_call_count': api_call_count,
             'cpu_usage': end_cpu - start_cpu,
             'gpu_memory_delta': end_gpu_memory - start_gpu_memory,
-            'complexity': complexity
+            'complexity': complexity,
         }
+        performance_data.update(variable_values)
 
-        # 将性能指标添加到响应中
-        if isinstance(result, tuple) and len(result) == 2 and isinstance(result[1], int):
-            data, status_code = result
-        else:
-            data, status_code = result, 200
-
-        if isinstance(data, Response):
-            data_dict = json.loads(data.get_data(as_text=True))
-        elif isinstance(data, str) and data.strip():
-            data_dict = json.loads(data)
-        else:
-            data_dict = data if isinstance(data, dict) else {}
-
-        # 保存性能数据到文件
+        calling_file_path = os.path.abspath(f.__globals__['__file__'])
+        calling_directory = os.path.dirname(calling_file_path)
+        calling_filename = os.path.splitext(os.path.basename(calling_file_path))[0]
+                # 保存性能数据到文件
         save_to_file(performance_data, calling_directory, calling_filename)
-
-
-        # 在这里返回原始data和status_code，而不是修改后的data_dict
-        return make_response(data, status_code)
+                     
+        return result
 
     return wrapper

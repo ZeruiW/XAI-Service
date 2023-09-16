@@ -9,6 +9,7 @@ from flask import (
     request, jsonify, send_file, Response
 )
 from xai_backend_central_dev.flask_manager import ExecutorBluePrint
+from xai_backend_central_dev.performance_metrics import performance_metrics
 import requests
 import numpy as np
 
@@ -111,6 +112,7 @@ def get_pred_score(service_response):
 #Server
 
 @ebp.route('/', methods=['GET', 'POST'])
+@performance_metrics
 def pred():
     if request.method == 'POST':
         files = request.files

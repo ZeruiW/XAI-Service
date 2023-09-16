@@ -9,6 +9,7 @@ from flask import (
     request, jsonify, send_file, Response
 )
 from xai_backend_central_dev.flask_manager import ExecutorBluePrint
+from xai_backend_central_dev.performance_metrics import performance_metrics
 import requests
 import numpy as np
 
@@ -130,16 +131,6 @@ def predict_image_classification_sample(
         endpoint=endpoint, instances=instances, parameters=parameters
     )
 
-    #print(" deployed_model_id:", response.deployed_model_id)
-    # See gs://google-cloud-aiplatform/schema/predict/prediction/image_classification_1.0.0.yaml for the format of the predictions.
-    #predictions = response.predictions
-    
-    # print(" predictions:", predictions)
-    # for prediction in predictions:
-    #     print(" prediction:", dict(prediction))
-
-
-    # Create a dictionary with the predictions.
 
     # Convert the predictions object to a list of dictionaries.
     predictions = []
@@ -186,6 +177,7 @@ def get_pred_score(service_response):
 #Server
 
 @ebp.route('/', methods=['GET', 'POST'])
+@performance_metrics
 def pred():
     if request.method == 'POST':
         files = request.files
@@ -198,8 +190,8 @@ def pred():
 
         for img in imgs:
             p = predict_image_classification_sample(
-                project="537600793262",
-                endpoint_id="2606726565177851904",
+                project="25017823839",
+                endpoint_id="6016276938539139072",
                 location="us-central1",
                 file_content=img,
             )
@@ -212,5 +204,5 @@ def pred():
         return jsonify(rs)
 
     elif request.method == 'GET':
-        # ANCHOR: no model parameters return
+
         return Response("It is a cloud model!", status=400)

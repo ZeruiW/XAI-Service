@@ -1,0 +1,1 @@
+{"function_name": "pred", "response_time": 0.052860260009765625, "carbon_emissions": 3.0350838034863585e-09, "memory_delta": 2404352, "api_call_count": 1, "cpu_usage": 4.2, "gpu_memory_delta": 0, "complexity": 4}

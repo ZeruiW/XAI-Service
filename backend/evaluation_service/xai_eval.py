@@ -7,6 +7,7 @@ import time
 import subprocess
 from xai_backend_central_dev.flask_manager import ExecutorBluePrint
 from xai_backend_central_dev.constant import TaskInfo
+from xai_backend_central_dev.performance_metrics import performance_metrics
 from . import task_func
 
 task_executor_info = {
@@ -21,6 +22,7 @@ te.define_task_func_map('default', task_func.eval_task)
 
 
 @ebp.route('/stability', methods=['GET'])
+@performance_metrics
 def stability():
     if request.method == 'GET':
         task_ticket = request.args['task_ticket']

@@ -25,6 +25,7 @@ import os
 import matplotlib.pyplot as plt
 from xai_backend_central_dev.constant import TaskInfo
 from xai_backend_central_dev.constant import TaskStatus
+from xai_backend_central_dev.performance_metrics import performance_metrics
 from tqdm import tqdm
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -53,6 +54,7 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 
 
+@performance_metrics
 def shap_task(task_ticket, publisher_endpoint_url, task_parameters):
 
     #index = int(task_parameters['index'])

@@ -1,10 +1,6 @@
 __pycache__
-
 .idea
-
 .ipynb_checkpoints
-
-Backup_model/
 
 *.pt
 *.pth
@@ -29,11 +25,6 @@ alibaba.json
 googlecloud.json
 api.conf.json
 amazon.json
-
-
 mongo.dev.conf
 mongo.prod.conf
-
 emissions.csv
-
-backend/xai_service/s2search

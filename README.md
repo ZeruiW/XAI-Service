@@ -200,31 +200,4 @@ docker compose -f backend/docker-compose.yml -f backend/docker-compose-dev.yml u
 
    
 
-​	
 
-## Requirements
-
-### Platforms
-
--   [ ] Linux x86-64:
-    -   [x] Ubuntu 22.04 LTS (Best)
-    -   [x] Debian 11 "Bullseye" Stable branch
-    -   [x] RHEL 8
-    -   [ ] Arch
--   [x] macOS x86-64 / ARM64 (local dev only)
--   [x] Windows x86-64:
-    -   [x] Windows 10 >= 1909 update
-    -   [x] Windows 11
-
-### Hardware Acceleration
-
--   [ ] NVIDIA CUDA Library
--   [ ] Vulkan
-
-## TODOs
-
-Tasks and child tasks are priority tagged starting from 0 as the highest priority. E.g. `P0`, `P1`,...`Pn`. Finished tasks are stripped of the priority tag.
-
-For maintainers, it is advised to follow the Notion documentation (shared internally) as the single source of truth.
-
-Progress moved to [Github Projects](https://github.com/users/ZeruiW/projects/4)

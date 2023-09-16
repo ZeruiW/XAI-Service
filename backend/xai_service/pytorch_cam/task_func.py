@@ -38,8 +38,6 @@ if torch.backends.mps.is_built() and torch.backends.mps.is_available():
 
 print("Pytorch device: ")
 print(device)
-torch.cuda.empty_cache()
-torch.cuda.set_per_process_memory_fraction(0.9, device=0)
 gpu_usage()
 
 

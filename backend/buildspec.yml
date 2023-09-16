@@ -1,0 +1,93 @@
+version: 0.2
+
+phases:
+  install:
+    commands:
+      - echo "Installing terraform"
+      # Install Terraform
+      - curl -O https://releases.hashicorp.com/terraform/1.5.2/terraform_1.5.2_linux_amd64.zip
+      - unzip terraform_1.5.2_linux_amd64.zip
+      - sudo mv terraform /usr/local/bin/
+      - terraform version
+
+      # Adding mongo connection string
+      - cd backend
+      - MONGO_CONN_STR=$(aws ssm get-parameter --name mongo-dev --with-decryption --query "Parameter.Value" --output text)
+      - echo "$MONGO_CONN_STR" > mongo.dev.conf
+
+      # Adding azure connection string
+      - cd central
+      - mkdir -p central_storage/tmp
+      - cd central_storage/tmp
+      - CONN_STR=$(aws ssm get-parameter --name azure-con-str --with-decryption --query "Parameter.Value" --output text)
+      - echo "$CONN_STR" > az_blob_connection_str.json
+      - cd ../../../db_service/azure_blob
+      - mkdir -p azure_blob_storage/tmp
+      - cd azure_blob_storage/tmp
+      - echo "$CONN_STR" > az_blob_connection_str.json
+      - cd ../../../../
+      - cd model_service/azure_cog
+      - mkdir -p azure_cog_storage/tmp
+      - cd azure_cog_storage/tmp
+      - echo "$CONN_STR" > api.conf.json
+      - cat api.conf.json
+      - ls
+      - cd ../../../../
+
+
+  pre_build:
+    commands:
+      - echo "Executing pre-build commands..."
+      - aws ecr describe-repositories --repository-names backend-central --region us-east-1 || aws ecr create-repository --repository-name backend-central --region us-east-1
+      - aws ecr describe-repositories --repository-names backend-model_service_rn50_1 --region us-east-1 || aws ecr create-repository --repository-name backend-model_service_rn50_1 --region us-east-1
+      - aws ecr describe-repositories --repository-names backend-xai_service_pytorch_cam --region us-east-1 || aws ecr create-repository --repository-name backend-xai_service_pytorch_cam --region us-east-1
+      - aws ecr describe-repositories --repository-names backend-evaluation_service --region us-east-1 || aws ecr create-repository --repository-name backend-evaluation_service --region us-east-1
+      - aws ecr describe-repositories --repository-names backend-azure-cog --region us-east-1 || aws ecr create-repository --repository-name backend-azure-cog --region us-east-1
+      - aws ecr describe-repositories --repository-names backend-azure-blob --region us-east-1 || aws ecr create-repository --repository-name backend-azure-blob --region us-east-1
+
+      # Docker login
+      - echo $DOCKER_PASSWORD | docker login --username $DOCKER_USERNAME --password-stdin
+      - aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $(aws sts get-caller-identity --query Account --output text).dkr.ecr.us-east-1.amazonaws.com
+
+  build:
+    commands:
+      - echo "Building the project..."
+      # Remove existing image in the repository if exists
+      - aws ecr batch-delete-image --repository-name backend-central --image-ids imageTag=latest --region us-east-1 || true
+      - aws ecr batch-delete-image --repository-name backend-model_service_rn50_1 --image-ids imageTag=latest --region us-east-1 || true
+      - aws ecr batch-delete-image --repository-name backend-xai_service_pytorch_cam --image-ids imageTag=latest --region us-east-1 || true
+      - aws ecr batch-delete-image --repository-name backend-evaluation_service --image-ids imageTag=latest --region us-east-1 || true
+      - aws ecr batch-delete-image --repository-name backend-azure-cog --image-ids imageTag=latest --region us-east-1 || true
+      - aws ecr batch-delete-image --repository-name backend-azure-blob --image-ids imageTag=latest --region us-east-1 || true
+
+
+      - docker compose build
+      - docker tag backend-central $(aws sts get-caller-identity --query Account --output text).dkr.ecr.us-east-1.amazonaws.com/backend-central
+      - docker push $(aws sts get-caller-identity --query Account --output text).dkr.ecr.us-east-1.amazonaws.com/backend-central
+
+      - docker tag backend-model_service_rn50_1 $(aws sts get-caller-identity --query Account --output text).dkr.ecr.us-east-1.amazonaws.com/backend-model_service_rn50_1
+      - docker push $(aws sts get-caller-identity --query Account --output text).dkr.ecr.us-east-1.amazonaws.com/backend-model_service_rn50_1
+
+      - docker tag backend-xai_service_pytorch_cam $(aws sts get-caller-identity --query Account --output text).dkr.ecr.us-east-1.amazonaws.com/backend-xai_service_pytorch_cam
+      - docker push $(aws sts get-caller-identity --query Account --output text).dkr.ecr.us-east-1.amazonaws.com/backend-xai_service_pytorch_cam
+
+      - docker tag backend-evaluation_service $(aws sts get-caller-identity --query Account --output text).dkr.ecr.us-east-1.amazonaws.com/backend-evaluation_service
+      - docker push $(aws sts get-caller-identity --query Account --output text).dkr.ecr.us-east-1.amazonaws.com/backend-evaluation_service
+
+      - docker tag backend-azure-cog $(aws sts get-caller-identity --query Account --output text).dkr.ecr.us-east-1.amazonaws.com/backend-azure-cog
+      - docker push $(aws sts get-caller-identity --query Account --output text).dkr.ecr.us-east-1.amazonaws.com/backend-azure-cog
+
+      - docker tag backend-azure-blob $(aws sts get-caller-identity --query Account --output text).dkr.ecr.us-east-1.amazonaws.com/backend-azure-blob
+      - docker push $(aws sts get-caller-identity --query Account --output text).dkr.ecr.us-east-1.amazonaws.com/backend-azure-blob
+
+      - cd terraform/aws
+      - terraform init
+      - terraform apply -auto-approve
+
+  post_build:
+    commands:
+      - echo "Application deployed!"
+
+artifacts:
+  files:
+    - '**/*'

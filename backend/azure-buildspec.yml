@@ -1,0 +1,106 @@
+version: 0.2
+
+phases:
+  install:
+    commands:
+      - echo "Installing Azure CLI"
+      - pip install azure-cli
+
+      - echo "Installing terraform"
+      # Install Terraform
+      - curl -O https://releases.hashicorp.com/terraform/1.5.2/terraform_1.5.2_linux_amd64.zip
+      - unzip terraform_1.5.2_linux_amd64.zip
+      - sudo mv terraform /usr/local/bin/
+      - terraform version
+
+      # Adding mongo connection string
+      - cd backend
+      - MONGO_CONN_STR=$(aws ssm get-parameter --name mongo-dev --with-decryption --query "Parameter.Value" --output text)
+      - echo "$MONGO_CONN_STR" > mongo.dev.conf
+
+      # Adding azure connection string
+      - cd central
+      - mkdir -p central_storage/tmp
+      - cd central_storage/tmp
+      - CONN_STR=$(aws ssm get-parameter --name azure-con-str --with-decryption --query "Parameter.Value" --output text)
+      - echo "$CONN_STR" > az_blob_connection_str.json
+      - cd ../../../db_service/azure_blob
+      - mkdir -p azure_blob_storage/tmp
+      - cd azure_blob_storage/tmp
+      - echo "$CONN_STR" > az_blob_connection_str.json
+      - cd ../../../../
+      - cd model_service/azure_cog
+      - mkdir -p azure_cog_storage/tmp
+      - cd azure_cog_storage/tmp
+      - echo "$CONN_STR" > api.conf.json
+      - cat api.conf.json
+      - ls
+      - cd ../../../../
+
+  pre_build:
+    commands:
+      - echo "Executing pre-build commands..."
+      - az login --service-principal --username $AZURE_CLIENTID --password $AZURE_PASSWORD --tenant $AZURE_TENANTID
+      - echo $DOCKER_PASSWORD | docker login --username $DOCKER_USERNAME --password-stdin
+      - az acr login --name xaicontainerregistry
+      Deleting the existing images
+      - az acr repository show --name xaicontainerregistry --repository backendcentral >/dev/null 2>&1 && az acr repository delete --name xaicontainerregistry --repository backendcentral --yes || echo "Repository 'backendcentral' not found."
+      - az acr repository show --name xaicontainerregistry --repository backendazureblob >/dev/null 2>&1 && az acr repository delete --name xaicontainerregistry --repository backendazureblob --yes || echo "Repository 'backendazureblob' not found."
+      - az acr repository show --name xaicontainerregistry --repository backendazurecog >/dev/null 2>&1 && az acr repository delete --name xaicontainerregistry --repository backendazurecog --yes || echo "Repository 'backendazurecog' not found."
+      - az acr repository show --name xaicontainerregistry --repository backendevaluationservice >/dev/null 2>&1 && az acr repository delete --name xaicontainerregistry --repository backendevaluationservice --yes || echo "Repository 'backendevaluationservice' not found."
+      - az acr repository show --name xaicontainerregistry --repository backendrestnet50 >/dev/null 2>&1 && az acr repository delete --name xaicontainerregistry --repository backendrestnet50 --yes || echo "Repository 'backendrestnet50' not found."
+      - az acr repository show --name xaicontainerregistry --repository backendgradcam >/dev/null 2>&1 && az acr repository delete --name xaicontainerregistry --repository backendgradcam --yes || echo "Repository 'backendgradcam' not found."
+
+  build:
+    commands:
+      - echo "Building the project..."
+      - docker compose build
+      - docker image ls
+
+      - docker tag backend-central xaicontainerregistry.azurecr.io/backendcentral
+      - docker push xaicontainerregistry.azurecr.io/backendcentral
+
+      - az acr login --name xaicontainerregistry
+      - docker tag backend-azure-blob  xaicontainerregistry.azurecr.io/backendazureblob
+      - docker push xaicontainerregistry.azurecr.io/backendazureblob
+
+      - az acr login --name xaicontainerregistry
+      - docker tag backend-azure-cog xaicontainerregistry.azurecr.io/backendazurecog
+      - docker push xaicontainerregistry.azurecr.io/backendazurecog
+
+      - az acr login --name xaicontainerregistry
+      - docker tag backend-evaluation_service xaicontainerregistry.azurecr.io/backendevaluationservice
+      - docker push xaicontainerregistry.azurecr.io/backendevaluationservice
+
+      - az acr login --name xaicontainerregistry
+      - docker tag backend-model_service_rn50_1 xaicontainerregistry.azurecr.io/backendrestnet50
+      - docker push xaicontainerregistry.azurecr.io/backendrestnet50
+
+      - az acr login --name xaicontainerregistry
+      - docker tag backend-xai_service_pytorch_cam xaicontainerregistry.azurecr.io/backendgradcam
+      - docker push xaicontainerregistry.azurecr.io/backendgradcam
+
+      - az container delete --name xai-central --resource-group aci-xai-rg -y
+      - az container delete --name xai-azureblob --resource-group aci-xai-rg -y
+      - az container delete --name xai-azurecog --resource-group aci-xai-rg -y
+      - az container delete --name xai-evaluationservice --resource-group aci-xai-rg -y
+      - az container delete --name xai-restnet50 --resource-group aci-xai-rg -y
+
+      - az container create --name xai-central --resource-group aci-xai-rg --image xaicontainerregistry.azurecr.io/backendcentral:latest --registry-login-server xaicontainerregistry.azurecr.io --registry-username xaicontainerregistry --registry-password $REGISTRY_PASSWORD --dns-name-label aci-xai-service-central-dns --ports 5006 --query ipAddress.fqdn
+      - az container create --name xai-azureblob --resource-group aci-xai-rg --image xaicontainerregistry.azurecr.io/backendazureblob:latest --registry-login-server xaicontainerregistry.azurecr.io --registry-username xaicontainerregistry --registry-password $REGISTRY_PASSWORD --dns-name-label aci-xai-service-backendazureblob-dns --ports 5009 --query ipAddress.fqdn
+      - az container create --name xai-azurecog --resource-group aci-xai-rg --image xaicontainerregistry.azurecr.io/backendazurecog:latest --registry-login-server xaicontainerregistry.azurecr.io --registry-username xaicontainerregistry --registry-password $REGISTRY_PASSWORD --dns-name-label aci-xai-service-backendazurecog-dns --ports 5007 --query ipAddress.fqdn
+      - az container create --name xai-evaluationservice --resource-group aci-xai-rg --image xaicontainerregistry.azurecr.io/backendevaluationservice:latest --registry-login-server xaicontainerregistry.azurecr.io --registry-username xaicontainerregistry --registry-password $REGISTRY_PASSWORD --dns-name-label aci-xai-service-backendevaluationservice-dns --ports 5004 --query ipAddress.fqdn
+      - az container create --name xai-restnet50 --resource-group aci-xai-rg --image xaicontainerregistry.azurecr.io/backendrestnet50:latest --registry-login-server xaicontainerregistry.azurecr.io --registry-username xaicontainerregistry --registry-password $REGISTRY_PASSWORD --dns-name-label aci-xai-service-restnet50-dns --ports 5001 --query ipAddress.fqdn
+      - ls
+
+      - cd terraform/azure
+      - terraform init
+      - terraform apply -var "azure_client_id=$AZURE_CLIENTID" -var "azure_password=$AZURE_PASSWORD" -var "azure_tenant_id=$AZURE_TENANTID" -var "os_image_password=$OS_IMAGE_PASSWORD" -var "subscription_id=$AZURE_SUBSCRIPTIONID" -var "registry_password=$REGISTRY_PASSWORD" --auto-approve
+
+  post_build:
+    commands:
+      - echo "Application deployed!"
+
+artifacts:
+  files:
+    - "**/*"

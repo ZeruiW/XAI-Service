@@ -1,7 +1,7 @@
 FROM python:3.8-slim-buster
 
-WORKDIR /model_service/azure_cog
-COPY ./model_service/azure_cog .
+WORKDIR /db_service/azure_blob
+COPY ./db_service/azure_blob .
 COPY ./central_dev /central_dev
 COPY ./docker_setup.sh /
 
@@ -19,9 +19,9 @@ RUN pip install prometheus_client
 ARG ENV
 ENV ENV=prod
 COPY ./.env.prod .env.prod
-COPY ./mongo.dev.conf mongo.dev.conf
 
 RUN ["chmod", "+x", "/docker_setup.sh"]
 
-EXPOSE 5007
-CMD ["flask", "--app", "/model_service/azure_cog", "run", "--host=0.0.0.0", "-p", "5007"]
+EXPOSE 5009
+#CMD ["sh", "/docker_setup.sh", "/db_service/azure_blob", "5009"]
+CMD ["flask", "--app", "/db_service/azure_blob", "run", "--host=0.0.0.0", "-p", "5009"]

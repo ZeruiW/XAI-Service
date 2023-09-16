@@ -1,0 +1,6 @@
+Flask >= 2.2
+requests
+numpy
+torch
+torchvision
+Pillow

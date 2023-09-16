@@ -2,8 +2,6 @@ Flask >= 2.2
 mysql-connector-python
 Pillow
 numpy
-torch
-torchvision 
-torchaudio
 flask-cors
 prometheus-client
+python-dotenv

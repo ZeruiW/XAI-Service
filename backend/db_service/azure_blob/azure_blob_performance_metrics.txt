@@ -1,0 +1,1 @@
+{"function_name": "blob", "response_time": 0.2733306884765625, "carbon_emissions": 1.0139602549900536e-08, "memory_delta": 6766592, "api_call_count": 1, "cpu_usage": 0.19999999999999996, "gpu_memory_delta": 0, "complexity": 4, "data_set_name": null, "data_set_group_name": null}

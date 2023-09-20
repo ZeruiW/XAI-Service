@@ -221,6 +221,61 @@ def cam_task(task_ticket, publisher_endpoint_url, task_parameters):
 
     return TaskStatus.finished
 
+def generate_gradcam(image, model_path, model_name='resnet50', cam_method='grad-cam'):
+    """Generate GradCAM and return as numpy array and plt."""
+    
+    # Load model
+    if model_name.lower().startswith('resnet'):
+        model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
+        target_layers = [model.layer4]
+    if model_name.lower().startswith('densenet'):
+        model = models.densenet121(weights=models.DenseNet121_Weights.IMAGENET1K_V1)
+        target_layers = [model.features[-1]]
+
+    if model == None:
+        raise Exception("Not support model: ", model_name)
+
+    model.eval()
+    model.to(device)
+
+    model.load_state_dict(torch.load(model_path))
+
+    preprocessing = T.Compose([
+        T.ToTensor(),
+        T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    ])
+
+    # Set CAM method
+    cam_kws = {
+        'model': model,
+        'target_layers': target_layers,
+        'use_cuda': torch.cuda.is_available()
+    }
+
+    if cam_method == None or cam_method == 'grad-cam':
+        cam = GradCAM(**cam_kws)
+    elif cam_method == 'hirescam':
+        cam = HiResCAM(**cam_kws)
+    # add other methods as per your requirement
+
+    # Preprocess image
+    rgb_img = Image.open(io.BytesIO(image)).convert('RGB')
+    input_tensor = torch.tensor(np.array([
+        preprocessing(x).numpy()
+        for x in [rgb_img]
+    ])).to(device)
+
+    # Generate GradCAM
+    grayscale_cam = cam(input_tensor=input_tensor,
+                        targets=None,
+                        aug_smooth=True,
+                        eigen_smooth=False)[0]
+
+    # Create the plot
+    fig, ax = plt.subplots()
+    im = ax.imshow(grayscale_cam)
+
+    return grayscale_cam, fig
 
 def bytes_to_pil_image(b):
     return Image.open(io.BytesIO(base64.b64decode(b))).convert(

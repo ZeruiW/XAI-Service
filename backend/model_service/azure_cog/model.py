@@ -9,10 +9,12 @@ from flask import (
     request, jsonify, send_file, Response
 )
 from xai_backend_central_dev.flask_manager import ExecutorBluePrint
+from xai_backend_central_dev.performance_metrics import performance_metrics
 import requests
 import numpy as np
 
 basedir = os.path.abspath(os.path.dirname(__file__))
+trained_class_names = []
 
 # Download this file <https://s3.amazonaws.com/deep-learning-models/image-models/imagenet_class_index.json>_ as imagenet_class_index.json
 # imagenet_class_index = json.load(
@@ -94,7 +96,6 @@ def sendRequestCV(img):
 
     return json.loads(response.text)
 
-
 def get_pred_score(service_response):
     for class_p in service_response['predictions']:
         class_p['class_idx'] = class_names.index(class_p['tagName'])
@@ -103,9 +104,16 @@ def get_pred_score(service_response):
         service_response['predictions'], key=lambda a: a['class_idx'])
     return [x['probability'] for x in service_response['predictions']]
 
+trained_tags_received = False
+
+
 
 @ebp.route('/', methods=['GET', 'POST'])
+#@performance_metrics
 def pred():
+    global trained_class_names
+    global trained_tags_received
+
     if request.method == 'POST':
         files = request.files
         imgs = files.getlist('image')
@@ -117,11 +125,14 @@ def pred():
 
         for img in imgs:
             p = sendRequestCV(img)
-            # print(p)
             scores = get_pred_score(p)
             prediction.append(scores)
 
-        # print(prediction)
+            # Update trained_class_names only if not already received
+            if not trained_tags_received:
+                tag_names_list = [x['tagName'] for x in p['predictions']]
+                trained_class_names = tag_names_list
+                trained_tags_received = True
 
         rs = {}
         for i in range(len(file_name)):
@@ -130,5 +141,4 @@ def pred():
         return jsonify(rs)
 
     elif request.method == 'GET':
-        # ANCHOR: no model parameters return
-        return Response("", status=400)
+        return jsonify(trained_class_names)

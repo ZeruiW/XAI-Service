@@ -1,8 +1,10 @@
 FROM python:3.8-slim-buster
 
 WORKDIR /db_service/azure_blob
+
 COPY ./db_service/azure_blob .
 COPY ./central_dev /central_dev
+
 COPY ./docker_setup.sh /
 
 RUN apt-get update && \
@@ -13,7 +15,6 @@ RUN python -m pip install --upgrade pip \
     && pip install -r requirements.txt
 
 RUN pip install /central_dev
-RUN pip install prometheus_client
 
 # from compose args
 ARG ENV

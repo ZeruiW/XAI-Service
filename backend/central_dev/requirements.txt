@@ -4,3 +4,5 @@ python-dotenv
 flask-cors
 pymongo
 codecarbon
+azure-storage-blob 
+azure-identity

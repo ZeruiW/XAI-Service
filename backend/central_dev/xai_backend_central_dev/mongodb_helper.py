@@ -32,6 +32,9 @@ class Mon:
         print("Try to connect the mongodb server...")
         client = pymongo.MongoClient(conn_str, serverSelectionTimeoutMS=5000)
 
+        ls = os.listdir('/central/central_storage/tmp/')
+        print(ls)
+
         try:
             server_info = client.server_info()
             print(

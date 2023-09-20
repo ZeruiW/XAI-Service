@@ -1,12 +1,20 @@
 version: "3"
 services:
+    mongo:
+        image: mongo
+        restart: always
+        environment:
+            MONGO_INITDB_ROOT_USERNAME: root
+            MONGO_INITDB_ROOT_PASSWORD: example
+        ports:
+            - 27017:27017
+        volumes:
+            - xai_fw_volumes:/central/central_storage
     central:
         build:
             args:
                 ENV: dev
-        networks:
-            xainet:
-                ipv4_address: 172.16.10.6
+
     model_service_rn50_1:
         build:
             args:

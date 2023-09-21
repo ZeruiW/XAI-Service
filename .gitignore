@@ -37,3 +37,6 @@ mongo.prod.conf
 emissions.csv
 
 backend/xai_service/s2search
+
+.yarn
+*.bak

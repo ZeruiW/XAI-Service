@@ -26,6 +26,7 @@ class TaskPublisher(TaskComponent):
         self.publisher_name = publisher_name
         self.import_name = import_name
 
+        # remove TinyDB
         c_db_path = os.path.join(self.db_path, 'central_db.json')
         self.db = TinyDB(c_db_path)
         self.central_info_tb = self.db.table('central_info')

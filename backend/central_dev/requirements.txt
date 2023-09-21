@@ -6,3 +6,6 @@ pymongo
 codecarbon
 azure-storage-blob 
 azure-identity
+radon
+torch
+Pillow

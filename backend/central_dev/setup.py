@@ -1,18 +1,11 @@
 from setuptools import setup, find_packages
 
+with open('requirements.txt') as f:
+    required = f.read().splitlines()
+
 setup(
     name='xai_backend_central_dev',
     version='0.1.0',
     packages=find_packages(),
-    install_requires=[
-        "tinydb",
-        "python-dotenv",
-        "Flask >= 2.2",
-        "flask-cors",
-        "pymongo",
-        "codecarbon",
-        "torch",
-        "torchvision",
-        "torchaudio"
-    ],
+    install_requires=required,
 )

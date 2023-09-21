@@ -9,7 +9,7 @@ services:
         ports:
             - 27017:27017
         volumes:
-            - xai_fw_volumes:/central/central_storage
+            - mongo:/data
 
     azure_blob:
         build:
@@ -27,8 +27,8 @@ services:
         volumes:
             - xai_fw_volumes:/central/central_storage
         links:
-            - "mongo"
-            - "azure_blob"
+            - mongo
+            - azure_blob
 
     model_service_rn50_1:
         build:
@@ -63,3 +63,4 @@ services:
             - xai_fw_volumes:/central/central_storage
 volumes:
     xai_fw_volumes:
+    mongo:

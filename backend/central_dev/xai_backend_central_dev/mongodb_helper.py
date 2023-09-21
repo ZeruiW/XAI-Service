@@ -29,23 +29,27 @@ class Mon:
 
         conn_str = config.get('conn_str')
 
-        print("Try to connect the mongodb server...")
-        client = pymongo.MongoClient(conn_str, serverSelectionTimeoutMS=5000)
-
-        ls = os.listdir('/central/central_storage/tmp/')
-        print(ls)
-
         try:
+            print(f"Try to connect the mongodb server: {conn_str}")
+            client = pymongo.MongoClient(conn_str, serverSelectionTimeoutMS=5000)
             server_info = client.server_info()
-            print(
-                f"Mongo: connect to server at version {server_info['version']}")
-
-            self.client = client
-            self.xaidb = client.xaidb
         except Exception as e:
-            print("Mongo: unable to connect to the server.")
-            traceback.print_exc()
-            exit(1)
+            print(f"**** Mongo: unable to connect to the server: {conn_str}")
+            conn_str = "mongodb://root:example@localhost:27017"
+            try:
+                print(f"Try to connect the mongodb server: {conn_str}")
+                client = pymongo.MongoClient(conn_str, serverSelectionTimeoutMS=5000)
+                server_info = client.server_info()
+            except Exception as e2:
+                print(f"**** Mongo: unable to connect to the server: {conn_str}")
+                traceback.print_exc()
+                exit(1)
+            
+        print(
+            f"Mongo: connect to server at version {server_info['version']}")
+
+        self.client = client
+        self.xaidb = client.xaidb
 
     def col(self, col_name):
         return self.xaidb.get_collection(col_name)

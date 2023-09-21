@@ -57,6 +57,17 @@ https://www.postman.com/youyinnn/workspace/concordia/collection/2019955-72d3c5f3
 
 1. activate the central;
 2. register db, xai, model, evaluation service;
-3. create xai tasksheet;
-4. run the task;
-5. check the result;
+3. create xai tasksheet, available config for demo:
+   ``` json
+   {
+       "method_name": "grad-cam",
+       "data_set_name": "imagenet1000",
+       "data_set_group_name": "g0",
+       "model_name": "resnet50",
+       "executor_config": {
+           "use_pytorch_multiprocess": true
+       }
+   }
+   ```
+5. run the task;
+6. check the result;

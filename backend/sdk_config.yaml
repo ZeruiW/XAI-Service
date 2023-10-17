@@ -1,0 +1,42 @@
+base_url: "http://127.0.0.1:5006"
+
+services:
+  db_service:
+    url: "http://127.0.0.1:5009/azure_blob"
+    type: "db"
+    info:
+      exp_name: "db"
+
+  model_service:
+    url: "http://127.0.0.1:5001/resnet50"
+    type: "model"
+    info:
+      exp_name: "resnet50"
+
+  xai_service:
+    url: "http://127.0.0.1:5003/xai/pt_cam"
+    type: "xai"
+    info:
+      exp_name: "xai"
+
+  evaluation_service:
+    url: "http://127.0.0.1:5004/evaluation"
+    type: "evaluation"
+    info:
+      exp_name: "eval"
+
+xai_task_sheet:
+  task_parameters:
+    method_name: "grad-cam"
+    data_set_name: "imagenet1000"
+    data_set_group_name: "g0"
+    model_name: "resnet50"
+    executor_config:
+      use_pytorch_multiprocess: true
+  task_sheet_name: "xai0"
+
+evaluation_task_sheet:
+  task_sheet_name: "eval_xai0"
+
+pipeline:
+  name: "pipeline1"

@@ -1,0 +1,2 @@
+The SDK Gateway is meticulously designed to streamline the process of XAI Evaluation. Acting as a central access point, it enables swift interaction with various services orchestrated by the coordination center. Upon initialization, the SDK instantiates the publisher, which subsequently registers pivotal components: Database, AI Model, XAI Model, and Evaluation. Importantly, each component is modifiable, allowing users to adjust configurations to their specific requirements.
+

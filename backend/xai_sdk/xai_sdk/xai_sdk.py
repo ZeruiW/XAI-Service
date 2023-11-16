@@ -28,19 +28,43 @@ class TaskPublisherClient:
     def __init__(self, base_url):
         self.base_url = base_url
 
-    #---------------------------------publisher functions----------------------------------
+    #---------------------------------Publisher Functions----------------------------------
     # Activte Publisher Function
     def activate_publisher(self, publisher_endpoint_url):
         url = f"{self.base_url}/task_publisher/publisher"
         data = {'publisher_endpoint_url': publisher_endpoint_url}
-        response = requests.post(url, data=data)
-        return response.json()
+        try:
+            response = requests.post(url, data=data)
+            response.raise_for_status()  # Raises HTTP Error for bad HTTP response
+            return response.json()
+        except requests.exceptions.HTTPError as http_err:
+            print(f"HTTP error occurred: {http_err}")
+        except requests.exceptions.ConnectionError as conn_err:
+            print(f"Error Connecting: {conn_err}")
+        except requests.exceptions.Timeout as timeout_err:
+            print(f"Timeout Error: {timeout_err}")
+        except requests.exceptions.RequestException as req_err:
+            print(f"Error: {req_err}")
+        except ValueError as json_err:  # This is to handle invalid JSON
+            print(f"JSON error: {json_err}")
     
     #Get List of Registered Executors Function
     def get_registered_executors(self):
         url = f"{self.base_url}/task_publisher/executor"
-        response = requests.get(url)
-        return response.json()
+        try:
+            response = requests.get(url)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.HTTPError as http_err:
+            print(f"HTTP error occurred: {http_err}")
+        except requests.exceptions.ConnectionError as conn_err:
+            print(f"Error Connecting: {conn_err}")
+        except requests.exceptions.Timeout as timeout_err:
+            print(f"Timeout Error: {timeout_err}")
+        except requests.exceptions.RequestException as req_err:
+            print(f"Error: {req_err}")
+        except ValueError as json_err:  # This is to handle invalid JSON
+            print(f"JSON error: {json_err}")
     
     def register_executor_endpoint(self, act, executor_endpoint_url, executor_type, executor_info):
         url = f"{self.base_url}/task_publisher/executor"
@@ -50,53 +74,77 @@ class TaskPublisherClient:
             'executor_type': executor_type,
             'executor_info': json.dumps(executor_info)
         }
-        response = requests.post(url, data=data)
-        if 'application/json' in response.headers.get('Content-Type', ''):
-            try:
-                return response.json()
-            except json.JSONDecodeError:
-                # Handle JSON decoding errors
+        try:
+            response = requests.post(url, data=data)
+            response.raise_for_status()
+
+            if 'application/json' in response.headers.get('Content-Type', ''):
+                try:
+                    return response.json()
+                except json.JSONDecodeError:
+                    # Handle JSON decoding errors
+                    return {
+                        "status": "error",
+                        "message": f"Failed to decode JSON. Response content: {response.text}"
+                    }
+            else:
+                # If the response is not JSON, return its content as an error message
                 return {
                     "status": "error",
-                    "message": f"Failed to decode JSON. Response content: {response.text}"
+                    "message": f"Unexpected response from server: {response.text}"
                 }
-        else:
-            # If the response is not JSON, return its content as an error message
-            return {
-                "status": "error",
-                "message": f"Unexpected response from server: {response.text}"
-            }
-
+        except requests.exceptions.HTTPError as http_err:
+            print(f"HTTP error occured: {http_err}")
+        except requests.exceptions.ConnectionError as conn_err:
+            print(f"Error Connecing: {conn_err}")
+        except requests.exceptions.Timeout as timeout_err:
+            print(f"Timeout Error Occured: {timeout_err}")
+        except requests.exceptions.RequestException as req_err:
+            print(f"Error: {req_err}")
 
     def register(self, executor_endpoint_url, executor_type, executor_info):
         response = self.register_executor_endpoint('reg', executor_endpoint_url, executor_type, executor_info)
-        print(response)
-        if 'executor_id' in response:
-            print(f"The service with executor_id:{response.get('executor_id')} is registered successfully!")
-        else:
+        if response.get('status') == 'error':
             print(f"Failed to register the service. Reason: {response.get('message', 'Unknown error')}")
+        elif 'executor_id' in response:
+            print(f"The service with executor_id: {response.get('executor_id')} is registered successfully!")
+        else:
+            print(f"Unexpected response received: {response}")
         return response
     
     def get_registered_services(self):
-        # Get the list of registered executors
-        executors_response = self.get_registered_executors()
+        try:
+            # Get the list of registered executors
+            executors_response = self.get_registered_executors()
 
-        # Extract executor IDs and service names based on their types
-        executor_info = defaultdict(list)
+            # Ensures the response is a list
+            if not isinstance(executors_response, list):
+                    print("Error: Invalid response format for registered executors.")
+                    return
 
-        for executor in executors_response:
-            executor_type = executor.get("executor_type")
-            executor_id = executor.get("executor_id")
-            service_name = executor.get("executor_info").get("exp_name")  # Adjust the key as per your actual data structure
-            executor_info[executor_type].append((executor_id, service_name))
+            # Extract executor IDs and service names based on their types
+            executor_info = defaultdict(list)
 
-        # Print available executor IDs and service names for each type
-        print("\nAvailable Registered Services:\n" + "-"*30)
-        for executor_type, info in executor_info.items():
-            print(f"\n{executor_type.upper()} Services:")
-            for id, name in info:
-                print(f"  - ID: {id}, Service Name: {name}")
-        print("\n" + "-"*30)
+            for executor in executors_response:
+                executor_type = executor.get("executor_type")
+                executor_id = executor.get("executor_id")
+                service_name = executor.get("executor_info").get("exp_name")
+                if executor_type and executor_id and service_name:
+                    executor_info[executor_type].append((executor_id, service_name))
+
+            if not executor_info:
+                print("No services are currently registered.")
+            else:
+                # Print available executor IDs and service names for each type
+                print("\nAvailable Registered Services:\n" + "-"*30)
+                for executor_type, info in executor_info.items():
+                    print(f"\n{executor_type.upper()} Services:")
+                    for id, name in info:
+                        print(f"  - ID: {id}, Service Name: {name}")
+                print("\n" + "-"*30)
+
+        except Exception as e:
+            print(f"An error occurred while retrieving registered services: {e}")
     
     #-------------------------------------- Tasksheet Functions----------------------------------------
     # Create Task Sheet Function
@@ -104,24 +152,26 @@ class TaskPublisherClient:
         url = f"{self.base_url}/task_publisher/task_sheet"
         data = {'act': 'create'}
         data.update(payload)
-        response = requests.post(url, data=data)
         try:
+            response = requests.post(url, data=data)
+            response.raise_for_status()
             return response.json()
-        except requests.exceptions.JSONDecodeError:
+        except requests.exceptions.RequestException as e:
+            print(f"Network error occurred: {e}")
+            return None
+        except json.JSONDecodeError:
             print(f"Failed to decode JSON from response: {response.text}")
+            return None
 
     
    # Create an XAI and Eval Task Sheet and return its ID.
     def create_task_sheet(self, payload, task_type="Task"):
-
         if 'task_parameters' in payload:
             payload['task_parameters'] = json.dumps(payload['task_parameters'])
         response = self.self_task_sheet(payload=payload)
-
         if response is None:
             print("Failed to get a valid response from the server.")
             return None
-
         if 'task_sheet_id' in response:
             print(f"{task_type} Task Sheet created successfully with the Task_Sheet_ID: {response['task_sheet_id']}")
             return response['task_sheet_id']
@@ -129,43 +179,58 @@ class TaskPublisherClient:
             print(f"Unexpected response format: {response}")
             return None
     
-     # Run Task from Task Sheet Function
+    # Run Task from Task Sheet Function
     def run_task_sheet(self, task_sheet_id, task_type="Task"):
         url = f"{self.base_url}/task_publisher/task_sheet"
-        data = {
-            'act': 'run',
-            'task_sheet_id': task_sheet_id
-        }
-        response = requests.post(url, data=data)
+        data = {'act': 'run', 'task_sheet_id': task_sheet_id}
         try:
-            response_data = response.json()
+            response = requests.post(url, data=data)
+            response.raise_for_status()  # Check for HTTP errors
+            response_data = response.json()  # Attempt to decode JSON
+
+        except requests.exceptions.RequestException as e:
+            print(f"Network error occurred: {e}")
+            return None
         except json.decoder.JSONDecodeError:
             print(f"Failed to decode JSON from response: {response.text}")
             return None
 
-
+        # Check if the task ticket is in the response
         if response_data and 'task_ticket' in response_data:
-            print(f"{task_type} Task Sheet has started running successfully with the task_ticket_id: {response_data['task_ticket']}")
+            task_ticket_id = response_data['task_ticket']
+            print(f"{task_type} Task Sheet has started running successfully with the task_ticket_id: {task_ticket_id}")
+            return task_ticket_id
         else:
-            print(f"Failed to start the {task_type} Task Sheet or did not receive a valid task_ticket_id.")
-
-        return response_data['task_ticket']
+            # Handle the case where 'task_ticket' is not in the response
+            error_message = response_data.get('message', 'No specific error message provided')
+            print(f"Failed to start the {task_type} Task Sheet or did not receive a valid task_ticket_id. Error: {error_message}")
+            return None
 
     #Delete Task sheet Function
     def delete_task_sheet(self, task_sheet_id):
         url = f"{self.base_url}/task_publisher/task_sheet"
-        data = {
-            'act': 'delete',
-            'task_sheet_id': task_sheet_id
-        }
-        response = requests.post(url, data=data)
-        return response.text
+        data = {'act': 'delete', 'task_sheet_id': task_sheet_id}
+        try:
+            response = requests.post(url, data=data)
+            response.raise_for_status()
+            return response.text
+        except requests.exceptions.RequestException as e:
+            print(f"Network error occurred: {e}")
+            return None
     
     #GET Task Sheet Function
     def get_task_sheet(self):
         url = f"{self.base_url}/task_publisher/task_sheet"
-        response = requests.get(url)
-        return response.json()
+        try:
+            response = requests.get(url)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            print(f"Network error occurred: {e}")
+            return None
+        except json.JSONDecodeError:
+            print(f"Failed to decode JSON from response: {response.text}")
+            return None
     
     #GET Task Sheet Function by task_sheet_id
     def get_task_sheet_by_task_sheet_id(self, task_sheet_ids=None):
@@ -173,8 +238,16 @@ class TaskPublisherClient:
         params = {}
         if task_sheet_ids:
             params['task_sheet_ids'] = json.dumps(task_sheet_ids)
-        response = requests.get(url, params=params)
-        return response.json()
+        try:
+            response = requests.get(url, params=params)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            print(f"Network error occurred: {e}")
+            return None
+        except json.JSONDecodeError:
+            print(f"Failed to decode JSON from response: {response.text}")
+            return None
     
     #-----------------------------------------------------Task Functions----------------------------------------
    
@@ -186,17 +259,34 @@ class TaskPublisherClient:
             params['task_ticket'] = task_ticket
         if task_sheet_id:
             params['task_sheet_id'] = task_sheet_id
-        response = requests.get(url, params=params)
-        return response.json()
+        try:
+            response = requests.get(url, params=params)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            print(f"Network error occurred: {e}")
+            return None
+        except json.JSONDecodeError:
+            print(f"Failed to decode JSON from response: {response.text}")
+            return None
+
 
     #Get Task Result
     def task_result(self, task_ticket):
         url = f"{self.base_url}/task_publisher/task_result"
         params = {'task_ticket': task_ticket}
-        response = requests.get(url, params=params)
-        return response.json()
+        try:
+            response = requests.get(url, params=params)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            print(f"Network error occurred: {e}")
+            return None
+        except json.JSONDecodeError:
+            print(f"Failed to decode JSON from response: {response.text}")
+        return None
+
     
-    #Update Task status
     def update_task_status(self, task_ticket, task_status, running_info):
         url = f"{self.base_url}/task_publisher/task"
         data = {
@@ -205,30 +295,46 @@ class TaskPublisherClient:
             'task_status': task_status,
             'running_info': json.dumps(running_info)
         }
-        response = requests.post(url, data=data)
-        return response.json()
+        try:
+            response = requests.post(url, data=data)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            print(f"Network error occurred: {e}")
+            return None
+        except json.JSONDecodeError:
+            print(f"Failed to decode JSON from response: {response.text}")
+            return None
+
 
     #stop task
     def stop_task(self, task_ticket):
         url = f"{self.base_url}/task_publisher/task"
-        data = {
-            'act': 'stop',
-            'task_ticket': task_ticket
-        }
-        response = requests.post(url, data=data)
-        return response.text
+        data = {'act': 'stop', 'task_ticket': task_ticket}
+        try:
+            response = requests.post(url, data=data)
+            response.raise_for_status()
+            return response.text
+        except requests.exceptions.RequestException as e:
+            print(f"Network error occurred: {e}")
+            return "Error occurred while stopping the task."
+
 
     #delete task
     def delete_task(self, task_ticket):
         url = f"{self.base_url}/task_publisher/task"
-        data = {
-            'act': 'delete',
-            'task_ticket': task_ticket
-        }
-        response = requests.post(url, data=data)
-        return response.text
+        data = {'act': 'delete', 'task_ticket': task_ticket}
+        try:
+            response = requests.post(url, data=data)
+            response.raise_for_status()
+            return response.text
+        except requests.exceptions.RequestException as e:
+            print(f"Network error occurred: {e}")
+            return "Error occurred while deleting the task."
+
 
     #--------------------------------------------Pipeline Functions----------------------------------------
+
     def create_pipeline(self, pipeline_name, xai_task_sheet_id, evaluation_task_sheet_id):
         url = f"{self.base_url}/task_publisher/pipeline"
         data = {
@@ -237,46 +343,66 @@ class TaskPublisherClient:
             'xai_task_sheet_id': xai_task_sheet_id,
             'evaluation_task_sheet_id': evaluation_task_sheet_id
         }
-        response = requests.post(url, data=data)
-        response_data = response.json()
+        try:
+            response = requests.post(url, data=data)
+            response.raise_for_status()
+            response_data = response.json()
 
-        pipeline_id = response_data.get('pipeline_id')
-        if pipeline_id:
-            return pipeline_id
-        else:
-            print("Failed to extract pipeline_id from the response.")
+            pipeline_id = response_data.get('pipeline_id')
+            if pipeline_id:
+                return pipeline_id
+            else:
+                print("Failed to extract pipeline_id from the response.")
+                return None
+        except requests.exceptions.RequestException as e:
+            print(f"Network error occurred: {e}")
             return None
-
+        except json.JSONDecodeError:
+            print(f"Failed to decode JSON from response: {response.text}")
+            return None
 
     #run pipeline
     def run_pipeline(self, pipeline_id):
         url = f"{self.base_url}/task_publisher/pipeline"
-        data = {
-            'act': 'run',
-            'pipeline_id': pipeline_id
-        }
-        response = requests.post(url, data=data)
-        return response.json()
+        data = {'act': 'run', 'pipeline_id': pipeline_id}
+        try:
+            response = requests.post(url, data=data)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            print(f"Network error occurred: {e}")
+            return None
+        except json.JSONDecodeError:
+            print(f"Failed to decode JSON from response: {response.text}")
+            return None
 
-    #delete pipeline
+
     def delete_pipeline(self, pipeline_id):
         url = f"{self.base_url}/task_publisher/pipeline"
-        data = {
-            'act': 'delete',
-            'pipeline_id': pipeline_id
-        }
-        response = requests.post(url, data=data)
-        return response.text
+        data = {'act': 'delete', 'pipeline_id': pipeline_id}
+        try:
+            response = requests.post(url, data=data)
+            response.raise_for_status()
+            return response.text
+        except requests.exceptions.RequestException as e:
+            print(f"Network error occurred: {e}")
+            return "Error occurred while deleting the pipeline."
+
     
     #get all pipelines
     def get_all_pipelines(self):
         url = f"{self.base_url}/task_publisher/pipeline"
-        response = requests.get(url)
-        if response.status_code == 200:
-            return response.json()  
-        else:
-            print(f"Failed to fetch pipelines: {response.status_code}")
+        try:
+            response = requests.get(url)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            print(f"Network error occurred: {e}")
             return []
+        except json.JSONDecodeError:
+            print(f"Failed to decode JSON from response: {response.text}")
+            return []
+
         
     #-----------------------------------------------Utility Functions----------------------------------- 
 
@@ -298,7 +424,15 @@ class TaskPublisherClient:
 
         # Check the task status periodically
         while True:
-            task_info = self.get_task(task_sheet_id=task_sheet_id, task_ticket=task_ticket)
+            try:
+                task_info = self.get_task(task_sheet_id=task_sheet_id, task_ticket=task_ticket)
+                if not task_info:
+                    print("Failed to retrieve task information. Exiting the monitor.")
+                    break
+
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                break
             
             # Check if task_info is a list and extract the relevant dictionary
             if isinstance(task_info, list):
@@ -333,40 +467,49 @@ class TaskPublisherClient:
         if not task_sheets:
             print("No task sheets found.")
             return
-
         for task_sheet in task_sheets:
             task_sheet_id = task_sheet.get('task_sheet_id')
             task_sheet_name = task_sheet.get('task_sheet_name')
             task_type = task_sheet.get('task_type')
-        
             print(f"Task Sheet ID: {task_sheet_id}, Task Sheet Name: {task_sheet_name}, Task Type: {task_type}")
 
 
     # Function to get the latest task sheet name index
     def get_latest_task_sheet_index(self, task_type):
         task_sheets = self.get_task_sheet()
+        if not task_sheets:
+            return 0
+
         indices = [0]
         for sheet in task_sheets:
-            if task_type in sheet.get('task_sheet_name'):
-                index = int(sheet.get('task_sheet_name').split(task_type)[1])
-                indices.append(index)
+            try:
+                if task_type in sheet.get('task_sheet_name', ''):
+                    index = int(sheet.get('task_sheet_name').split(task_type)[1])
+                    indices.append(index)
+            except (ValueError, IndexError):
+                pass
         return max(indices)
+
 
     # Function to get the latest pipeline index
     def get_latest_pipeline_index(self, pipelines):
+        if not pipelines:
+            return 0
+
         indices = []
         for pipeline in pipelines:
             name = pipeline.get('pipeline_name', '')
-            match = re.search(r'pipeline(\d+)', name)  # Use regex to extract the index
+            match = re.search(r'pipeline(\d+)', name)
             if match:
                 try:
-                    index = int(match.group(1))  # Extract the index from the regex match
+                    index = int(match.group(1))
                     indices.append(index)
                 except ValueError:
                     pass
         return max(indices, default=0)
+
     
-    #--------------------------------------------------Functions using Config.yaml----------------------------------
+    #-------------------------------------------Functions using Configuration YAML file----------------------------------
 
     def register_service_from_config(self, config_path=None):
 
@@ -379,12 +522,23 @@ class TaskPublisherClient:
 
         # Extract the services from the configuration
         services = config.get('services', {})
+        if not services:
+            print("No services found in the configuration.")
+            return
 
-    # Loop through each service type and its list of services
+        # Loop through each service type and its list of services
         for service_type, service_list in services.items():
+            if not isinstance(service_list, list):
+                print(f"Invalid format for service list under '{service_type}'.")
+                continue
+
             for service_data in service_list:
                 url = service_data.get('url')
                 executor_info = service_data.get('info')
+
+                if not url or not executor_info:
+                    print(f"Missing required data for service registration in '{service_type}'.")
+                    continue
 
                 # preparing the request data
                 request_data = {
@@ -467,11 +621,13 @@ class TaskPublisherClient:
             xai_task_sheet_id = self.create_task_sheet(payload, task_type=payload.get('task_type', 'Task'))
             if xai_task_sheet_id:
                 task_ticket = self.run_task_sheet(xai_task_sheet_id, task_type="XAI")
-                
-                # Start the task monitoring in a separate thread
-                monitor_thread = threading.Thread(target=self.monitor_task_progress, args=(xai_task_sheet_id, None))
-                monitor_thread.start()
-                monitor_thread.join()  # Wait for the monitoring thread to complete
+                if task_ticket:
+                    # Start the task monitoring in a separate thread
+                    monitor_thread = threading.Thread(target=self.monitor_task_progress, args=(xai_task_sheet_id, None))
+                    monitor_thread.start()
+                    monitor_thread.join()  # Wait for the monitoring thread to complete
+                else:
+                    print(f"Failed to run XAI Task Sheet with ID: {xai_task_sheet_id}")
 
                 # Update the explanation_task_ticket in the corresponding evaluation task sheet payload
                 if idx < len(evaluation_task_sheets):  # Ensure we don't go out of bounds
@@ -482,6 +638,10 @@ class TaskPublisherClient:
                 eval_task_sheet_id = self.create_task_sheet(eval_payload, task_type=eval_payload.get('task_type', 'Evaluation'))
                 if eval_task_sheet_id:
                     self.run_task_sheet(eval_task_sheet_id, task_type="Evaluation")
+                else:
+                    print(f"Failed to create Evaluation Task Sheet for payload: {eval_payload}")
+            else:
+                print(f"Failed to create XAI Task Sheet for payload: {payload}")
 
 
     def create_and_run_pipeline_from_config(self, config_path=None):
@@ -495,6 +655,9 @@ class TaskPublisherClient:
 
         # Extract the pipelines from the configuration
         pipelines = config.get('pipelines', [])
+        if not pipelines:
+            print("No pipeline configurations found.")
+            return
 
         # Loop through each pipeline configuration
         for pipeline_config in pipelines:
@@ -502,277 +665,14 @@ class TaskPublisherClient:
             xai_task_sheet_id = pipeline_config['xai_task_sheet_id']
             evaluation_task_sheet_id = pipeline_config['evaluation_task_sheet_id']
 
+            if not all([pipeline_name, xai_task_sheet_id, evaluation_task_sheet_id]):
+                print(f"Missing required information in pipeline configuration: {pipeline_config}")
+                continue
+
             pipeline_id = self.create_pipeline(pipeline_name, xai_task_sheet_id, evaluation_task_sheet_id)
             if pipeline_id:
                 self.run_pipeline(pipeline_id)
+            else:
+                print(f"Failed to create or run pipeline: {pipeline_name}")
 
         print("All pipelines have been created and started running.")
-
-
-   
-if __name__ == "__main__":
-    
-    client = TaskPublisherClient(base_url='base_url')
-
-    # Function to check if a service is already registered
-    def get_registered_service_urls(service_type):
-        registered_executors = client.get_registered_executors()
-        urls = [
-            executor.get("executor_endpoint_url")
-            for executor in registered_executors
-            if executor.get("executor_type") == service_type
-        ]
-        return urls
-
-
-    # Function to get the latest task sheet name index
-    def get_latest_task_sheet_index(task_type):
-        task_sheets = client.get_task_sheet()
-        indices = [0]
-        for sheet in task_sheets:
-            if task_type in sheet.get('task_sheet_name'):
-                index = int(sheet.get('task_sheet_name').split(task_type)[1])
-                indices.append(index)
-        return max(indices)
-
-    #function to get the latest pipeline index
-    def get_latest_pipeline_index(pipelines):
-        indices = []
-        for pipeline in pipelines:
-            name = pipeline.get('pipeline_name', '')
-            match = re.search(r'pipeline(\d+)', name)  # Use regex to extract the index
-            if match:
-                try:
-                    index = int(match.group(1))  # Extract the index from the regex match
-                    indices.append(index)
-                except ValueError:
-                    pass
-        return max(indices, default=0)
-
-
-    print("\n\nActivating the Publisher.....\nResponse:\n")
-    #Activate Publisher
-    response = client.activate_publisher(publisher_endpoint_url=config['base_url'])
-    print(response)
-    print("\nPublisher activated successfully !")
-
-    # Register services if they are not already registered or if their URL has changed
-    services = ['db', 'model', 'xai', 'evaluation']
-    for service in services:
-        service_config = config['services'][f'{service}_service']
-        registered_urls = get_registered_service_urls(service)
-        
-        print(f"Registered URLs for {service.upper()}: {registered_urls}")
-        print(f"URL in sdk_config.yaml for {service.upper()}: {service_config['url']}")
-        
-        if not registered_urls or service_config['url'] not in registered_urls:
-            print(f"\n\nRegistering the {service.upper()} service.....\nResponse:\n")
-            executor_response = client.register(
-                act='reg',
-                executor_endpoint_url=service_config['url'],
-                executor_type=service_config['type'],
-                executor_info=service_config['info']
-            )
-            print(executor_response)
-            print(f"\n{service.upper()} service registered successfully !")
-        else:
-            print(f"\n{service.upper()} service is already registered with the same URL, skipping registration.")
-
-
-    print("\n\nAll services registered successfully")
-
-    # Get the list of registered executors
-    executors_response = client.get_registered_executors()
-    #print(json.dumps(executors_response, indent=4))  # Pretty print the response
-
-    # Extract executor IDs and service names based on their types
-    executor_info = defaultdict(list)
-
-    for executor in executors_response:
-        executor_type = executor.get("executor_type")
-        executor_id = executor.get("executor_id")
-        service_name = executor.get("executor_info").get("exp_name")  # Adjust the key as per your actual data structure
-        executor_info[executor_type].append((executor_id, service_name))
-
-    # Print available executor IDs and service names for each type
-    for executor_type, info in executor_info.items():
-        print(f"Available services for {executor_type.upper()}:")
-        for id, name in info:
-            print(f"ID: {id}, Service Name: {name}")
-
-    #Selecting executor Ids by the user
-    selected_executor_ids = {
-        "db": None,
-        "model": None,
-        "xai": None,
-        "evaluation": None
-    }
-
-    for service_type in selected_executor_ids.keys():
-        if executor_info[service_type]:
-            print(f"\nPlease select a service for {service_type.upper()}:")
-            for i, (executor_id, service_name) in enumerate(executor_info[service_type], start=1):
-                print(f"{i}. {service_name} (ID: {executor_id})")
-            
-            selected_index = int(input("Enter the number of your choice: ")) - 1
-            selected_executor_ids[service_type] = executor_info[service_type][selected_index][0]  # Select the ID part from the tuple
-
-
-    # Increment the task sheet names
-    xai_index = get_latest_task_sheet_index('xai') + 1
-    eval_index = get_latest_task_sheet_index('eval_xai') + 1
-
-    # Modify the XAI and Evaluation task sheet names in the config
-    config['xai_task_sheet']['task_sheet_name'] = f"xai{xai_index}"
-    config['evaluation_task_sheet']['task_sheet_name'] = f"eval_xai{eval_index}"
-
-    # Check if all required executor IDs are available
-    if all(id is not None for key, id in selected_executor_ids.items() if key != "evaluation"):
-        # Create XAI Task Sheet with Specific Parameters and selected executor IDs
-        xai_config = config['xai_task_sheet']
-        payload = {
-            "act": "create",
-            "task_type": "xai",
-            "model_service_executor_id": selected_executor_ids["model"],
-            "db_service_executor_id": selected_executor_ids["db"],
-            "xai_service_executor_id": selected_executor_ids["xai"],
-            "task_parameters": json.dumps(xai_config['task_parameters']),
-            "task_sheet_name": xai_config['task_sheet_name']
-        }
-
-
-        # Create XAI Task Sheet
-        create_task_sheet_response = client.create_task_sheet(payload=payload)
-
-        # Print the Response
-        print("\n\nNow, Creating XAI Task Sheet...\nResponse:")
-        print(json.dumps(create_task_sheet_response, indent=4))  # Pretty print the response
-        print("\nXAI Task_sheet created successfully !")
-        # Extract task_sheet_id from the response and run the XAI task sheet
-        xai_task_sheet_id = create_task_sheet_response.get('task_sheet_id')
-        if xai_task_sheet_id:
-            #print(f"\n\n Extracted Task Sheet ID: {xai_task_sheet_id}")
-
-            # Run XAI Task Sheet with the extracted task_sheet_id
-            run_xai_task_sheet_response = client.run_task_sheet(task_sheet_id=xai_task_sheet_id)
-            print("\n\nRunning XAI Task Sheet....\nResponse:")
-            print(json.dumps(run_xai_task_sheet_response, indent=4))  # Pretty print the response
-            print("XAI Task sheet running successfully...!")
-            
-        # Extract task_ticket from the response of running the XAI task sheet
-            xai_task_ticket = run_xai_task_sheet_response.get('task_ticket')
-            if xai_task_ticket:
-                #print(f"\n\n Extracted XAI Task Ticket: {xai_task_ticket}")
-
-                # Poll the status of the XAI task until it is finished
-                while True:
-                    task_info = client.get_task(task_ticket=xai_task_ticket)
-
-                    task_status = task_info.get('task_status')
-
-                    if task_status == 'finished':
-                        print("\n\nXAI Task finished.")
-                        break
-                    elif task_status in ['failed', 'error']:  # Add any other terminal statuses here
-                        print(f"\n\nXAI Task failed with status: {task_status}.")
-                        exit()  # or handle the error appropriately
-                    else:
-                        print(f"\n\nXAI Task is still running with status: {task_status}. Waiting...")
-
-                        # Display a progress bar instead of sleeping for a fixed amount of time
-                        for _ in tqdm(range(30), desc="Processing", ncols=100):
-                            time.sleep(1)  # sleep for a total of 30 seconds, updating the progress bar every second
-
-                # Create Evaluation Task Sheet with the extracted task_ticket and executor IDs
-                eval_config = config['evaluation_task_sheet']
-                eval_payload = {
-                    "act": "create",
-                    "task_type": "evaluation",
-                    "model_service_executor_id": selected_executor_ids["model"],
-                    "db_service_executor_id": selected_executor_ids["db"],
-                    "xai_service_executor_id": selected_executor_ids["xai"],
-                    "evaluation_service_executor_id": selected_executor_ids["evaluation"],
-                    "task_parameters": json.dumps({
-                        "explanation_task_ticket": xai_task_ticket
-                    }),
-                    "task_sheet_name":eval_config['task_sheet_name']
-                }
-                
-                # Create Evaluation Task Sheet
-                create_eval_task_sheet_response = client.create_task_sheet(payload=eval_payload)
-                print("\n\nNow, creating Evaluation Task Sheet...\nResponse:")
-                print(json.dumps(create_eval_task_sheet_response, indent=4))  # Pretty print the response
-
-                # Extract eval_task_sheet_id from the response and run the evaluation task sheet
-                eval_task_sheet_id = create_eval_task_sheet_response.get('task_sheet_id')
-                if eval_task_sheet_id:
-                    #print(f"\n\n Extracted Evaluation Task Sheet ID: {eval_task_sheet_id}")
-
-                    # Run Evaluation Task Sheet with the extracted task_sheet_id
-                    run_eval_task_sheet_response = client.run_task_sheet(task_sheet_id=eval_task_sheet_id)
-                    print("\n\nRunning Evaluation Task Sheet.....\nResponse:")
-                    print(json.dumps(run_eval_task_sheet_response, indent=4))  # Pretty print the response
-                    print("\nEvaluation Task sheet is running Successfully !")
-                else:
-                    print("Evaluation Task Sheet ID not found in the response.")
-            else:
-                print("XAI Task Ticket not found in the response.")
-        else:
-            print("XAI Task Sheet ID not found in the response.")
-    else:
-        print("Required executor IDs are not available.")
-
-    # Fetch all existing pipelines
-    pipelines = client.get_all_pipelines()
-    # print(pipelines)  # Print the fetched pipelines
-
-    # Get the latest pipeline index
-    latest_index = get_latest_pipeline_index(pipelines)
-    # print(latest_index)  # Print the latest index
-
-    # Increment the index
-    new_index = latest_index + 1
-
-    # Update the pipeline name in the configuration
-    config['pipeline']['name'] = f"pipeline{new_index}"
-    # print(config['pipeline']['name'])  # Print the updated pipeline name
-
-
-    # GET Task Sheets
-    task_sheet_response = client.get_task_sheet()
-
-    #Extracting xai and Evaluation task_sheet_ids
-    xai_task_sheet_id = None
-    evaluation_task_sheet_id = None
-
-    for sheet in task_sheet_response:
-        task_type = sheet.get('task_type')
-        task_sheet_id = sheet.get('task_sheet_id')
-        
-        if task_type == 'xai' and task_sheet_id:
-            xai_task_sheet_id = task_sheet_id
-        elif task_type == 'evaluation' and task_sheet_id:
-            evaluation_task_sheet_id = task_sheet_id
-
-    # Check if both xai and evaluation task_sheet_ids are extracted
-    if xai_task_sheet_id and evaluation_task_sheet_id:
-        # Create Pipeline
-        pipeline_config = config['pipeline']
-        create_pipeline_response = client.create_pipeline(
-            pipeline_name=pipeline_config['name'],
-            xai_task_sheet_id=xai_task_sheet_id,
-            evaluation_task_sheet_id=evaluation_task_sheet_id
-        )
-        #print(create_pipeline_response)
-
-        # Extract pipeline_id from the response
-        pipeline_id = create_pipeline_response.get('pipeline_id')
-        if pipeline_id:
-            # Run Pipeline with the extracted pipeline_id
-            print("\n\nRunning Pipeline.....\n")
-            run_pipeline_response = client.run_pipeline(pipeline_id=pipeline_id)
-            print(f"Pipeline with the pipeline Id:{pipeline_id}. Created Successfully !!!")
-        else:
-            print("Pipeline ID not found in the response.")
-    else:
-        print("Either XAI or Evaluation Task Sheet ID not found.")

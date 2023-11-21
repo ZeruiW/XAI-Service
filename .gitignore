@@ -11,6 +11,8 @@ Backup_model/
 *.sav
 *.data
 .env
+.env.dev
+.env.prod
 **tmp**
 
 .DS_Store

@@ -2,8 +2,6 @@ import io
 import os
 import json
 import torch
-import base64
-import copy
 from torchvision import models
 import torchvision.transforms as transforms
 from PIL import Image

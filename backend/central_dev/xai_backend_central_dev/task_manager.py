@@ -17,7 +17,7 @@ def __get_random_string_no_low__(length):
 
 class TaskComponent():
 
-    def __init__(self, component_name: str, component_path: str, context_path: str, mongo=True) -> None:
+    def __init__(self, component_name: str, component_path: str, context_path: str, mongo=False) -> None:
         self.context_path = context_path
 
         self.component_name = component_name

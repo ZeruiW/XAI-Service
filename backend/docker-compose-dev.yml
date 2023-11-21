@@ -1,46 +1,45 @@
 version: "3"
 services:
-    central:
-        build:
-            args:
-                ENV: dev
+    mongo:
+        image: mongo
+        # restart: always
+        environment:
+            MONGO_INITDB_ROOT_USERNAME: root
+            MONGO_INITDB_ROOT_PASSWORD: example
+        ports:
+            - 27017:27017
         volumes:
-            - ./mongo.dev.conf:/central/mongo.dev.conf
+            - mongo:/data
 
-    model_service_rn50_1:
-        build:
-            args:
-                ENV: dev
-        networks:
-            xainet:
-                ipv4_address: 172.16.10.2
-    db_service_imgnet_1000:
-        build:
-            args:
-                ENV: dev
-        networks:
-            xainet:
-                ipv4_address: 172.16.10.3
+    azure_blob:
+        env_file:
+            - ./.env.dev
+        depends_on:
+            - mongo
 
-    xai_service_pytorch_cam:
-        build:
-            args:
-                ENV: dev
-        networks:
-            xainet:
-                ipv4_address: 172.16.10.4
+    central:
+        env_file:
+            - ./.env.dev
+        depends_on:
+            - mongo
+            - azure_blob
 
-    evaluation_service:
-        build:
-            args:
-                ENV: dev
-        networks:
-            xainet:
-                ipv4_address: 172.16.10.5
+    resnet50:
+        env_file:
+            - ./.env.dev
+        depends_on:
+            - central
 
-networks:
-    xainet:
-        driver: bridge
-        ipam:
-            config:
-                - subnet: 172.16.10.0/24
+    grad_cam:
+        env_file:
+            - ./.env.dev
+        depends_on:
+            - central
+        environment:
+            - CAM_METHOD=grad-cam
+
+    eval:
+        env_file:
+            - ./.env.dev
+        depends_on:
+            - central

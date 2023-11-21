@@ -43,7 +43,7 @@ def getSystemInfo():
 class TaskExecutor(TaskComponent):
 
     # TODO: executor process db
-    def __init__(self, executor_name: str, component_path: str, context_path: str,  mongo=True) -> None:
+    def __init__(self, executor_name: str, component_path: str, context_path: str,  mongo=False) -> None:
         super().__init__(executor_name, component_path, context_path, mongo)
 
         self.process_holder = {}

@@ -20,9 +20,10 @@ from xai_backend_central_dev.azure_blob_helper import AZ
 
 class TaskPublisher(TaskComponent):
 
-    def __init__(self, publisher_name: str, component_path: str, import_name: str, context_path: str) -> None:
+    def __init__(self, publisher_name: str, component_path: str, import_name: str, context_path: str, mongo=True) -> None:
 
-        super().__init__(publisher_name, component_path, context_path=context_path)
+        super().__init__(publisher_name, component_path,
+                         context_path=context_path, mongo=mongo)
         self.publisher_name = publisher_name
         self.import_name = import_name
 
@@ -616,7 +617,8 @@ class TaskPipeline():
             TaskInfo.task_sheet_id: task_sheet_id
         })
 
-        task_name = task_sheet[TaskSheet.task_sheet_name] + f"-#{len(tasks_under_this_task_sheet)}"
+        task_name = task_sheet[TaskSheet.task_sheet_name] + \
+            f"-#{len(tasks_under_this_task_sheet)}"
 
         task_sheet = self.get_task_sheet([task_sheet_id])[0]
         task_type = task_sheet[TaskSheet.task_type]

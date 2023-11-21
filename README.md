@@ -1,3 +1,21 @@
+## Important Update
+
+1. `az_blob_connection_str.json` and `mongo.*.conf` are no longer required. All configuration goes to `.env.dev` and `.end.pred. For instance, the following environment variables are required:
+
+   ``` properties
+   ENV=dev
+   MONGO_CONF_STR=
+   AZ_BLOB_STR=
+   ```
+
+
+
+## Local Dev with Flask
+
+Before you start, please have your `.env.dev` file ready with the required environment variables.
+
+
+
 1. Start mongo container
 
    ```bash
@@ -6,50 +24,39 @@
 
 2. Start Central:
 
-   ``` bash
+   ```bash
    pip install -q backend/central_dev/. && flask --app 'backend/central:create_app("dev")' run -p 5006
    ```
 
 3. Start Azure blob service
 
-   Please have a `backend/db_service/azure_blob/azure_blob_storage/tmp/az_blob_connection_str.json` file and provide the connection string:
-   ``` json
-   {
-       "connection_str": "ask Jun for the private key"
-   }
-   ```
-
-   Then run:
-
-   ``` bash
-   flask --app backend/db_service/azure_blob run -p 5009  
+   ```bash
+   flask --app backend/db_service/azure_blob run -p 5009
    ```
 
 4. Start ResNet50:
 
-   ``` bash
-   flask --app backend/model_service/resnet50 run -p 5001      
+   ```bash
+   flask --app backend/model_service/resnet50 run -p 5001
    ```
 
 5. Start Grad-CAM XAI:
 
-   ``` bash
+   ```bash
    flask --app 'backend/xai_service/pytorch_cam:create_app(cam_method="grad-cam")' run -p 5003
    ```
 
 6. Start Eval Service:
 
-   ``` bash
+   ```bash
    flask --app backend/evaluation_service run -p 5004
    ```
 
 7. Start Frontend:
 
-   ``` bash
+   ```bash
    docker compose -f frontend-x/docker-compose.yml up fex --build
    ```
-
-
 
 Check this link for API and use case:
 
@@ -58,16 +65,49 @@ https://www.postman.com/youyinnn/workspace/concordia/collection/2019955-72d3c5f3
 1. activate the central;
 2. register db, xai, model, evaluation service;
 3. create xai tasksheet, available config for demo:
-   ``` json
+   ```json
    {
-       "method_name": "grad-cam",
-       "data_set_name": "imagenet1000",
-       "data_set_group_name": "g0",
-       "model_name": "resnet50",
-       "executor_config": {
-           "use_pytorch_multiprocess": true
-       }
+     "method_name": "grad-cam",
+     "data_set_name": "imagenet1000",
+     "data_set_group_name": "g0",
+     "model_name": "resnet50",
+     "executor_config": {
+       "use_pytorch_multiprocess": true
+     }
    }
    ```
-5. run the task;
-6. check the result;
+4. run the task;
+5. check the result;
+
+
+
+## Local Dev with Docker-compose
+
+Before you start, make sure the `.env.dev` is ready.
+
+``` bash
+docker compose -f docker-compose.yml -f docker-compose-dev.yml up
+```
+
+If you want to push your changes to the docker image, use
+
+``` bash
+docker compose -f docker-compose.yml -f docker-compose-dev.yml up --build
+```
+
+
+
+Then:
+
+Please use the `http://host.docker.internal` to replace all `localhost` or `127.0.0.1` for your service registration and demonstration. For instance:
+
+![image-20231120213900357](docs/image-20231120213900357.png)
+
+and
+
+![image-20231120214042383](docs/image-20231120214042383.png)
+
+
+
+
+

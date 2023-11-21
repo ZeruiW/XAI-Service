@@ -1,8 +1,8 @@
 FROM python:3.8-slim-buster
 
 WORKDIR /db_service/azure_blob
-COPY ./db_service/azure_blob .
-COPY ./central_dev /central_dev
+COPY ./backend/db_service/azure_blob .
+COPY ./backend/central_dev /central_dev
     
 RUN apt-get update && \
     apt-get -y install gcc mono-mcs && \

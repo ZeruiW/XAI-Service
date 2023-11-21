@@ -13,26 +13,26 @@ services:
 
     azure_blob:
         env_file:
-            - ./.env.dev
+            - ./backend/.env.dev
         depends_on:
             - mongo
 
     central:
         env_file:
-            - ./.env.dev
+            - ./backend/.env.dev
         depends_on:
             - mongo
             - azure_blob
 
     resnet50:
         env_file:
-            - ./.env.dev
+            - ./backend/.env.dev
         depends_on:
             - central
 
     grad_cam:
         env_file:
-            - ./.env.dev
+            - ./backend/.env.dev
         depends_on:
             - central
         environment:
@@ -40,6 +40,6 @@ services:
 
     eval:
         env_file:
-            - ./.env.dev
+            - ./backend/.env.dev
         depends_on:
             - central

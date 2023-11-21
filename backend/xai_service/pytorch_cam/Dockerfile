@@ -1,8 +1,8 @@
 FROM python:3.8-slim-buster
 
 WORKDIR /xai_service/pytorch_cam
-COPY ./xai_service/pytorch_cam .
-COPY ./central_dev /central_dev
+COPY ./backend/xai_service/pytorch_cam .
+COPY ./backend/central_dev /central_dev
 
 RUN apt-get update && \
     apt-get -y install gcc mono-mcs && \

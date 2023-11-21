@@ -1,8 +1,8 @@
 FROM python:3.8-slim-buster
 
 WORKDIR /model_service/resnet50
-COPY ./model_service/resnet50 .
-COPY ./central_dev /central_dev
+COPY ./backend/model_service/resnet50 .
+COPY ./backend/central_dev /central_dev
 
 RUN apt-get update && \
     apt-get -y install gcc mono-mcs && \

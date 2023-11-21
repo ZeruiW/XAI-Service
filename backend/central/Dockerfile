@@ -2,8 +2,8 @@ FROM python:3.8-slim-buster
 
 
 WORKDIR /central
-COPY ./central .
-COPY ./central_dev /central_dev
+COPY ./backend/central .
+COPY ./backend/central_dev /central_dev
 
 RUN apt-get update && \
     apt-get -y install gcc mono-mcs && \

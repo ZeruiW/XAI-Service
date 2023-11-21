@@ -19,7 +19,7 @@ Before you start, please have your `.env.dev` file ready with the required envir
 1. Start mongo container
 
    ```bash
-   docker compose -f backend/docker-compose.yml -f backend/docker-compose-dev.yml up mongo --build
+   docker compose -f ./backend/docker-compose.yml -f ./backend/docker-compose-dev.yml --project-directory . up mongo --build
    ```
 
 2. Start Central:
@@ -55,7 +55,7 @@ Before you start, please have your `.env.dev` file ready with the required envir
 7. Start Frontend:
 
    ```bash
-   docker compose -f frontend-x/docker-compose.yml up fex --build
+   docker compose -f frontend-x/docker-compose.yml --project-directory . -p frontend up fex --build
    ```
 
 Check this link for API and use case:
@@ -81,25 +81,25 @@ https://www.postman.com/youyinnn/workspace/concordia/collection/2019955-72d3c5f3
 
 
 
-## Local Dev with Docker-compose
+## Local Dev with Docker and Docker-compose
 
-Before you start, make sure the `.env.dev` is ready.
+Before you start, make sure the `.env.dev` is ready and make sure you are in the location of the project root.
 
 ``` bash
-docker compose -f docker-compose.yml -f docker-compose-dev.yml up
+docker compose -f ./backend/docker-compose.yml -f ./backend/docker-compose-dev.yml --project-directory . up
 ```
 
 If you want to push your changes to the docker image, use
 
 ``` bash
-docker compose -f docker-compose.yml -f docker-compose-dev.yml up --build
+docker compose -f ./backend/docker-compose.yml -f ./backend/docker-compose-dev.yml --project-directory . up --build         
 ```
 
 
 
 Then:
 
-Please use the `http://host.docker.internal` to replace all `localhost` or `127.0.0.1` for your service registration and demonstration. For instance:
+Please use http://host.docker.internal` to replace all `localhost` or `127.0.0.1` for your service registration and demonstration. For instance:
 
 ![image-20231120213900357](docs/image-20231120213900357.png)
 
@@ -109,5 +109,9 @@ and
 
 
 
+If you want to build a single service:
 
+``` bash
+docker build . -f ./backend/central/Dockerfile -t central
+```
 

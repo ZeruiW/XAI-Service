@@ -2,7 +2,7 @@ version: "3"
 services:
     central:
         build:
-            dockerfile: ./central/Dockerfile
+            dockerfile: ./backend/central/Dockerfile
         ports:
             - 5006:5006
         volumes:
@@ -10,7 +10,7 @@ services:
 
     azure_blob:
         build:
-            dockerfile: ./db_service/azure_blob/Dockerfile
+            dockerfile: ./backend/db_service/azure_blob/Dockerfile
         ports:
             - 5009:5009
         volumes:
@@ -18,7 +18,7 @@ services:
 
     resnet50:
         build:
-            dockerfile: ./model_service/resnet50/Dockerfile
+            dockerfile: ./backend/model_service/resnet50/Dockerfile
         ports:
             - 5001:5001
         volumes:
@@ -27,7 +27,7 @@ services:
     grad_cam:
         # platform: linux/amd64
         build:
-            dockerfile: ./xai_service/pytorch_cam/Dockerfile
+            dockerfile: ./backend/xai_service/pytorch_cam/Dockerfile
         ports:
             - 5003:5003
         volumes:
@@ -35,7 +35,7 @@ services:
 
     eval:
         build:
-            dockerfile: ./evaluation_service/Dockerfile
+            dockerfile: ./backend/evaluation_service/Dockerfile
         ports:
             - 5004:5004
         volumes:
@@ -43,7 +43,7 @@ services:
 
     # azure-cog:
     #     build:
-    #         dockerfile: ./model_service/azure_cog/Dockerfile
+    #         dockerfile: ./backend/model_service/azure_cog/Dockerfile
     #     ports:
     #         - 5007:5007
     #     volumes:

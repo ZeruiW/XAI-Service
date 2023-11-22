@@ -1,230 +1,117 @@
-## docker-compose up --build
+## Important Update
 
-Check routes
+1. `az_blob_connection_str.json` and `mongo.*.conf` are no longer required. All configuration goes to `.env.dev` and `.end.pred. For instance, the following environment variables are required:
 
-```bash
-flask --app db_service routes
-flask --app model_service/resnet50 routes
-flask --app xai_service/pytorch_cam routes
-
-```
-
-Run debug mode
-
-```bash
-flask --app model_service/resnet50 --debug run -p 5001
-flask --app db_service --debug run -p 5002
-flask --app xai_service/pytorch_cam --debug run -p 5003
-flask --app evaluation_service --debug run -p 5004
-```
-
-# XAI Service Frontend
-
-This is the frontend for the eXplainable AI service.
-
-The project uses [Next.js](https://nextjs.org) framework, styled with [Tailwindcss](https://tailwindcss.com), and [Prisma ORM](https://prisma.io).
-
-It is hosted on [Vercel](https://vercel.com).
-
-## Development Prequisites:
-
--   Node >= `18.x`
--   npm >= `8.18.0`
--   Docker Engine
-
-## Quickstart
-
--   Configure your `.env` environment variables from `.env.template`
--   Clone the project: `git clone https://github.com/ZeruiW/XAI-Service`
--   Change directory into cloned folder: `cd XAI-Service`
--   Install node depencies: `npm i`
--   Start development server: `npm run dev`
-
-# XAI Service Backend
-
-### Example XAI task setting
-{"method_name":"hirescam","data_set_name":"azure_cog","data_set_group_name":"1500","model_name":"resnet50"}
-### Example evaluation task setting
-{"explanation_task_ticket":"CRx1G9HCKKsh4Qs.9OF7NXAJSL"}
-## Local Dev
-
-### MongoDB
-
-Please have the `mongo.dev.conf` or `mongo.pred.conf` under the backend folder.
-
-``` properties
-conn_str=<<your mongodb url str>>
-```
-
-
-
-### Azure Blob Service
-
-Please have the `az_blob_connection_str.json`  under the backend folder:
-
-1. `backend/central/central_storage/tmp/az_blob_connection_str.json`;
-2. `backend/db_service/azure_blob/azure_blob_storage/tmp/az_blob_connection_str.json`
-
-The file is private, if you need them, please contact JUN. Or you can deploy your own Azure Blob Service.
-
-### Run In Different Env Mode
-
-Please use:
-
-``` bash
-flask --app 'backend/central:create_app("dev")' run -p 5006
-```
-
-or 
-
-``` bash
-flask --app 'backend/central:create_app("pred")' run -p 5006
-```
-
-to start the flask application.
-
-
-
-## Run Docker in Dev Env
-
-### 1. Start-Up Local MySQL
-
-If you are the first time, please also create a volume for MySQL.
-
-``` bash
-docker volume create xaifw-mysql
-```
-
-Then:
-
-``` bash
-docker compose -f backend/db_service/docker-compos-mysql.yaml up -d
-```
-
-### 2. Volume for All the Services
-
-``` bash
-docker volume create xai_fw_volumes
-```
-
-### 3. Bring Up Services
-
-```bash
-docker compose -f backend/docker-compose.yml -f backend/docker-compose-dev.yml up --build
-```
-
-Or for single service:
-
-```bash
-docker compose -f backend/docker-compose.yml -f backend/docker-compose-dev.yml up [service_name] --build
-```
-
-
-
-## Critical Update
-
-### Jan 20th 
-
-1. Azure Blob Service;
-
-2. Densenet121 service:
-
-   ``` bash
-   flask --app backend/model_service/densenet121 run -p 5010
+   ``` properties
+   ENV=dev
+   MONGO_CONF_STR=
+   AZ_BLOB_STR=
    ```
 
-3. multiple cam method support
 
-   To start grad-cam:
 
-   ``` bash
+## Local Dev with Flask
+
+Before you start, please have your `.env.dev` file ready with the required environment variables.
+
+
+
+1. Start mongo container
+
+   ```bash
+   docker compose -f ./backend/docker-compose.yml -f ./backend/docker-compose-dev.yml --project-directory . up mongo --build
+   ```
+
+2. Start Central:
+
+   ```bash
+   pip install -q backend/central_dev/. && flask --app 'backend/central:create_app("dev")' run -p 5006
+   ```
+
+3. Start Azure blob service
+
+   ```bash
+   flask --app backend/db_service/azure_blob run -p 5009
+   ```
+
+4. Start ResNet50:
+
+   ```bash
+   flask --app backend/model_service/resnet50 run -p 5001
+   ```
+
+5. Start Grad-CAM XAI:
+
+   ```bash
    flask --app 'backend/xai_service/pytorch_cam:create_app(cam_method="grad-cam")' run -p 5003
    ```
 
-   or just
+6. Start Eval Service:
 
-   ``` bash
-   flask --app backend/xai_service/pytorch_cam run -p 5003
+   ```bash
+   flask --app backend/evaluation_service run -p 5004
    ```
 
-   Then the service endpoint is same as before:
+7. Start Frontend:
 
-   http://127.0.0.1:5003/xai/pt_cam
-
-   To start other cams, like `grad-camew`:
-
-   ``` bash
-   flask --app 'backend/xai_service/pytorch_cam:create_app(cam_method="grad-camew")' run -p 5011
+   ```bash
+   docker compose -f frontend-x/docker-compose.yml --project-directory . -p frontend up fex --build
    ```
 
-   The service endpoint will be:
+Check this link for API and use case:
 
-   http://127.0.0.1:5011/xai/pt_cam/grad-camew
+https://www.postman.com/youyinnn/workspace/concordia/collection/2019955-72d3c5f3-2070-4bba-97de-d5990085b20e?action=share&creator=2019955&active-environment=2019955-c8be28eb-2739-48db-89b7-a74fc752029c
 
-   Cam method List:
-
-   ``` python
-   if cam_method == None or cam_method == 'grad-cam':
-       cam = GradCAM(**cam_kws)
-   
-   if cam_method == 'hirescam':
-       cam = HiResCAM(**cam_kws)
-   
-   if cam_method == 'scorecam':
-       cam = ScoreCAM(**cam_kws)
-   
-   if cam_method == 'grad-campp':
-       cam = GradCAMPlusPlus(**cam_kws)
-   
-   if cam_method == 'ablationcam':
-       cam = AblationCAM(**cam_kws)
-   
-   if cam_method == 'xgrad-cam':
-       cam = XGradCAM(**cam_kws)
-   
-   if cam_method == 'eigencam':
-       cam = EigenCAM(**cam_kws)
-   
-   if cam_method == 'eigengrad-cam':
-       cam = EigenGradCAM(**cam_kws)
-   
-   if cam_method == 'layercam':
-       cam = LayerCAM(**cam_kws)
-   
-   if cam_method == 'fullgrad':
-       cam = FullGrad(**cam_kws)
-   
-   if cam_method == 'grad-camew':
-       cam = GradCAMElementWise(**cam_kws)
+1. activate the central;
+2. register db, xai, model, evaluation service;
+3. create xai tasksheet, available config for demo:
+   ```json
+   {
+     "method_name": "grad-cam",
+     "data_set_name": "imagenet1000",
+     "data_set_group_name": "g0",
+     "model_name": "resnet50",
+     "executor_config": {
+       "use_pytorch_multiprocess": true
+     }
+   }
    ```
+4. run the task;
+5. check the result;
 
-   
 
-​	
 
-## Requirements
+## Local Dev with Docker and Docker-compose
 
-### Platforms
+Before you start, make sure the `.env.dev` is ready and make sure you are in the location of the project root.
 
--   [ ] Linux x86-64:
-    -   [x] Ubuntu 22.04 LTS (Best)
-    -   [x] Debian 11 "Bullseye" Stable branch
-    -   [x] RHEL 8
-    -   [ ] Arch
--   [x] macOS x86-64 / ARM64 (local dev only)
--   [x] Windows x86-64:
-    -   [x] Windows 10 >= 1909 update
-    -   [x] Windows 11
+``` bash
+docker compose -f ./backend/docker-compose.yml -f ./backend/docker-compose-dev.yml --project-directory . up
+```
 
-### Hardware Acceleration
+If you want to push your changes to the docker image, use
 
--   [ ] NVIDIA CUDA Library
--   [ ] Vulkan
+``` bash
+docker compose -f ./backend/docker-compose.yml -f ./backend/docker-compose-dev.yml --project-directory . up --build         
+```
 
-## TODOs
 
-Tasks and child tasks are priority tagged starting from 0 as the highest priority. E.g. `P0`, `P1`,...`Pn`. Finished tasks are stripped of the priority tag.
 
-For maintainers, it is advised to follow the Notion documentation (shared internally) as the single source of truth.
+Then:
 
-Progress moved to [Github Projects](https://github.com/users/ZeruiW/projects/4)
+Please use http://host.docker.internal` to replace all `localhost` or `127.0.0.1` for your service registration and demonstration. For instance:
+
+![image-20231120213900357](docs/image-20231120213900357.png)
+
+and
+
+![image-20231120214042383](docs/image-20231120214042383.png)
+
+
+
+If you want to build a single service:
+
+``` bash
+docker build . -f ./backend/central/Dockerfile -t central
+```
+

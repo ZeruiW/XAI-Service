@@ -7,9 +7,11 @@ from xai_backend_central_dev.flask_manager import ExecutorBluePrint
 from xai_backend_central_dev import azure_blob_helper
 
 from tqdm import tqdm
+from xai_backend_central_dev.performance_metrics import performance_metrics
+
 
 bp = ExecutorBluePrint(
-    'azure_blob', __name__, component_path=__file__, url_prefix='/azure_blob', mongo=False)
+    'azure_blob', __name__, component_path=__file__, url_prefix='/azure_blob')
 
 az = azure_blob_helper.AZ()
 
@@ -21,6 +23,7 @@ def blob_data():
 
 
 @bp.route('/', methods=['GET', 'POST'])
+@performance_metrics
 def blob():
     if request.method == 'GET':
         data_set_name = request.args.get('data_set_name')

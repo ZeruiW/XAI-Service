@@ -1,0 +1,1 @@
+{"response_time": 0.29992198944091797, "memory_delta": 487424, "api_call_count": 1, "cpu_usage": -0.4, "gpu_memory_delta": 0, "complexity": 12}

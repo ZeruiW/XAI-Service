@@ -1,6 +1,12 @@
 Flask >= 2.2
+Werkzeug==2.2.2
 tinydb
 python-dotenv
 flask-cors
 pymongo
 codecarbon
+azure-storage-blob 
+azure-identity
+radon
+torch
+Pillow

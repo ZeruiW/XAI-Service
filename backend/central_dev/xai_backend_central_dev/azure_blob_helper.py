@@ -27,23 +27,19 @@ class AZ():
         self.container = container
         self.domain = domain
 
-        connection_str_path = os.path.join(
-            os.environ['COMPONENT_TMP_DIR'], 'az_blob_connection_str.json')
+        AZ_BLOB_STR = os.environ.get('AZ_BLOB_STR')
 
-        if not os.path.exists(connection_str_path):
-            print(f'Please provide azure blob connection key at: ',
-                  connection_str_path)
+        if AZ_BLOB_STR is None:
+            print(
+                f"Please have AZ_BLOB_STR settings in for environment for Azure Blob settings.")
             exit(1)
-
-        with open(connection_str_path) as f:
-            connection_str = json.load(f)['connection_str']
 
         try:
             # Quickstart code goes here
             # Create the BlobServiceClient object
+            print(f"Try to connect the Azure Blob server: {AZ_BLOB_STR}")
             self.blob_service_client = BlobServiceClient.from_connection_string(
-                connection_str)
-            print("Azure Blob: Connected")
+                AZ_BLOB_STR)
         except Exception:
             traceback.print_exc()
 

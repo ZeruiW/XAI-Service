@@ -320,8 +320,11 @@ def eval_task(task_ticket, publisher_endpoint_url, task_parameters):
                 score_in_original = original_pred[ground_truth_label_idx]
                 score_in_mask = mask_pred[ground_truth_label_idx]
 
-                diff = abs((score_in_original - score_in_mask) /
-                           score_in_original * 100)
+                if score_in_original == 0:
+                    diff = 0  # 或者其他适当的默认值，如 100
+                else:
+                    diff = abs((score_in_original - score_in_mask) /
+                            score_in_original * 100)
                 score_map[cam_method][file_name] = {
                     'score_original': score_in_original,
                     'score_masked': score_in_mask,

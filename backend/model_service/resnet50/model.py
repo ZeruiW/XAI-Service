@@ -2,8 +2,6 @@ import io
 import os
 import json
 import torch
-import base64
-import copy
 from torchvision import models
 import torchvision.transforms as transforms
 from PIL import Image
@@ -11,6 +9,7 @@ from flask import (
     request, jsonify, send_file, Response
 )
 from xai_backend_central_dev.flask_manager import ExecutorBluePrint
+from xai_backend_central_dev.performance_metrics import performance_metrics
 
 import numpy as np
 
@@ -53,6 +52,7 @@ def get_prediction(imgs):
 
 
 @ebp.route('/', methods=['GET', 'POST'])
+@performance_metrics
 def pred():
     if request.method == 'POST':
         files = request.files

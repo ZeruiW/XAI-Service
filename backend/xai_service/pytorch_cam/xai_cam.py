@@ -18,9 +18,11 @@ print('Platform:')
 print(platform.platform())
 print('--------')
 
-varient = '' if os.environ.get(
-    'cam_method') == 'grad-cam' else f"/{os.environ.get('cam_method')}"
+env_cam_method = os.environ.get('CAM_METHOD')
+varient = '' if (env_cam_method ==
+                 'grad-cam' or env_cam_method is None) else env_cam_method
 
+# TODO: CAM PATH
 url_prefix = f'/xai/pt_cam{varient}'
 
 ebp = ExecutorBluePrint(

@@ -1,0 +1,7 @@
+Flask >= 2.2
+mysql-connector-python
+Pillow
+numpy
+flask-cors
+prometheus-client
+python-dotenv

@@ -7,6 +7,8 @@ COPY ./frontend-x .
 RUN yarn set version stable && \
     yarn install
 
+RUN source .env
+
 CMD ["yarn", "dev"]
 
 # ENTRYPOINT ["tail", "-f", "/dev/null"]

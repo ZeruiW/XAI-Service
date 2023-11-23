@@ -162,7 +162,7 @@ export default {
   methods: {
     deleteServiceReg(item) {
       this.ax.post(
-        "http://127.0.0.1:5006/task_publisher/executor",
+        `${import.meta.env.VITE_BASE_URL}/task_publisher/executor`,
         {
           act: "delete",
           executor_id: item.executor_id,
@@ -199,7 +199,7 @@ export default {
         // console.log(type);
         // console.log(info);
         this.ax.post(
-          "http://127.0.0.1:5006/task_publisher/executor",
+          `${import.meta.env.VITE_BASE_URL}/task_publisher/executor`,
           {
             act: "reg",
             executor_endpoint_url: url,
@@ -223,7 +223,7 @@ export default {
     fetchExecutorList() {
       console.log("fetch service list");
       this.ax.get(
-        "http://127.0.0.1:5006/task_publisher/executor",
+        `${import.meta.env.VITE_BASE_URL}/task_publisher/executor`,
         {},
         {
           success: (response) => {

@@ -222,7 +222,7 @@ export default {
     getProvenance(cb) {
       console.log("fetch provenance");
       this.ax.get(
-        "http://127.0.0.1:5006/task_publisher/provenance",
+        `${import.meta.env.VITE_BASE_URL}/task_publisher/provenance`,
         {},
         {
           success: (response) => {

@@ -539,7 +539,7 @@ export default {
     },
     deleteTaskSheet(item) {
       this.ax.post(
-        "http://127.0.0.1:5006/task_publisher/task_sheet",
+        `${import.meta.env.VITE_BASE_URL}/task_publisher/task_sheet`,
         {
           act: "delete",
           task_sheet_id: item.task_sheet_id,
@@ -560,7 +560,7 @@ export default {
       this.trdialog = true;
       // console.log(item);
       this.ax.get(
-        "http://127.0.0.1:5006/task_publisher/task_result",
+        `${import.meta.env.VITE_BASE_URL}/task_publisher/task_result`,
         {
           task_ticket: item.task_ticket,
         },
@@ -588,7 +588,7 @@ export default {
     },
     deleteATask(item) {
       this.ax.post(
-        "http://127.0.0.1:5006/task_publisher/task",
+        `${import.meta.env.VITE_BASE_URL}/task_publisher/task`,
         {
           act: "delete",
           task_ticket: item.task_ticket,
@@ -604,7 +604,7 @@ export default {
     },
     stopATask(item) {
       this.ax.post(
-        "http://127.0.0.1:5006/task_publisher/task",
+        `${import.meta.env.VITE_BASE_URL}/task_publisher/task`,
         {
           act: "stop",
           task_ticket: item.task_ticket,
@@ -621,7 +621,7 @@ export default {
     runTaskFromTaskSheet() {
       console.log(this.current_task_sheet_id);
       this.ax.post(
-        "http://127.0.0.1:5006/task_publisher/task_sheet",
+        `${import.meta.env.VITE_BASE_URL}/task_publisher/task_sheet`,
         {
           act: "run",
           task_sheet_id: this.current_task_sheet_id,
@@ -641,7 +641,7 @@ export default {
     fetchTaskList(task_sheet_id) {
       console.log("fetch task list");
       this.ax.get(
-        "http://127.0.0.1:5006/task_publisher/task",
+        `${import.meta.env.VITE_BASE_URL}/task_publisher/task`,
         {
           task_sheet_id,
         },
@@ -695,7 +695,7 @@ export default {
     },
     fetchServiceList() {
       this.ax.get(
-        "http://127.0.0.1:5006/task_publisher/executor",
+        `${import.meta.env.VITE_BASE_URL}/task_publisher/executor`,
         {},
         {
           success: (response) => {
@@ -778,7 +778,7 @@ export default {
       // console.log(task_parameters);
       if (valid) {
         this.ax.post(
-          "http://127.0.0.1:5006/task_publisher/task_sheet",
+          `${import.meta.env.VITE_BASE_URL}/task_publisher/task_sheet`,
           {
             act: "create",
             task_sheet_name,
@@ -805,7 +805,7 @@ export default {
     fetchTaskSheetList() {
       console.log("fetch task sheet list");
       this.ax.get(
-        "http://127.0.0.1:5006/task_publisher/task_sheet",
+        `${import.meta.env.VITE_BASE_URL}/task_publisher/task_sheet`,
         {},
         {
           success: (response) => {

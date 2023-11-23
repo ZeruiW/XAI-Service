@@ -1,20 +1,25 @@
 ## Important Update
 
-1. `az_blob_connection_str.json` and `mongo.*.conf` are no longer required. All configuration goes to `.env.dev` and `.end.pred. For instance, the following environment variables are required:
+1. `az_blob_connection_str.json` and `mongo.*.conf` are no longer required. All configuration goes to `.env.dev` or `.end.pred.` For instance, the following environment variables are required:
 
-   ``` properties
+   ```properties
    ENV=dev
    MONGO_CONF_STR=
    AZ_BLOB_STR=
    ```
 
+2. For the frontend:
 
+   Make sure you have the `.env` file in `frontend-x`:
+
+   ```properties
+   VITE_ENV=dev
+   VITE_BASE_URL=http://127.0.0.1:5006/
+   ```
 
 ## Local Dev with Flask
 
 Before you start, please have your `.env.dev` file ready with the required environment variables.
-
-
 
 1. Start mongo container
 
@@ -79,23 +84,19 @@ https://www.postman.com/youyinnn/workspace/concordia/collection/2019955-72d3c5f3
 4. run the task;
 5. check the result;
 
-
-
 ## Local Dev with Docker and Docker-compose
 
-Before you start, make sure the `.env.dev` is ready and make sure you are in the location of the project root.
+Before you start, make sure (1) the `.env.dev` is ready and (2) you are in the location of the project root.
 
-``` bash
+```bash
 docker compose -f ./backend/docker-compose.yml -f ./backend/docker-compose-dev.yml --project-directory . up
 ```
 
 If you want to push your changes to the docker image, use
 
-``` bash
-docker compose -f ./backend/docker-compose.yml -f ./backend/docker-compose-dev.yml --project-directory . up --build         
+```bash
+docker compose -f ./backend/docker-compose.yml -f ./backend/docker-compose-dev.yml --project-directory . up --build
 ```
-
-
 
 Then:
 
@@ -107,11 +108,8 @@ and
 
 ![image-20231120214042383](docs/image-20231120214042383.png)
 
-
-
 If you want to build a single service:
 
-``` bash
+```bash
 docker build . -f ./backend/central/Dockerfile -t central
 ```
-

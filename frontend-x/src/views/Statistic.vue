@@ -354,7 +354,7 @@ export default {
     },
     fetchTasks(cb) {
       this.ax.get(
-        "http://127.0.0.1:5006/task_publisher/task",
+        `${import.meta.env.VITE_BASE_URL}/task_publisher/task`,
         {},
         {
           success: (response) => {

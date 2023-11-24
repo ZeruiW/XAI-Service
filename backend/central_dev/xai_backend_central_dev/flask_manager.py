@@ -9,7 +9,6 @@ from flask import (
 from xai_backend_central_dev.task_executor import TaskExecutor
 import xai_backend_central_dev.constant.ExecutorRegInfo as ExecutorRegInfo
 import xai_backend_central_dev.constant.TaskInfo as TaskInfo
-import xai_backend_central_dev.constant.TaskSheet as TaskSheet
 
 from flask_cors import CORS
 
@@ -44,7 +43,7 @@ def set_app(app: Flask):
 
 class ExecutorBluePrint(Blueprint):
 
-    def __init__(self, name, import_name, component_path, *args, mongo=True, **kwargs) -> None:
+    def __init__(self, name, import_name, component_path, *args, mongo=False, **kwargs) -> None:
 
         self.context_path = kwargs['url_prefix']
 

@@ -106,7 +106,7 @@ def cam_task(task_ticket, publisher_endpoint_url, task_parameters):
     if not os.path.isdir(local_exp_save_dir):
         os.makedirs(local_exp_save_dir, exist_ok=True)
 
-    cam_method = os.environ['cam_method']
+    cam_method = os.environ['CAM_METHOD']
 
     cam_kws = {
         'model': model,
@@ -221,15 +221,17 @@ def cam_task(task_ticket, publisher_endpoint_url, task_parameters):
 
     return TaskStatus.finished
 
+
 def generate_gradcam(image, model_path, model_name='resnet50', cam_method='grad-cam'):
     """Generate GradCAM and return as numpy array and plt."""
-    
+
     # Load model
     if model_name.lower().startswith('resnet'):
         model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
         target_layers = [model.layer4]
     if model_name.lower().startswith('densenet'):
-        model = models.densenet121(weights=models.DenseNet121_Weights.IMAGENET1K_V1)
+        model = models.densenet121(
+            weights=models.DenseNet121_Weights.IMAGENET1K_V1)
         target_layers = [model.features[-1]]
 
     if model == None:
@@ -276,6 +278,7 @@ def generate_gradcam(image, model_path, model_name='resnet50', cam_method='grad-
     im = ax.imshow(grayscale_cam)
 
     return grayscale_cam, fig
+
 
 def bytes_to_pil_image(b):
     return Image.open(io.BytesIO(base64.b64decode(b))).convert(

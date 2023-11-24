@@ -11,40 +11,33 @@ class Mon:
 
     def __init__(self) -> None:
 
-        mode = os.environ['ENV']
+        MONGO_CONF_STR = os.environ.get('MONGO_CONF_STR')
 
-        mongo_conf = f'mongo.{mode}.conf'
-        for f in glob.glob(os.path.join(os.getcwd(), '**', mongo_conf), recursive=True):
-            mongo_conf = f
-
-        if not os.path.exists(mongo_conf):
-            print(f"Please have {mongo_conf} for mongodb settings.")
+        if MONGO_CONF_STR is None:
+            print(
+                f"Please have MONGO_CONF_STR settings in for environment for mongodb settings.")
             exit(1)
-
-        config = dotenv_values(mongo_conf)
-
-        if config.get('conn_str') is None:
-            print(f"Please have 'conn_str' for mongodb settings.")
-            exit(1)
-
-        conn_str = config.get('conn_str')
 
         try:
-            print(f"Try to connect the mongodb server: {conn_str}")
-            client = pymongo.MongoClient(conn_str, serverSelectionTimeoutMS=5000)
+            print(f"Try to connect the mongodb server: {MONGO_CONF_STR}")
+            client = pymongo.MongoClient(
+                MONGO_CONF_STR, serverSelectionTimeoutMS=5000)
             server_info = client.server_info()
         except Exception as e:
-            print(f"**** Mongo: unable to connect to the server: {conn_str}")
-            conn_str = "mongodb://root:example@localhost:27017"
+            print(
+                f"**** Mongo: unable to connect to the server: {MONGO_CONF_STR}")
+            MONGO_CONF_STR = "mongodb://root:example@localhost:27017"
             try:
-                print(f"Try to connect the mongodb server: {conn_str}")
-                client = pymongo.MongoClient(conn_str, serverSelectionTimeoutMS=5000)
+                print(f"Try to connect the mongodb server: {MONGO_CONF_STR}")
+                client = pymongo.MongoClient(
+                    MONGO_CONF_STR, serverSelectionTimeoutMS=5000)
                 server_info = client.server_info()
             except Exception as e2:
-                print(f"**** Mongo: unable to connect to the server: {conn_str}")
+                print(
+                    f"**** Mongo: unable to connect to the server: {MONGO_CONF_STR}")
                 traceback.print_exc()
                 exit(1)
-            
+
         print(
             f"Mongo: connect to server at version {server_info['version']}")
 

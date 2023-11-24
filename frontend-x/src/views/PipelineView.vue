@@ -676,7 +676,7 @@ export default {
     fetchTaskResult(task_ticket, task_type) {
       this.trdialog = true;
       this.ax.get(
-        "http://127.0.0.1:5006/task_publisher/task_result",
+        `${import.meta.env.VITE_BASE_URL}/task_publisher/task_result`,
         {
           task_ticket,
         },
@@ -753,7 +753,7 @@ export default {
     stopARun(item) {
       const pipeline_run_ticket = item.pipeline_run_ticket;
       this.ax.post(
-        "http://127.0.0.1:5006/task_publisher/pipeline_run",
+        `${import.meta.env.VITE_BASE_URL}/task_publisher/pipeline_run`,
         {
           act: "stop",
           pipeline_run_ticket,
@@ -770,7 +770,7 @@ export default {
     deleteARun(item) {
       const pipeline_run_ticket = item.pipeline_run_ticket;
       this.ax.post(
-        "http://127.0.0.1:5006/task_publisher/pipeline_run",
+        `${import.meta.env.VITE_BASE_URL}/task_publisher/pipeline_run`,
         {
           act: "delete",
           pipeline_run_ticket,
@@ -787,7 +787,7 @@ export default {
     runCurrentPipeline() {
       console.log("run pipeline " + this.current_pipeline.pipeline_id);
       this.ax.post(
-        "http://127.0.0.1:5006/task_publisher/pipeline",
+        `${import.meta.env.VITE_BASE_URL}/task_publisher/pipeline`,
         {
           act: "run",
           pipeline_id: this.current_pipeline.pipeline_id,
@@ -853,7 +853,7 @@ export default {
       console.log("fetch pipeline run list");
       const pipeline_id = this.current_pipeline.pipeline_id;
       this.ax.get(
-        "http://127.0.0.1:5006/task_publisher/pipeline_run",
+        `${import.meta.env.VITE_BASE_URL}/task_publisher/pipeline_run`,
         {
           pipeline_id,
         },
@@ -888,7 +888,7 @@ export default {
     fetchTaskSheetList() {
       console.log("fetch task sheet list");
       this.ax.get(
-        "http://127.0.0.1:5006/task_publisher/task_sheet",
+        `${import.meta.env.VITE_BASE_URL}/task_publisher/task_sheet`,
         {},
         {
           success: (response) => {
@@ -913,7 +913,7 @@ export default {
     fetchPipeline(cb) {
       console.log("fetch pipeline");
       this.ax.get(
-        "http://127.0.0.1:5006/task_publisher/pipeline",
+        `${import.meta.env.VITE_BASE_URL}/task_publisher/pipeline`,
         {},
         {
           success: (response) => {
@@ -929,7 +929,7 @@ export default {
     },
     deletePipeline(item) {
       this.ax.post(
-        "http://127.0.0.1:5006/task_publisher/pipeline",
+        `${import.meta.env.VITE_BASE_URL}/task_publisher/pipeline`,
         {
           act: "delete",
           pipeline_id: item.pipeline_id,
@@ -954,7 +954,7 @@ export default {
 
       if (valid) {
         this.ax.post(
-          "http://127.0.0.1:5006/task_publisher/pipeline",
+          `${import.meta.env.VITE_BASE_URL}/task_publisher/pipeline`,
           {
             act: "create",
             pipeline_name,

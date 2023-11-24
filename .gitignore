@@ -11,6 +11,8 @@ Backup_model/
 *.sav
 *.data
 .env
+.env.dev
+.env.prod
 **tmp**
 
 .DS_Store
@@ -40,3 +42,5 @@ backend/xai_service/s2search
 
 .yarn
 *.bak
+backend/db_service/azure_blob/azure_blob_performance_metrics.txt
+backend/model_service/resnet50/model_performance_metrics.txt

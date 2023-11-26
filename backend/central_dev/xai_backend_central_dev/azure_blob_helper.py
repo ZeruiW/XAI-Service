@@ -37,11 +37,14 @@ class AZ():
         try:
             # Quickstart code goes here
             # Create the BlobServiceClient object
-            print(f"Try to connect the Azure Blob server: {AZ_BLOB_STR}")
+            print(f"Trying to connect the Azure Blob server: {AZ_BLOB_STR}")
             self.blob_service_client = BlobServiceClient.from_connection_string(
                 AZ_BLOB_STR)
-        except Exception:
+            print("Azure Blob: Connected successfully")
+        except Exception as e:
+            print("Failed to connect to Azure Blob:")
             traceback.print_exc()
+            raise e
 
     def upload_blob(self, data, blob_file_name, sample_metadata):
 

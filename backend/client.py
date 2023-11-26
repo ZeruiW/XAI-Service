@@ -1,10 +1,10 @@
 from xai_sdk.xai_sdk.xai_sdk import TaskPublisherClient
 import json
 
-sdk = TaskPublisherClient(base_url="http://127.0.0.1:5006")
+sdk = TaskPublisherClient(base_url="http://35.185.126.177:5006")
 
 # Activate Publisher
-#sdk.activate_publisher("http://127.0.0.1:5006")
+sdk.activate_publisher("http://35.185.126.177:5006")
 
 # Register Services
 #sdk.register_service_from_config()
@@ -19,9 +19,53 @@ sdk = TaskPublisherClient(base_url="http://127.0.0.1:5006")
 #sdk.fetch_task_sheet_info()
 
 #Create and run pipelines paralelly
-sdk.create_and_run_pipeline_from_config()
+#sdk.create_and_run_pipeline_from_config()
+
+#sdk.get_all_pipelines
 
 
+
+
+
+# # Delete pipeline
+# response_delete_pipeline = sdk.delete_pipeline("some_pipeline_id")
+
+# # Get all pipelines
+# response_get_all_pipelines = sdk.get_all_pipelines()
+
+# # Delete Task sheet
+# response_delete_task_sheet = sdk.delete_task_sheet("some_task_sheet_id")
+
+# # GET Task Sheet
+# response_get_task_sheet = sdk.get_task_sheet()
+
+# # GET Task Sheet by task_sheet_id
+# response_get_task_sheet_by_id = sdk.get_task_sheet_by_task_sheet_id(["list_of_task_sheet_ids"])
+
+# # Get Task info from task_ticket_id or task_sheet_id
+# response_get_task = sdk.get_task("some_task_ticket", "some_task_sheet_id")
+
+# # Get Task Result
+# response_task_result = sdk.task_result("some_task_ticket")
+
+# # Update Task status
+# response_update_task_status = sdk.update_task_status("some_task_ticket", "some_task_status", {"running_info_key": "running_info_value"})
+
+# # Stop task
+# response_stop_task = sdk.stop_task("some_task_ticket")
+
+# # Delete task
+# response_delete_task = sdk.delete_task("some_task_ticket")
+
+
+
+
+
+
+
+
+
+#-----------------------------------Passing Functions manually-----------------------------------
 # # Register services
 # sdk.register(executor_endpoint_url="http://127.0.0.1:5009/azure_blob", executor_type="db", 
 #              executor_info={"exp_name": "db"})
@@ -92,55 +136,3 @@ sdk.create_and_run_pipeline_from_config()
 # # Run pipeline
 # response_run_pipeline = sdk.run_pipeline(pipeline_id)
 # print(f"Running pipeline successfully with the Id: {response_run_pipeline}")
-
-
-#--------------------Config function calls--------------------------------
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# # Delete pipeline
-# response_delete_pipeline = sdk.delete_pipeline("some_pipeline_id")
-
-# # Get all pipelines
-# response_get_all_pipelines = sdk.get_all_pipelines()
-
-# # Delete Task sheet
-# response_delete_task_sheet = sdk.delete_task_sheet("some_task_sheet_id")
-
-# # GET Task Sheet
-# response_get_task_sheet = sdk.get_task_sheet()
-
-# # GET Task Sheet by task_sheet_id
-# response_get_task_sheet_by_id = sdk.get_task_sheet_by_task_sheet_id(["list_of_task_sheet_ids"])
-
-# # Get Task info from task_ticket_id or task_sheet_id
-# response_get_task = sdk.get_task("some_task_ticket", "some_task_sheet_id")
-
-# # Get Task Result
-# response_task_result = sdk.task_result("some_task_ticket")
-
-# # Update Task status
-# response_update_task_status = sdk.update_task_status("some_task_ticket", "some_task_status", {"running_info_key": "running_info_value"})
-
-# # Stop task
-# response_stop_task = sdk.stop_task("some_task_ticket")
-
-# # Delete task
-# response_delete_task = sdk.delete_task("some_task_ticket")

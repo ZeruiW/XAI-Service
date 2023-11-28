@@ -1,3 +1,6 @@
+## Quick Review
+http://34.73.250.83:5173/
+
 ## Important Update
 
 1. `az_blob_connection_str.json` and `mongo.*.conf` are no longer required. All configuration goes to `.env.dev` or `.end.pred.` For instance, the following environment variables are required:

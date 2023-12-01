@@ -3,24 +3,13 @@ import json
 import time
 import yaml
 import re
+import os
 import pkg_resources
 from tqdm import tqdm
 from collections import defaultdict
 import threading
 import sys
 from threading import Lock
-
-try:
-    # Load the configuration file from the package
-    config_file = pkg_resources.resource_filename('xai_sdk.xai_sdk', 'sdk_config.yaml')
-
-    with open(config_file, 'r') as file:
-        config = yaml.safe_load(file)
-
-except FileNotFoundError:
-    print("Error: Configuration file not found.")
-except yaml.YAMLError as exc:
-    print(f"Error: Failed to parse the configuration file - {exc}")
 
 print_lock = Lock()
 
@@ -63,7 +52,7 @@ class TaskPublisherClient:
             print(f"Timeout Error: {timeout_err}")
         except requests.exceptions.RequestException as req_err:
             print(f"Error: {req_err}")
-        except ValueError as json_err:  # This is to handle invalid JSON
+        except ValueError as json_err:
             print(f"JSON error: {json_err}")
     
     def register_executor_endpoint(self, act, executor_endpoint_url, executor_type, executor_info):
@@ -82,13 +71,12 @@ class TaskPublisherClient:
                 try:
                     return response.json()
                 except json.JSONDecodeError:
-                    # Handle JSON decoding errors
+                    # Handling JSON decoding errors
                     return {
                         "status": "error",
                         "message": f"Failed to decode JSON. Response content: {response.text}"
                     }
             else:
-                # If the response is not JSON, return its content as an error message
                 return {
                     "status": "error",
                     "message": f"Unexpected response from server: {response.text}"
@@ -122,7 +110,7 @@ class TaskPublisherClient:
                     print("Error: Invalid response format for registered executors.")
                     return
 
-            # Extract executor IDs and service names based on their types
+            # Extracting executor IDs and service names based on their types
             executor_info = defaultdict(list)
 
             for executor in executors_response:
@@ -135,7 +123,6 @@ class TaskPublisherClient:
             if not executor_info:
                 print("No services are currently registered.")
             else:
-                # Print available executor IDs and service names for each type
                 print("\nAvailable Registered Services:\n" + "-"*30)
                 for executor_type, info in executor_info.items():
                     print(f"\n{executor_type.upper()} Services:")
@@ -164,7 +151,7 @@ class TaskPublisherClient:
             return None
 
     
-   # Create an XAI and Eval Task Sheet and return its ID.
+   # Creating an XAI and Eval Task Sheet and returning its ID.
     def create_task_sheet(self, payload, task_type="Task"):
         if 'task_parameters' in payload:
             payload['task_parameters'] = json.dumps(payload['task_parameters'])
@@ -201,7 +188,6 @@ class TaskPublisherClient:
             print(f"{task_type} Task Sheet has started running successfully with the task_ticket_id: {task_ticket_id}")
             return task_ticket_id
         else:
-            # Handle the case where 'task_ticket' is not in the response
             error_message = response_data.get('message', 'No specific error message provided')
             print(f"Failed to start the {task_type} Task Sheet or did not receive a valid task_ticket_id. Error: {error_message}")
             return None
@@ -213,7 +199,10 @@ class TaskPublisherClient:
         try:
             response = requests.post(url, data=data)
             response.raise_for_status()
-            return response.text
+            if response.status_code == 200:
+                return f"Task_sheet with ID '{task_sheet_id}' deleted successfully."
+            else:
+                return f"Received status code {response.status_code}. Unable to confirm deletion of task_sheet with ID '{task_sheet_id}'."
         except requests.exceptions.RequestException as e:
             print(f"Network error occurred: {e}")
             return None
@@ -241,7 +230,8 @@ class TaskPublisherClient:
         try:
             response = requests.get(url, params=params)
             response.raise_for_status()
-            return response.json()
+            pretty_response = json.dumps(response.json(), indent=4)
+            print(pretty_response)
         except requests.exceptions.RequestException as e:
             print(f"Network error occurred: {e}")
             return None
@@ -278,7 +268,8 @@ class TaskPublisherClient:
         try:
             response = requests.get(url, params=params)
             response.raise_for_status()
-            return response.json()
+            pretty_response = json.dumps(response.json(), indent=4)
+            print(pretty_response)
         except requests.exceptions.RequestException as e:
             print(f"Network error occurred: {e}")
             return None
@@ -327,7 +318,11 @@ class TaskPublisherClient:
         try:
             response = requests.post(url, data=data)
             response.raise_for_status()
-            return response.text
+            response_data = response.json()
+            if response_data.get('success'):
+                return f"Task with the Task_Ticket_ID '{task_ticket}' deleted successfully."
+            else:
+                return f"Task deletion request sent, but no confirmation received."
         except requests.exceptions.RequestException as e:
             print(f"Network error occurred: {e}")
             return "Error occurred while deleting the task."
@@ -383,10 +378,19 @@ class TaskPublisherClient:
         try:
             response = requests.post(url, data=data)
             response.raise_for_status()
-            return response.text
+            # Check the status code to confirm successful deletion
+            if response.status_code == 200:
+                return f"Pipeline with ID '{pipeline_id}' deleted successfully."
+            else:
+                # Handle any other status codes appropriately
+                return f"Received status code {response.status_code}. Unable to confirm deletion of Pipeline with ID '{pipeline_id}'."
+
         except requests.exceptions.RequestException as e:
             print(f"Network error occurred: {e}")
             return "Error occurred while deleting the pipeline."
+        except json.JSONDecodeError:
+            print(f"Failed to decode JSON from response: {response.text}")
+            return "Received an invalid response from the server."
 
     
     #get all pipelines
@@ -395,7 +399,8 @@ class TaskPublisherClient:
         try:
             response = requests.get(url)
             response.raise_for_status()
-            return response.json()
+            pretty_response = json.dumps(response.json(), indent=4)
+            print(pretty_response)
         except requests.exceptions.RequestException as e:
             print(f"Network error occurred: {e}")
             return []
@@ -514,8 +519,12 @@ class TaskPublisherClient:
     def register_service_from_config(self, config_path=None):
 
         if not config_path:
-            config_path = pkg_resources.resource_filename('xai_sdk.xai_sdk', 'sdk_config.yaml')
+            config_path = os.environ.get('XAI_SDK_CONFIG_PATH')
 
+        if not config_path or not os.path.exists(config_path):
+            print("Configuration file not found.")
+            return
+        
         # Load the configuration from the yaml file
         with open(config_path, 'r') as file:
             config = yaml.safe_load(file)
@@ -558,10 +567,14 @@ class TaskPublisherClient:
                     print(f"Successfully registered service with executor_id:{response.get('executor_id')} and the URL {url}")
 
     def create_task_sheet_from_config(self, config_path=None):
-        # If no path is provided, use the default path from the package
+        
         if not config_path:
-            config_path = pkg_resources.resource_filename('xai_sdk.xai_sdk', 'sdk_config.yaml')
+            config_path = os.environ.get('XAI_SDK_CONFIG_PATH')
 
+        if not config_path or not os.path.exists(config_path):
+            print("Configuration file not found.")
+            return
+        
         # Load the configuration from the yaml file
         with open(config_path, 'r') as file:
             config = yaml.safe_load(file)
@@ -581,9 +594,13 @@ class TaskPublisherClient:
             self.create_task_sheet(payload, task_type=payload.get('task_type', 'Evaluation'))
 
     def run_task_sheet_from_config(self, config_path=None):
-        # If no path is provided, use the default path from the package
+        
         if not config_path:
-            config_path = pkg_resources.resource_filename('xai_sdk.xai_sdk', 'sdk_config.yaml')
+            config_path = os.environ.get('XAI_SDK_CONFIG_PATH')
+
+        if not config_path or not os.path.exists(config_path):
+            print("Configuration file not found.")
+            return
 
         # Load the configuration from the yaml file
         with open(config_path, 'r') as file:
@@ -605,9 +622,13 @@ class TaskPublisherClient:
 
     
     def create_and_run_task_sheet_from_config(self, config_path=None):
-        # If no path is provided, use the default path from the package
+
         if not config_path:
-            config_path = pkg_resources.resource_filename('xai_sdk.xai_sdk', 'sdk_config.yaml')
+            config_path = os.environ.get('XAI_SDK_CONFIG_PATH')
+
+        if not config_path or not os.path.exists(config_path):
+            print("Configuration file not found.")
+            return
 
         # Load the configuration from the yaml file
         with open(config_path, 'r') as file:
@@ -645,9 +666,12 @@ class TaskPublisherClient:
 
 
     def create_and_run_pipeline_from_config(self, config_path=None):
-        # If no path is provided, use the default path from the package
         if not config_path:
-            config_path = pkg_resources.resource_filename('xai_sdk.xai_sdk', 'sdk_config.yaml')
+            config_path = os.environ.get('XAI_SDK_CONFIG_PATH')
+
+        if not config_path or not os.path.exists(config_path):
+            print("Configuration file not found.")
+            return
 
         # Load the configuration from the yaml file
         with open(config_path, 'r') as file:

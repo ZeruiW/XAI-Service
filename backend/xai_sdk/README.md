@@ -14,8 +14,8 @@ The SDK Gateway is meticulously designed to streamline the process of XAI Evalua
    pip install requests tqdm pyyaml
    ```
 
-3. Now, create a python file named as "client.py" and a configuration file named as "sdk_config.yaml" in your root backend      
-   directory ```/XAI-Service/backend```
+3. Now, create a python file named as "client.py" and a configuration file named as "sdk_config.yaml" in a sub-directory of your  
+   backend directory Example: ```/XAI-Service/backend/sdk_client/```
 
 4. Now set the absolute path for the "sdk_config.yaml" as an environment variable: ```XAI_SDK_CONFIG_PATH``` using the command
    

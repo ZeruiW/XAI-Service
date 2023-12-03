@@ -4,12 +4,12 @@ from flask import (
     Blueprint, request, jsonify, send_file
 )
 
-from central_dev.xai_backend_central_dev.task_publisher import TaskPublisher
-from central_dev.xai_backend_central_dev.constant import Pipeline
-from central_dev.xai_backend_central_dev.constant import PipelineRun
-from central_dev.xai_backend_central_dev.constant import TaskInfo
-from central_dev.xai_backend_central_dev.constant import TaskSheet
-from central_dev.xai_backend_central_dev.constant import ExecutorRegInfo
+from xai_backend_central_dev.task_publisher import TaskPublisher
+from xai_backend_central_dev.constant import Pipeline
+from xai_backend_central_dev.constant import PipelineRun
+from xai_backend_central_dev.constant import TaskInfo
+from xai_backend_central_dev.constant import TaskSheet
+from xai_backend_central_dev.constant import ExecutorRegInfo
 #from xai_backend_central_dev.performance_metrics import performance_metrics
 from tqdm import tqdm
 

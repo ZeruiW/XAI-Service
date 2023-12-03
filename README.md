@@ -113,21 +113,3 @@ If you want to build a single service:
 ```bash
 docker build . -f ./backend/central/Dockerfile -t central
 ```
-
-## XAI-Services Using SDK
-
-1. Before running the services using the SDK, you need to create a ```client.py``` and import ```TaskPublisherClient``` from the SDK and activate it as shown below.
-
-![image](docs/image.png)
-
-2. Now, you can call the XAI-Services using 'sdk.service_name' as shown below and run the python file using the command 
-
-```bash 
-python3 client.py
-```
-
-![SDK_services](docs/SDK_services.png)
-
-3. Users can configure their services as per their requirement using the 'sdk_config.yaml' file located in the SDK Package at ```backend/xai_sdk/xai_sdk/sdk_config.yaml```
-
-![sdk_config](docs/sdk_config.png)

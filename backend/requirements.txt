@@ -5,3 +5,5 @@ numpy
 flask-cors
 psutil
 radon
+requests
+pyyaml

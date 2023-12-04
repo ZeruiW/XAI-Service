@@ -44,3 +44,4 @@ backend/xai_service/s2search
 *.bak
 backend/db_service/azure_blob/azure_blob_performance_metrics.txt
 backend/model_service/resnet50/model_performance_metrics.txt
+backend/xai_sdk/dist

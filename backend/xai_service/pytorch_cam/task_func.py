@@ -107,7 +107,7 @@ def cam_task(task_ticket, publisher_endpoint_url, task_parameters):
         os.makedirs(local_exp_save_dir, exist_ok=True)
 
     cam_method = os.environ['CAM_METHOD']
-
+    print(f"# cam_method : {cam_method}")
     cam_kws = {
         'model': model,
         'target_layers': target_layers,

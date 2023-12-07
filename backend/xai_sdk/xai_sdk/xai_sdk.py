@@ -4,7 +4,6 @@ import time
 import yaml
 import re
 import os
-import pkg_resources
 from tqdm import tqdm
 from collections import defaultdict
 import threading

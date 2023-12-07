@@ -6,3 +6,4 @@ from .xai_sdk import (
     PipelineManager,
     ConfigBasedManager
 )
+from .sdk_interface import SDKInterface

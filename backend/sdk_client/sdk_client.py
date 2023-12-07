@@ -1,7 +1,4 @@
-import sys
-sys.path.append('/Users/harivinayak/Developer/Research_Project/my-sdk/XAI-Service/backend')
-
-from xai_sdk.xai_sdk.sdk_interface import SDKInterface
+from xai_sdk import SDKInterface
 
 sdk = SDKInterface(base_url = "http://35.185.126.177:5006")
 
@@ -20,7 +17,7 @@ pipelines:
 sdk.activate_publisher("http://35.185.126.177:5006")
 
 # Register Service
-#sdk.register_service_from_config(config_file_path)
+sdk.register_service_from_config(config_file_path)
 
 # Get Registered services Info
 #sdk.get_registered_services()

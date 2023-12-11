@@ -4,7 +4,6 @@ import time
 import yaml
 import re
 import os
-import pkg_resources
 from tqdm import tqdm
 from collections import defaultdict
 import threading
@@ -13,12 +12,14 @@ from threading import Lock
 
 print_lock = Lock()
 
-class TaskPublisherClient:
+class BaseTaskManager:
     def __init__(self, base_url):
         self.base_url = base_url
 
+
+class PublisherManager(BaseTaskManager):
     #---------------------------------Publisher Functions----------------------------------
-    # Activte Publisher Function
+    # Activate Publisher Function
     def activate_publisher(self, publisher_endpoint_url):
         url = f"{self.base_url}/task_publisher/publisher"
         data = {'publisher_endpoint_url': publisher_endpoint_url}
@@ -133,7 +134,9 @@ class TaskPublisherClient:
         except Exception as e:
             print(f"An error occurred while retrieving registered services: {e}")
     
-    #-------------------------------------- Tasksheet Functions----------------------------------------
+
+class TaskSheetManager(BaseTaskManager):
+    #-------------------------------------- Tasksheet Functions---------------------------------
     # Create Task Sheet Function
     def self_task_sheet(self, payload):
         url = f"{self.base_url}/task_publisher/task_sheet"
@@ -149,8 +152,7 @@ class TaskPublisherClient:
         except json.JSONDecodeError:
             print(f"Failed to decode JSON from response: {response.text}")
             return None
-
-    
+ 
    # Creating an XAI and Eval Task Sheet and returning its ID.
     def create_task_sheet(self, payload, task_type="Task"):
         if 'task_parameters' in payload:
@@ -239,8 +241,37 @@ class TaskPublisherClient:
             print(f"Failed to decode JSON from response: {response.text}")
             return None
     
+    def fetch_task_sheet_info(self):
+        task_sheets = self.get_task_sheet()
+        if not task_sheets:
+            print("No task sheets found.")
+            return
+        for task_sheet in task_sheets:
+            task_sheet_id = task_sheet.get('task_sheet_id')
+            task_sheet_name = task_sheet.get('task_sheet_name')
+            task_type = task_sheet.get('task_type')
+            print(f"Task Sheet ID: {task_sheet_id}, Task Sheet Name: {task_sheet_name}, Task Type: {task_type}")
+    
+        # Function to get the latest task sheet name index
+    
+    def get_latest_task_sheet_index(self, task_type):
+        task_sheets = self.get_task_sheet()
+        if not task_sheets:
+            return 0
+
+        indices = [0]
+        for sheet in task_sheets:
+            try:
+                if task_type in sheet.get('task_sheet_name', ''):
+                    index = int(sheet.get('task_sheet_name').split(task_type)[1])
+                    indices.append(index)
+            except (ValueError, IndexError):
+                pass
+        return max(indices)
+    
+
+class TaskManager(BaseTaskManager):   
     #-----------------------------------------------------Task Functions----------------------------------------
-   
     #Get Task info from task_ticket_id or task_sheet_id
     def get_task(self, task_ticket=None, task_sheet_id=None):
         url = f"{self.base_url}/task_publisher/task"
@@ -326,10 +357,57 @@ class TaskPublisherClient:
         except requests.exceptions.RequestException as e:
             print(f"Network error occurred: {e}")
             return "Error occurred while deleting the task."
+    
+    # Monitor Task Progress
+    def monitor_task_progress(self, task_sheet_id=None, task_ticket=None):
 
+        if not task_sheet_id and not task_ticket:
+            print("Either task_sheet_id or task_ticket must be provided.")
+            return
 
+        # Check the task status periodically
+        while True:
+            try:
+                task_info = self.get_task(task_sheet_id=task_sheet_id, task_ticket=task_ticket)
+                if not task_info:
+                    print("Failed to retrieve task information. Exiting the monitor.")
+                    break
+
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                break
+            
+            # Check if task_info is a list and extract the relevant dictionary
+            if isinstance(task_info, list):
+                # Assuming the first dictionary in the list contains the relevant information
+                task_info = task_info[0] if task_info else {}
+
+            task_status = task_info.get('task_status')
+
+            with print_lock:
+                sys.stdout.write("\033[K")  # Clear the current console line
+                if task_status == 'finished':
+                    print("\n\nTask finished.")
+                    break
+                elif task_status in ['failed', 'error']:  # Add any other terminal statuses here
+                    print(f"\n\nTask failed with status: {task_status}.")
+                    exit()  # or handle the error appropriately
+                else:
+                    print(f"\n\nTask is still running with status: {task_status}. Waiting...")
+
+                    # Display a progress bar and check the status every second
+                    for _ in tqdm(range(30), desc="Processing", ncols=100):
+                        time.sleep(1)  # sleep for 1 second
+                        # Check the status again
+                        task_info = self.get_task(task_sheet_id=task_sheet_id, task_ticket=task_ticket)
+                        if isinstance(task_info, list):
+                            task_info = task_info[0] if task_info else {}
+                        if task_info.get('task_status') == 'finished':
+                            break
+
+    
+class PipelineManager(BaseTaskManager):
     #--------------------------------------------Pipeline Functions----------------------------------------
-
     def create_pipeline(self, pipeline_name, xai_task_sheet_id, evaluation_task_sheet_id):
         url = f"{self.base_url}/task_publisher/pipeline"
         data = {
@@ -407,96 +485,8 @@ class TaskPublisherClient:
         except json.JSONDecodeError:
             print(f"Failed to decode JSON from response: {response.text}")
             return []
-
-        
-    #-----------------------------------------------Utility Functions----------------------------------- 
-
-    # Function to check if a service is already registered
-    def get_registered_service_urls(self, service_type):
-        registered_executors = self.get_registered_executors()
-        urls = [
-            executor.get("executor_endpoint_url")
-            for executor in registered_executors
-            if executor.get("executor_type") == service_type
-        ]
-        return urls
-
-    def monitor_task_progress(self, task_sheet_id=None, task_ticket=None):
-
-        if not task_sheet_id and not task_ticket:
-            print("Either task_sheet_id or task_ticket must be provided.")
-            return
-
-        # Check the task status periodically
-        while True:
-            try:
-                task_info = self.get_task(task_sheet_id=task_sheet_id, task_ticket=task_ticket)
-                if not task_info:
-                    print("Failed to retrieve task information. Exiting the monitor.")
-                    break
-
-            except Exception as e:
-                print(f"An error occurred: {e}")
-                break
-            
-            # Check if task_info is a list and extract the relevant dictionary
-            if isinstance(task_info, list):
-                # Assuming the first dictionary in the list contains the relevant information
-                task_info = task_info[0] if task_info else {}
-
-            task_status = task_info.get('task_status')
-
-            with print_lock:
-                sys.stdout.write("\033[K")  # Clear the current console line
-                if task_status == 'finished':
-                    print("\n\nTask finished.")
-                    break
-                elif task_status in ['failed', 'error']:  # Add any other terminal statuses here
-                    print(f"\n\nTask failed with status: {task_status}.")
-                    exit()  # or handle the error appropriately
-                else:
-                    print(f"\n\nTask is still running with status: {task_status}. Waiting...")
-
-                    # Display a progress bar and check the status every second
-                    for _ in tqdm(range(30), desc="Processing", ncols=100):
-                        time.sleep(1)  # sleep for 1 second
-                        # Check the status again
-                        task_info = self.get_task(task_sheet_id=task_sheet_id, task_ticket=task_ticket)
-                        if isinstance(task_info, list):
-                            task_info = task_info[0] if task_info else {}
-                        if task_info.get('task_status') == 'finished':
-                            break
-
-    def fetch_task_sheet_info(self):
-        task_sheets = self.get_task_sheet()
-        if not task_sheets:
-            print("No task sheets found.")
-            return
-        for task_sheet in task_sheets:
-            task_sheet_id = task_sheet.get('task_sheet_id')
-            task_sheet_name = task_sheet.get('task_sheet_name')
-            task_type = task_sheet.get('task_type')
-            print(f"Task Sheet ID: {task_sheet_id}, Task Sheet Name: {task_sheet_name}, Task Type: {task_type}")
-
-
-    # Function to get the latest task sheet name index
-    def get_latest_task_sheet_index(self, task_type):
-        task_sheets = self.get_task_sheet()
-        if not task_sheets:
-            return 0
-
-        indices = [0]
-        for sheet in task_sheets:
-            try:
-                if task_type in sheet.get('task_sheet_name', ''):
-                    index = int(sheet.get('task_sheet_name').split(task_type)[1])
-                    indices.append(index)
-            except (ValueError, IndexError):
-                pass
-        return max(indices)
-
-
-    # Function to get the latest pipeline index
+    
+        # Function to get the latest pipeline index
     def get_latest_pipeline_index(self, pipelines):
         if not pipelines:
             return 0
@@ -513,29 +503,26 @@ class TaskPublisherClient:
                     pass
         return max(indices, default=0)
 
-    
+
+class ConfigBasedManager(BaseTaskManager):
+
     #-------------------------------------------Functions using Configuration YAML file----------------------------------
-
-    def register_service_from_config(self, config_path=None):
-
-        if not config_path:
-            config_path = os.environ.get('XAI_SDK_CONFIG_PATH')
-
-        if not config_path or not os.path.exists(config_path):
-            print("Configuration file not found.")
-            return
+    def __init__(self, base_url, publisher_manager, task_sheet_manager, task_manager, pipeline_manager):
+        super().__init__(base_url)
+        self.publisher_manager = publisher_manager
+        self.task_sheet_manager = task_sheet_manager
+        self.task_manager = task_manager
+        self.pipeline_manager = pipeline_manager
+   
+    def register_service_from_config(self, config_source):
         
-        # Load the configuration from the yaml file
-        with open(config_path, 'r') as file:
-            config = yaml.safe_load(file)
+        config = self._parse_config(config_source)
 
-        # Extract the services from the configuration
         services = config.get('services', {})
         if not services:
             print("No services found in the configuration.")
             return
 
-        # Loop through each service type and its list of services
         for service_type, service_list in services.items():
             if not isinstance(service_list, list):
                 print(f"Invalid format for service list under '{service_type}'.")
@@ -549,7 +536,6 @@ class TaskPublisherClient:
                     print(f"Missing required data for service registration in '{service_type}'.")
                     continue
 
-                # preparing the request data
                 request_data = {
                     'act': 'reg',
                     'executor_endpoint_url': url,
@@ -557,27 +543,29 @@ class TaskPublisherClient:
                     'executor_info': executor_info
                 }
 
-                # Register the service
-                response = self.register_executor_endpoint(**request_data)
-
-                # Check the response and print a message
+                response = self.publisher_manager.register_executor_endpoint(**request_data)
                 if response.get('status') == 'error':
                     print(f"Failed to register service with URL {url}. Reason: {response.get('message')}")
                 else:
                     print(f"Successfully registered service with executor_id:{response.get('executor_id')} and the URL {url}")
 
-    def create_task_sheet_from_config(self, config_path=None):
-        
-        if not config_path:
-            config_path = os.environ.get('XAI_SDK_CONFIG_PATH')
 
-        if not config_path or not os.path.exists(config_path):
-            print("Configuration file not found.")
-            return
+    def _parse_config(self, config_source):
+
+        if isinstance(config_source, str) and os.path.exists(config_source):
+            # It's a file path
+            with open(config_source, 'r') as file:
+                return yaml.safe_load(file)
+        elif isinstance(config_source, str):
+            # It's a string
+            return yaml.safe_load(config_source)
+        else:
+            raise ValueError("Invalid configuration source provided.")
+
+
+    def create_task_sheet_from_config(self, config_source):
         
-        # Load the configuration from the yaml file
-        with open(config_path, 'r') as file:
-            config = yaml.safe_load(file)
+        config = self._parse_config(config_source)
 
         # Extract the xai task sheets and evaluation task sheets from the configuration
         xai_task_sheets = config.get('xai_task_sheets', [])
@@ -586,25 +574,17 @@ class TaskPublisherClient:
         # Loop through each xai task sheet payload and create it
         for payload in xai_task_sheets:
             #print(f"Sending XAI Task Sheet request with payload: {payload}")  # Print the request details
-            self.create_task_sheet(payload, task_type=payload.get('task_type', 'Task'))
+            self.task_sheet_manager.create_task_sheet(payload, task_type=payload.get('task_type', 'Task'))
 
         # Loop through each evaluation task sheet payload and create it
         for payload in evaluation_task_sheets:
             #print(f"Sending Evaluation Task Sheet request with payload: {payload}")  # Print the request details
-            self.create_task_sheet(payload, task_type=payload.get('task_type', 'Evaluation'))
+            self.task_sheet_manager.create_task_sheet(payload, task_type=payload.get('task_type', 'Evaluation'))
 
-    def run_task_sheet_from_config(self, config_path=None):
+
+    def run_task_sheet_from_config(self, config_source):
         
-        if not config_path:
-            config_path = os.environ.get('XAI_SDK_CONFIG_PATH')
-
-        if not config_path or not os.path.exists(config_path):
-            print("Configuration file not found.")
-            return
-
-        # Load the configuration from the yaml file
-        with open(config_path, 'r') as file:
-            config = yaml.safe_load(file)
+        config = self._parse_config(config_source)
 
         # Extract the xai task sheet IDs and evaluation task sheet IDs from the configuration
         xai_task_sheet_ids = [item.get('task_sheet_id') for item in config.get('xai_task_sheet_ids', [])]
@@ -613,38 +593,29 @@ class TaskPublisherClient:
         # Loop through each xai task sheet ID and run it
         for task_sheet_id in xai_task_sheet_ids:
             if task_sheet_id:
-                self.run_task_sheet(task_sheet_id, task_type="XAI")
+                self.task_sheet_manager.run_task_sheet(task_sheet_id, task_type="XAI")
 
         # Loop through each evaluation task sheet ID and run it
         for task_sheet_id in evaluation_task_sheet_ids:
             if task_sheet_id:
-                self.run_task_sheet(task_sheet_id, task_type="Evaluation")
+                self.task_sheet_manager.run_task_sheet(task_sheet_id, task_type="Evaluation")
 
-    
-    def create_and_run_task_sheet_from_config(self, config_path=None):
 
-        if not config_path:
-            config_path = os.environ.get('XAI_SDK_CONFIG_PATH')
+    def create_and_run_task_sheet_from_config(self, config_source):
 
-        if not config_path or not os.path.exists(config_path):
-            print("Configuration file not found.")
-            return
-
-        # Load the configuration from the yaml file
-        with open(config_path, 'r') as file:
-            config = yaml.safe_load(file)
+        config = self._parse_config(config_source)
 
         # Extract the xai task sheets and evaluation task sheets from the configuration
         xai_task_sheets = config.get('xai_task_sheets', [])
         evaluation_task_sheets = config.get('evaluation_task_sheets', [])
 
         for idx, payload in enumerate(xai_task_sheets):
-            xai_task_sheet_id = self.create_task_sheet(payload, task_type=payload.get('task_type', 'Task'))
+            xai_task_sheet_id = self.task_sheet_manager.create_task_sheet(payload, task_type=payload.get('task_type', 'Task'))
             if xai_task_sheet_id:
-                task_ticket = self.run_task_sheet(xai_task_sheet_id, task_type="XAI")
+                task_ticket = self.task_sheet_manager.run_task_sheet(xai_task_sheet_id, task_type="XAI")
                 if task_ticket:
                     # Start the task monitoring in a separate thread
-                    monitor_thread = threading.Thread(target=self.monitor_task_progress, args=(xai_task_sheet_id, None))
+                    monitor_thread = threading.Thread(target=self.task_manager.monitor_task_progress, args=(xai_task_sheet_id, None))
                     monitor_thread.start()
                     monitor_thread.join()  # Wait for the monitoring thread to complete
                 else:
@@ -656,26 +627,18 @@ class TaskPublisherClient:
 
                 # Now, run the corresponding evaluation task sheet
                 eval_payload = evaluation_task_sheets[idx]
-                eval_task_sheet_id = self.create_task_sheet(eval_payload, task_type=eval_payload.get('task_type', 'Evaluation'))
+                eval_task_sheet_id = self.task_sheet_manager.create_task_sheet(eval_payload, task_type=eval_payload.get('task_type', 'Evaluation'))
                 if eval_task_sheet_id:
-                    self.run_task_sheet(eval_task_sheet_id, task_type="Evaluation")
+                    self.task_sheet_manager.run_task_sheet(eval_task_sheet_id, task_type="Evaluation")
                 else:
                     print(f"Failed to create Evaluation Task Sheet for payload: {eval_payload}")
             else:
                 print(f"Failed to create XAI Task Sheet for payload: {payload}")
 
 
-    def create_and_run_pipeline_from_config(self, config_path=None):
-        if not config_path:
-            config_path = os.environ.get('XAI_SDK_CONFIG_PATH')
+    def create_and_run_pipeline_from_config(self, config_source):
 
-        if not config_path or not os.path.exists(config_path):
-            print("Configuration file not found.")
-            return
-
-        # Load the configuration from the yaml file
-        with open(config_path, 'r') as file:
-            config = yaml.safe_load(file)
+        config = self._parse_config(config_source)
 
         # Extract the pipelines from the configuration
         pipelines = config.get('pipelines', [])
@@ -693,9 +656,9 @@ class TaskPublisherClient:
                 print(f"Missing required information in pipeline configuration: {pipeline_config}")
                 continue
 
-            pipeline_id = self.create_pipeline(pipeline_name, xai_task_sheet_id, evaluation_task_sheet_id)
+            pipeline_id = self.pipeline_manager.create_pipeline(pipeline_name, xai_task_sheet_id, evaluation_task_sheet_id)
             if pipeline_id:
-                self.run_pipeline(pipeline_id)
+                self.pipeline_manager.run_pipeline(pipeline_id)
             else:
                 print(f"Failed to create or run pipeline: {pipeline_name}")
 

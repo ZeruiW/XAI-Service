@@ -1,108 +1,124 @@
+# XAI-Service SDK: User Guide
+
 The SDK Gateway is meticulously designed to streamline the process of XAI Evaluation. Acting as a central access point, it enables swift interaction with various services orchestrated by the coordination center. Upon initialization, the SDK instantiates the publisher, which subsequently registers pivotal components: Database, AI Model, XAI Model, and Evaluation. Most Importantly, SDK helps users to register multiple services, create multiple task_sheets and run multiple pipelines with just one function call. Moreover, each component is modifiable, allowing users to adjust configurations to their specific requirements.
 
-************************************ Steps to use the SDK for the XAI-Service *********************************
+## Getting Started with XAI-Service SDK
 
-1. First, install the SDK using the command
+### Step 1: Installation
+
+1. #### Install the SDK:
+   Use the following command to install the XAI-Service SDK from the Test PyPI repository:
    
    ```bash
    pip install --index-url https://test.pypi.org/simple/ --no-deps xai_sdk
    ```
 
-2. Now, install the dependencies using the command
+3. #### Install Dependencies:
+   Next, install the required dependencies:
    
    ```bash
    pip install requests tqdm pyyaml
    ```
+### Step 2: Setup
 
-3. Now, create a python file named as "client.py" and a configuration file named as "sdk_config.yaml" in a sub-directory of your  
-   backend directory Example: ```/XAI-Service/backend/sdk_client/```
+1. #### Prepare the Client Environment:
+   Navigate to the directory ```/backend/sdk_client/``` where you need to create the "sdk_client.py" file and the configuration file named "sdk_config.yaml". "Example files are provided as templates to guide you."
 
-4. Now set the absolute path for the "sdk_config.yaml" as an environment variable: ```XAI_SDK_CONFIG_PATH``` using the command
-   
-   For Unix/Linux/macOS:
-   
-   ```bash
-   export XAI_SDK_CONFIG_PATH=/absolute-path/to/your/sdk_config.yaml
-   ```
-
-   For Windows Command Prompt:
+2. #### Import SDKInterface:
+   In client.py, import the SDKInterface from the SDK:
    
    ```bash
-   set XAI_SDK_CONFIG_PATH=C:\absolute-path\to\your\sdk_config.yaml
+   from xai_sdk import SDKInterface
    ```
+   Note: SDKInterface is part of the XAI_SDK which encapsulates the functionalities of all manager classes in the SDK, providing a unified and simplified API.
 
-   For Windows PowerShell:
+3. #### Initialize SDKInterface:
+   Define the SDKInterface with the base_url of your publisher endpoint and assign it to a variable named sdk:
    
    ```bash
-   $env:XAI_SDK_CONFIG_PATH="C:\absolute-path\to\your\config.yaml"
+   sdk = SDKInterface(base_url= "http://publisher_endpoint_url")
    ```
+### Step 3: Configuration
 
-5. Now in the client.py, import the "TaskpublisherClient" from the SDK using the command
+1. #### Set Configuration Path or String:
+   You have two options for configuration:
+
+   #### a) File Path Configuration:
+   Set config_file_path to your YAML file path. Ensure sdk_config.yaml is in the same directory as client.py.
+
+      ```config_source = "sdk_config_dev.yaml"```
    
-   ```bash
-   from xai_sdk import TaskPublisherClient
-   ```
+   #### b) String-Based Configuration:
+   Alternatively, define the configuration as a YAML-formatted string.
 
-6. Define the TaskPublisherClient with the 'base_url' which is the url of the publisher-endpoint (central-service) and define it to 'sdk'.
-   
-   ```bash
-   sdk = TaskPublisherClient(base_url="publisher_endpoint_url")
-   ```
+      ```bash
+      config_source = """
+      pipelines:
+          - name: "pipeline2"
+            xai_task_sheet_id: "8IU7NIAVYWJ0D0L"
+            evaluation_task_sheet_id: "VKNWMX6I9O2OVHF"
+      """
+      ```
 
-7. Now, before calling all the services to create an XAI-Pipeline. Make sure you activate the publisher by calling the function
+### Step 4: Activate Publisher
+
+1. #### Activate the Publisher:
+   Before using the SDK services, activate the publisher:
     
-    Activate Publisher
     ```bash
     sdk.activate_publisher("your_publisher_endpoint_url")
     ``` 
+### Step 5: Utilizing SDK Services
+
+1. #### Service Registration and Management:
+   Utilize the following functions in client.py to manage XAI-pipelines:
+
+   * Register Services:
    
-8. Now, you can call all the functions using ```sdk.your_function()```
+      ```sdk.register_service_from_config(config_source)```
 
-9. Make sure to add relevant data in "sdk_config.yaml" before calling each of these functions. (Sample YAML file is already provided in the repository).
+   * Get Registered Services Info:
 
-   You can register multiple services, create and run multiple task_sheets and pipelines using sdk_config.yaml. Refer the file for more understanding.
+      ```sdk.get_registered_services()```
 
-10. Here are the list of essential functions that are used to create XAI-pipelines. You can use these services in the "client.py"
+   * Create and Run Task Sheets:
 
-     Register Services
-    ```sdk.register_service_from_config()```
+      ```sdk.create_and_run_task_sheet_from_config(config_source)```
 
-    Get Registered services Info
-    ```sdk.get_registered_services()```
+   * Get Task sheets Info:
 
-    Create and Run Task Sheets
-    ```sdk.create_and_run_task_sheet_from_config()```
+      ```sdk.fetch_task_sheet_info()```
 
-    Get Task sheets Info
-    ```sdk.fetch_task_sheet_info()```
+   * Create and run pipelines:
 
-    reate and run pipelines paralelly
-    ```sdk.create_and_run_pipeline_from_config()```
+      ```sdk.create_and_run_pipeline_from_config(config_source)```
 
-    Get Pipelines Info
-    ```sdk.get_all_pipelines()```
+   * Get Pipelines Info:
 
-11. Other Essential functions
-    #------------------------------Task Sheet Functions--------------------
+      ```sdk.get_all_pipelines()```
 
-    Delete Task sheet
-    ```sdk.delete_task_sheet("some_task_sheet_id")```
+2. #### Additional Task Sheet and Task Management Functions:
+   
+   * Delete Task Sheet:
 
-    GET Task Sheet by task_sheet_id
-    ```sdk.get_task_sheet_by_task_sheet_id(["some_task_sheet_id"])```
+       ```sdk.delete_task_sheet("some_task_sheet_id")```
 
-    #----------------------------- Task functions----------------------
+   * Get Task Sheet by ID:
 
-    Get Task Result
-    ```sdk.task_result("some_task_ticket_id")```
+       ```sdk.get_task_sheet_by_task_sheet_id(["some_task_sheet_id"])```
 
-    Stop task
-    ```sdk.stop_task("some_task_ticket")```
+   * Get Task Result:
 
-    Delete Task
-    ```sdk.delete_task("some_task_ticket")```
+       ```sdk.task_result("some_task_ticket_id")```
 
-12. You can always type "sdk." in the client.py to see all the functions that can be called using this SDK.
+   * Stop task:
+     
+       ```sdk.stop_task("some_task_ticket")```
 
-Please refer to the main repository of this project for more information about the XAI-Service.
-https://github.com/ZeruiW/XAI-Service
+   * Delete Task:
+     
+       ```sdk.delete_task("some_task_ticket")```
+
+### Additional Information
+
+For further details and comprehensive guidance, please visit the main repository of the XAI-Service project: [XAI-Service GitHub Repository](https://github.com/ZeruiW/XAI-Service)
